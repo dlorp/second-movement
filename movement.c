@@ -287,11 +287,15 @@ static uint32_t _movement_get_accelerometer_events() {
     if (int_src & LIS2DW_REG_ALL_INT_SRC_DOUBLE_TAP) {
         accelerometer_events |= 1 << EVENT_DOUBLE_TAP;
         printf("Double tap!\r\n");
+        // Wake display on tap
+        _movement_reset_inactivity_countdown();
     }
 
     if (int_src & LIS2DW_REG_ALL_INT_SRC_SINGLE_TAP) {
         accelerometer_events |= 1 << EVENT_SINGLE_TAP;
         printf("Single tap!\r\n");
+        // Wake display on tap
+        _movement_reset_inactivity_countdown();
     }
 
     return accelerometer_events;
@@ -1136,12 +1140,19 @@ void app_setup(void) {
             // Enable the interrupts...
             lis2dw_enable_interrupts();
 
+            // Enable tap detection for tap-to-wake functionality
+            // This will set the data rate to 400Hz for tap detection
+            movement_enable_tap_detection_if_available();
+
             // At first boot, this next line sets the accelerometer's sampling rate to 0, which is LIS2DW_DATA_RATE_POWERDOWN.
             // This means the interrupts we just configured won't fire.
-            // Tap detection will ramp up sesing and make use of the A3 interrupt.
+            // Tap detection will ramp up sensing and make use of the A3 interrupt.
             // If a watch face wants to check in on the A4 interrupt pin for motion status, it can call
             // movement_set_accelerometer_background_rate with another rate like LIS2DW_DATA_RATE_LOWEST or LIS2DW_DATA_RATE_25_HZ.
-            lis2dw_set_data_rate(movement_state.accelerometer_background_rate);
+            // Note: movement_enable_tap_detection_if_available() already sets the data rate, so this may override it if background rate is set
+            if (movement_state.accelerometer_background_rate != LIS2DW_DATA_RATE_POWERDOWN) {
+                lis2dw_set_data_rate(movement_state.accelerometer_background_rate);
+            }
         }
 #endif
 
