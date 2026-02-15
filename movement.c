@@ -1543,6 +1543,49 @@ void cb_accelerometer_event(void) {
     movement_volatile_state.has_pending_accelerometer = true;
 }
 
+// Active Hours Sleep Mode Support (Stream 1: Core Logic)
+// This feature prevents wrist motion from waking the display during sleep hours
+// while still allowing tap-to-wake and button wake to function normally.
+
+// Check if current time is outside active hours window.
+// Active hours are currently hardcoded as 04:00-23:00.
+// Returns true if outside this window (i.e., in sleep window 23:00-04:00).
+// Note: This will be made configurable in Stream 2 via BKUP[2] register.
+static bool is_sleep_window(void) {
+    watch_date_time_t now = watch_rtc_get_date_time();
+    uint8_t hour = now.unit.hour;
+    
+    // Sleep window is 23:00 (23) through 03:59 (3)
+    // Active hours are 04:00 (4) through 22:59 (22)
+    return (hour >= 23 || hour < 4);
+}
+
+// Check if wearer is confirmed to be asleep.
+// Returns true only if BOTH conditions are met:
+// 1. Current time is in sleep window (outside active hours)
+// 2. Accelerometer reports stationary/sleep state
+// This prevents false positives from just lying still during the day.
+static bool is_confirmed_asleep(void) {
+    // First check: must be in sleep window
+    if (!is_sleep_window()) {
+        return false;
+    }
+    
+    // Second check: accelerometer must confirm stationary state
+    // Only check if we have an accelerometer
+    if (!movement_state.has_lis2dw) {
+        // No accelerometer: fall back to time-only check
+        return true;
+    }
+    
+    // Read accelerometer sleep state from wakeup source register
+    // INT2 is already configured to report sleep state changes
+    lis2dw_wakeup_source_t wakeup_src = lis2dw_get_wakeup_source();
+    bool is_stationary = (wakeup_src & LIS2DW_WAKEUP_SRC_SLEEP_STATE) != 0;
+    
+    return is_stationary;
+}
+
 void cb_accelerometer_wake(void) {
     // Check if this was actually a tap event
     lis2dw_interrupt_source_t int_src = lis2dw_get_interrupt_source();
@@ -1552,7 +1595,18 @@ void cb_accelerometer_wake(void) {
         movement_volatile_state.has_pending_accelerometer = true;
     }
     
-    // Always wake and reset inactivity (even if just motion)
+    // Active Hours Sleep Mode: Suppress motion wake during confirmed sleep
+    // This prevents wrist rolls from waking the display at night while still
+    // allowing tap-to-wake (INT1/A3) and button wake to function normally.
+    // Motion wake only suppressed when BOTH time window and accelerometer agree.
+    if (is_confirmed_asleep()) {
+        // We're in confirmed sleep - only process tap events, ignore motion
+        // If this was a tap, the flag is already set above and will be processed
+        // Motion events are simply discarded during sleep hours
+        return;
+    }
+    
+    // Not in sleep mode: normal behavior - wake on any motion
     movement_volatile_state.pending_events |= 1 << EVENT_ACCELEROMETER_WAKE;
     _movement_reset_inactivity_countdown();
 }
