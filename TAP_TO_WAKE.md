@@ -24,11 +24,17 @@ When a tap is detected:
 ## Power Consumption
 
 **Active tap detection:**
-- Accelerometer: ~400µA (400Hz sampling, low power mode)
+- Accelerometer: ~45-90µA (400Hz sampling, LP Mode 1, low noise OFF)
 - Always-on (tap detection enabled at boot)
+- Previous versions incorrectly configured for ~400µA (high-performance or low-noise mode)
+
+**Optimizations applied:**
+- Low-Power Mode 1 (12-bit resolution) set BEFORE ramping to 400Hz
+- Low-noise mode disabled (adds power consumption)
+- Mode configuration order ensures LP mode is not overridden
 
 **Trade-off:**
-- Higher baseline power vs motion-only detection
+- Modest baseline power increase (~50-90µA) vs motion-only detection
 - Instant response (<100ms) vs wrist-raise delay (~500ms)
 - Crystal tap = intuitive UX gesture
 
