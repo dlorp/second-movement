@@ -1129,9 +1129,9 @@ void app_setup(void) {
             lis2dw_configure_int2(LIS2DW_CTRL5_INT2_SLEEP_STATE | LIS2DW_CTRL5_INT2_SLEEP_CHG);
             HAL_GPIO_A4_in();
 
-            // Wake on motion seemed like a good idea when the threshold was lower, but the UX makes less sense now.
-            // Still if you want to wake on motion, you can do it by uncommenting this line:
-            // watch_register_extwake_callback(HAL_GPIO_A4_pin(), cb_accelerometer_wake, false);
+            // Wake on motion for hybrid tap-to-wake: motion detection on INT2/A4 wakes the device,
+            // then software polls tap registers to determine if it was a tap event.
+            watch_register_extwake_callback(HAL_GPIO_A4_pin(), cb_accelerometer_wake, false);
 
             // later on, we are going to use INT1 for tap detection. We'll set up that interrupt here,
             // but it will only fire once tap recognition is enabled.
@@ -1544,7 +1544,15 @@ void cb_accelerometer_event(void) {
 }
 
 void cb_accelerometer_wake(void) {
+    // Check if this was actually a tap event
+    lis2dw_interrupt_source_t int_src = lis2dw_get_interrupt_source();
+    
+    if (int_src & (LIS2DW_INTERRUPT_SRC_DOUBLE_TAP | LIS2DW_INTERRUPT_SRC_SINGLE_TAP)) {
+        // This was a tap - set pending accelerometer flag for event processing
+        movement_volatile_state.has_pending_accelerometer = true;
+    }
+    
+    // Always wake and reset inactivity (even if just motion)
     movement_volatile_state.pending_events |= 1 << EVENT_ACCELEROMETER_WAKE;
-    // also: wake up!
     _movement_reset_inactivity_countdown();
 }
