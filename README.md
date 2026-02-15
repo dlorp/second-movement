@@ -1,6 +1,23 @@
 Second Movement
 ===============
 
+**Note:** This is dlorp's fork of second-movement. See upstream at [joeycastillo/second-movement](https://github.com/joeycastillo/second-movement).
+
+## Fork Changes
+
+### Tap-to-Wake Feature
+Added crystal tap detection for instant display wake on Sensor Watch Pro boards:
+- Hybrid implementation using motion wake (INT2/A4) + software tap polling
+- Both crystal tap and wrist-raise wake the display from sleep
+- Uses LIS2DW12 accelerometer's hardware tap detection (400Hz, Z-axis threshold 12)
+- Power optimized: Low-Power Mode 1 (~45-90µA continuous draw)
+- Graceful fallback on Green boards (no accelerometer)
+- Documentation: TAP_TO_WAKE.md and TAP_TO_WAKE_SLEEP_MODE_ANALYSIS.md
+
+**Hardware constraint:** LIS2DW12 tap interrupts can only route to INT1 (A3), which is not an RTC wake pin. Solution uses motion detection on INT2 (A4) to wake from STANDBY sleep, then polls tap register to distinguish tap events from wrist movement.
+
+---
+
 This is a work-in-progress refactor of the Movement firmware for [Sensor Watch](https://www.sensorwatch.net).
 
 

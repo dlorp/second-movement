@@ -286,12 +286,14 @@ static uint32_t _movement_get_accelerometer_events() {
 
     if (int_src & LIS2DW_REG_ALL_INT_SRC_DOUBLE_TAP) {
         accelerometer_events |= 1 << EVENT_DOUBLE_TAP;
-        printf("Double tap!\r\n");
+        // Wake display on tap
+        _movement_reset_inactivity_countdown();
     }
 
     if (int_src & LIS2DW_REG_ALL_INT_SRC_SINGLE_TAP) {
         accelerometer_events |= 1 << EVENT_SINGLE_TAP;
-        printf("Single tap!\r\n");
+        // Wake display on tap
+        _movement_reset_inactivity_countdown();
     }
 
     return accelerometer_events;
@@ -827,10 +829,12 @@ bool movement_enable_tap_detection_if_available(void) {
         lis2dw_configure_tap_threshold(0, 0, 12, LIS2DW_REG_TAP_THS_Z_Z_AXIS_ENABLE);
         lis2dw_configure_tap_duration(2, 2, 2);
 
-        // ramp data rate up to 400 Hz and high performance mode
-        lis2dw_set_low_noise_mode(true);
-        lis2dw_set_data_rate(LIS2DW_DATA_RATE_HP_400_HZ);
+        // Configure for low power operation BEFORE ramping to 400 Hz
+        // This ensures we stay in LP mode and achieve ~45-90µA instead of ~400µA
         lis2dw_set_mode(LIS2DW_MODE_LOW_POWER);
+        lis2dw_set_low_power_mode(LIS2DW_LP_MODE_1);  // 12-bit, lowest power
+        lis2dw_set_low_noise_mode(false);  // Low noise increases power consumption
+        lis2dw_set_data_rate(LIS2DW_DATA_RATE_HP_400_HZ);  // 400 Hz needed for tap detection
         lis2dw_enable_double_tap();
 
         // Settling time (1 sample duration, i.e. 1/400Hz)
@@ -1125,9 +1129,9 @@ void app_setup(void) {
             lis2dw_configure_int2(LIS2DW_CTRL5_INT2_SLEEP_STATE | LIS2DW_CTRL5_INT2_SLEEP_CHG);
             HAL_GPIO_A4_in();
 
-            // Wake on motion seemed like a good idea when the threshold was lower, but the UX makes less sense now.
-            // Still if you want to wake on motion, you can do it by uncommenting this line:
-            // watch_register_extwake_callback(HAL_GPIO_A4_pin(), cb_accelerometer_wake, false);
+            // Wake on motion for hybrid tap-to-wake: motion detection on INT2/A4 wakes the device,
+            // then software polls tap registers to determine if it was a tap event.
+            watch_register_extwake_callback(HAL_GPIO_A4_pin(), cb_accelerometer_wake, false);
 
             // later on, we are going to use INT1 for tap detection. We'll set up that interrupt here,
             // but it will only fire once tap recognition is enabled.
@@ -1136,12 +1140,19 @@ void app_setup(void) {
             // Enable the interrupts...
             lis2dw_enable_interrupts();
 
+            // Enable tap detection for tap-to-wake functionality
+            // This will set the data rate to 400Hz for tap detection
+            movement_enable_tap_detection_if_available();
+
             // At first boot, this next line sets the accelerometer's sampling rate to 0, which is LIS2DW_DATA_RATE_POWERDOWN.
             // This means the interrupts we just configured won't fire.
-            // Tap detection will ramp up sesing and make use of the A3 interrupt.
+            // Tap detection will ramp up sensing and make use of the A3 interrupt.
             // If a watch face wants to check in on the A4 interrupt pin for motion status, it can call
             // movement_set_accelerometer_background_rate with another rate like LIS2DW_DATA_RATE_LOWEST or LIS2DW_DATA_RATE_25_HZ.
-            lis2dw_set_data_rate(movement_state.accelerometer_background_rate);
+            // FIX: Don't override the 400Hz set by tap detection! Only override if background rate is HIGHER than 400Hz.
+            if (movement_state.accelerometer_background_rate > LIS2DW_DATA_RATE_HP_400_HZ) {
+                lis2dw_set_data_rate(movement_state.accelerometer_background_rate);
+            }
         }
 #endif
 
@@ -1533,7 +1544,15 @@ void cb_accelerometer_event(void) {
 }
 
 void cb_accelerometer_wake(void) {
+    // Check if this was actually a tap event
+    lis2dw_interrupt_source_t int_src = lis2dw_get_interrupt_source();
+    
+    if (int_src & (LIS2DW_INTERRUPT_SRC_DOUBLE_TAP | LIS2DW_INTERRUPT_SRC_SINGLE_TAP)) {
+        // This was a tap - set pending accelerometer flag for event processing
+        movement_volatile_state.has_pending_accelerometer = true;
+    }
+    
+    // Always wake and reset inactivity (even if just motion)
     movement_volatile_state.pending_events |= 1 << EVENT_ACCELEROMETER_WAKE;
-    // also: wake up!
     _movement_reset_inactivity_countdown();
 }
