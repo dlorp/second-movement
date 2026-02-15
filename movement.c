@@ -49,6 +49,7 @@
 #include "movement_config.h"
 
 #include "movement_custom_signal_tunes.h"
+#include "sleep_data.h"
 
 #if __EMSCRIPTEN__
 #include <emscripten.h>
@@ -128,6 +129,10 @@ int8_t alarm_tune[] = {
 
 int8_t _movement_dst_offset_cache[NUM_ZONE_NAMES] = {0};
 #define TIMEZONE_DOES_NOT_OBSERVE (-127)
+
+// Sleep tracking data (70 bytes)
+static sleep_data_t sleep_data;
+static bool sleep_data_dirty = false;  // Tracks if we need to save to flash
 
 void cb_mode_btn_interrupt(void);
 void cb_light_btn_interrupt(void);
@@ -377,6 +382,18 @@ static void _movement_handle_top_of_minute(void) {
     // update the DST offset cache every 30 minutes, since someplace in the world could change.
     if (date_time.unit.minute % 30 == 0) {
         _movement_update_dst_offset_cache();
+    }
+    
+    // Stream 4: Save sleep tracking data to flash periodically
+    // Save once per hour during sleep window to batch writes and reduce flash wear
+    // Also save at end of sleep window (7:00) to persist the complete night
+    if (movement_state.has_lis2dw) {
+        bool is_end_of_sleep = (date_time.unit.hour == SLEEP_END_HOUR && date_time.unit.minute == 0);
+        bool is_hourly_save = (date_time.unit.minute == 0);
+        
+        if (is_end_of_sleep || (is_hourly_save && is_sleep_window())) {
+            sleep_tracking_save_to_flash();
+        }
     }
 
     for(uint8_t i = 0; i < MOVEMENT_NUM_FACES; i++) {
@@ -905,6 +922,35 @@ bool movement_set_accelerometer_motion_threshold(uint8_t new_threshold) {
     return false;
 }
 
+movement_active_hours_t movement_get_active_hours(void) {
+    movement_active_hours_t settings;
+    settings.reg = watch_get_backup_data(2);
+    
+    // Check if backup register is uninitialized (all zeros or all ones)
+    // Initialize with defaults: 04:00-23:00 (16-92 in quarter hours), enabled
+    if (settings.reg == 0 || settings.reg == 0xFFFFFFFF) {
+        settings.bit.start_quarter_hours = 16;  // 04:00 = 4 * 4 = 16
+        settings.bit.end_quarter_hours = 92;    // 23:00 = 23 * 4 = 92
+        settings.bit.enabled = true;
+        settings.bit.reserved = 0;
+        movement_set_active_hours(settings);
+    }
+    
+    // Validate values are in range (0-95)
+    if (settings.bit.start_quarter_hours > 95) settings.bit.start_quarter_hours = 16;
+    if (settings.bit.end_quarter_hours > 95) settings.bit.end_quarter_hours = 92;
+    
+    return settings;
+}
+
+void movement_set_active_hours(movement_active_hours_t settings) {
+    // Clamp values to valid range
+    if (settings.bit.start_quarter_hours > 95) settings.bit.start_quarter_hours = 95;
+    if (settings.bit.end_quarter_hours > 95) settings.bit.end_quarter_hours = 95;
+    
+    watch_store_backup_data(settings.reg, 2);
+}
+
 float movement_get_temperature(void) {
     float temperature_c = (float)0xFFFFFFFF;
 #if __EMSCRIPTEN__
@@ -1144,6 +1190,9 @@ void app_setup(void) {
 
             // Enable the interrupts...
             lis2dw_enable_interrupts();
+
+            // Initialize sleep tracking (Stream 4)
+            sleep_tracking_init();
 
             // Enable tap detection for tap-to-wake functionality
             // This will set the data rate to 400Hz for tap detection
@@ -1558,17 +1607,242 @@ void cb_accelerometer_event(void) {
 // This feature prevents wrist motion from waking the display during sleep hours
 // while still allowing tap-to-wake and button wake to function normally.
 
-// Check if current time is outside active hours window.
-// Active hours are currently hardcoded as 04:00-23:00.
-// Returns true if outside this window (i.e., in sleep window 23:00-04:00).
-// Note: This will be made configurable in Stream 2 via BKUP[2] register.
-static bool is_sleep_window(void) {
+// Sleep Tracking Implementation (Stream 4)
+// Logs orientation changes during sleep in 15-minute bins with minimal power overhead.
+
+// Initialize sleep tracking system. Loads data from flash if available.
+void sleep_tracking_init(void) {
+    // Try to load existing data from flash
+    sleep_tracking_load_from_flash();
+    sleep_data_dirty = false;
+}
+
+// Load sleep data from flash storage
+void sleep_tracking_load_from_flash(void) {
+    uint8_t buffer[sizeof(sleep_data_t)];
+    
+    // Read from flash storage row
+    if (watch_storage_read(SLEEP_STORAGE_ROW, 0, buffer, sizeof(sleep_data_t))) {
+        memcpy(&sleep_data, buffer, sizeof(sleep_data_t));
+        
+        // Validate the loaded data
+        if (sleep_data.current_index >= SLEEP_NIGHTS_STORED) {
+            // Invalid data, initialize fresh
+            memset(&sleep_data, 0, sizeof(sleep_data_t));
+            sleep_data.current_index = 0;
+        }
+    } else {
+        // No data in flash or read failed, initialize fresh
+        memset(&sleep_data, 0, sizeof(sleep_data_t));
+        sleep_data.current_index = 0;
+    }
+}
+
+// Save sleep data to flash storage (batched to reduce write cycles)
+void sleep_tracking_save_to_flash(void) {
+    if (!sleep_data_dirty) {
+        return;  // No changes to save
+    }
+    
+    // Erase the row first (required before write)
+    watch_storage_erase(SLEEP_STORAGE_ROW);
+    
+    // Write the data
+    watch_storage_write(SLEEP_STORAGE_ROW, 0, (const uint8_t *)&sleep_data, sizeof(sleep_data_t));
+    
+    // Wait for write to complete
+    watch_storage_sync();
+    
+    sleep_data_dirty = false;
+}
+
+// Get which 15-minute bin we're currently in (0-31, or 255 if not in sleep window)
+uint8_t sleep_tracking_get_current_bin(void) {
     watch_date_time_t now = watch_rtc_get_date_time();
     uint8_t hour = now.unit.hour;
+    uint8_t minute = now.unit.minute;
     
-    // Sleep window is 23:00 (23) through 03:59 (3)
-    // Active hours are 04:00 (4) through 22:59 (22)
-    return (hour >= 23 || hour < 4);
+    // Sleep window is 23:00 to 07:00
+    int bin = -1;
+    
+    if (hour >= SLEEP_START_HOUR) {
+        // 23:00-23:59 -> bins 0-3
+        bin = (hour - SLEEP_START_HOUR) * 4 + (minute / SLEEP_BIN_MINUTES);
+    } else if (hour < SLEEP_END_HOUR) {
+        // 00:00-06:59 -> bins 4-31
+        bin = ((24 - SLEEP_START_HOUR) + hour) * 4 + (minute / SLEEP_BIN_MINUTES);
+    }
+    
+    if (bin < 0 || bin >= SLEEP_BINS_PER_NIGHT) {
+        return 255;  // Not in sleep window
+    }
+    
+    return (uint8_t)bin;
+}
+
+// Get orientation bits from a specific bin (0-31)
+static uint8_t get_bin_orientation(const sleep_night_t *night, uint8_t bin) {
+    if (bin >= SLEEP_BINS_PER_NIGHT) {
+        return SLEEP_ORIENTATION_UNKNOWN;
+    }
+    
+    uint8_t byte_index = bin / 4;  // 4 bins per byte
+    uint8_t bit_offset = (bin % 4) * 2;  // 2 bits per bin
+    
+    uint8_t value = (night->night_data[byte_index] >> bit_offset) & 0x03;
+    return value;
+}
+
+// Set orientation bits for a specific bin (0-31)
+static void set_bin_orientation(sleep_night_t *night, uint8_t bin, uint8_t orientation) {
+    if (bin >= SLEEP_BINS_PER_NIGHT || orientation > 3) {
+        return;
+    }
+    
+    uint8_t byte_index = bin / 4;
+    uint8_t bit_offset = (bin % 4) * 2;
+    
+    // Clear the 2 bits
+    night->night_data[byte_index] &= ~(0x03 << bit_offset);
+    // Set the new value
+    night->night_data[byte_index] |= (orientation << bit_offset);
+}
+
+// Encode date as 16-bit value: ((year-2024) << 9) | (month << 5) | day
+static uint16_t encode_date(watch_date_time_t dt) {
+    uint16_t year_offset = (dt.unit.year > 2024) ? (dt.unit.year - 2024) : 0;
+    return (year_offset << 9) | (dt.unit.month << 5) | dt.unit.day;
+}
+
+// Check if we need to start a new night (date changed or first entry)
+static void check_and_start_new_night(void) {
+    watch_date_time_t now = watch_rtc_get_date_time();
+    uint16_t today_code = encode_date(now);
+    
+    sleep_night_t *current_night = &sleep_data.nights[sleep_data.current_index];
+    
+    // If date code doesn't match, we need to start a new night
+    if (current_night->date_code != today_code) {
+        // Move to next night in circular buffer
+        sleep_data.current_index = (sleep_data.current_index + 1) % SLEEP_NIGHTS_STORED;
+        current_night = &sleep_data.nights[sleep_data.current_index];
+        
+        // Clear the new night's data
+        memset(current_night->night_data, 0, SLEEP_BYTES_PER_NIGHT);
+        current_night->date_code = today_code;
+        
+        sleep_data_dirty = true;
+    }
+}
+
+// Get 6D orientation from accelerometer
+static uint8_t get_current_orientation(void) {
+    lis2dw_6d_source_t source = lis2dw_get_6d_source();
+    
+    if (source & LIS2DW_6D_SRC_ZH) {
+        return SLEEP_ORIENTATION_FACE_UP;
+    } else if (source & LIS2DW_6D_SRC_ZL) {
+        return SLEEP_ORIENTATION_FACE_DOWN;
+    } else {
+        return SLEEP_ORIENTATION_TILTED;
+    }
+}
+
+// Log an orientation change during sleep
+void sleep_tracking_log_orientation(uint8_t orientation) {
+    // Only track if we have an accelerometer
+    if (!movement_state.has_lis2dw) {
+        return;
+    }
+    
+    // Get current bin
+    uint8_t bin = sleep_tracking_get_current_bin();
+    if (bin == 255) {
+        return;  // Not in sleep window
+    }
+    
+    // Make sure we're tracking the right night
+    check_and_start_new_night();
+    
+    // Update the bin
+    sleep_night_t *current_night = &sleep_data.nights[sleep_data.current_index];
+    set_bin_orientation(current_night, bin, orientation);
+    
+    sleep_data_dirty = true;
+}
+
+// Get sleep data for a specific night (0 = tonight, 1 = last night, etc.)
+bool sleep_tracking_get_night_data(uint8_t days_ago, sleep_night_t *out_night) {
+    if (days_ago >= SLEEP_NIGHTS_STORED || out_night == NULL) {
+        return false;
+    }
+    
+    // Calculate index in circular buffer
+    int index = sleep_data.current_index - days_ago;
+    if (index < 0) {
+        index += SLEEP_NIGHTS_STORED;
+    }
+    
+    memcpy(out_night, &sleep_data.nights[index], sizeof(sleep_night_t));
+    
+    // Return true only if this night has data (date_code != 0)
+    return (out_night->date_code != 0);
+}
+
+// Count orientation changes for a given night (restlessness metric)
+uint8_t sleep_tracking_count_orientation_changes(const sleep_night_t *night) {
+    uint8_t changes = 0;
+    uint8_t prev_orientation = SLEEP_ORIENTATION_UNKNOWN;
+    
+    for (uint8_t bin = 0; bin < SLEEP_BINS_PER_NIGHT; bin++) {
+        uint8_t orientation = get_bin_orientation(night, bin);
+        
+        if (orientation != SLEEP_ORIENTATION_UNKNOWN && 
+            prev_orientation != SLEEP_ORIENTATION_UNKNOWN &&
+            orientation != prev_orientation) {
+            changes++;
+        }
+        
+        if (orientation != SLEEP_ORIENTATION_UNKNOWN) {
+            prev_orientation = orientation;
+        }
+    }
+    
+    return changes;
+}
+
+// Check if current time is outside active hours window.
+// Active hours are configurable via BKUP[2] register.
+// Returns true if outside active hours window (i.e., in sleep window).
+static bool is_sleep_window(void) {
+    // Get active hours settings from BKUP[2]
+    movement_active_hours_t settings = movement_get_active_hours();
+    
+    // If active hours are disabled, never consider it sleep time
+    if (!settings.bit.enabled) {
+        return false;
+    }
+    
+    // Convert current time to quarter-hours (15-minute increments)
+    watch_date_time_t now = watch_rtc_get_date_time();
+    uint8_t current_quarter_hours = (now.unit.hour * 4) + (now.unit.minute / 15);
+    
+    uint8_t start = settings.bit.start_quarter_hours;
+    uint8_t end = settings.bit.end_quarter_hours;
+    
+    // Check if current time is in sleep window (outside active hours)
+    if (start < end) {
+        // Active hours don't wrap midnight (e.g., 08:00-22:00)
+        // Sleep window is before start OR after end
+        return (current_quarter_hours < start || current_quarter_hours >= end);
+    } else if (start > end) {
+        // Active hours wrap midnight (e.g., 22:00-08:00)
+        // Sleep window is after end AND before start
+        return (current_quarter_hours >= end && current_quarter_hours < start);
+    } else {
+        // start == end means 24-hour active (no sleep window)
+        return false;
+    }
 }
 
 // Check if wearer is confirmed to be asleep.
@@ -1601,6 +1875,127 @@ static bool is_confirmed_asleep(void) {
     return is_stationary;
 }
 
+// Smart Alarm Pre-Wake Detection Support (Stream 3)
+// These functions enable the smart alarm to wake the user during light sleep
+// within a configured time window, improving wake quality.
+
+// Global state for smart alarm tracking
+// This tracks motion events during the pre-wake monitoring period
+static struct {
+    uint8_t motion_event_count;     // Count of motion events in tracking window
+    uint8_t orientation_changes;    // Count of orientation changes
+    uint32_t last_motion_time;      // Timestamp of last motion event (in seconds)
+    bool tracking_active;           // Whether we're actively monitoring for light sleep
+} smart_alarm_tracking = {0, 0, 0, false};
+
+// Get smart alarm configuration from BKUP[3] register
+// Returns true if smart alarm is enabled, false otherwise
+// Outputs window_start and window_end in 15-minute increments (0-95)
+static bool get_smart_alarm_config(uint8_t *window_start, uint8_t *window_end) {
+    uint32_t config = watch_get_backup_data(3);
+    
+    *window_start = (config >> 0) & 0x7F;   // Bits 0-6
+    *window_end = (config >> 7) & 0x7F;     // Bits 7-13
+    bool enabled = (config >> 14) & 0x01;   // Bit 14
+    
+    return enabled;
+}
+
+// Check if current time is approaching the alarm window (15 minutes before start).
+// Returns true to trigger accelerometer ramp-up for light sleep detection.
+static bool is_approaching_alarm_window(void) {
+    uint8_t window_start, window_end;
+    
+    // Check if smart alarm is enabled
+    if (!get_smart_alarm_config(&window_start, &window_end)) {
+        return false;
+    }
+    
+    // Get current time and convert to 15-minute increment index
+    watch_date_time_t now = watch_rtc_get_date_time();
+    uint8_t current_increment = (now.unit.hour * 4) + (now.unit.minute / 15);
+    
+    // Calculate 15 minutes before window start
+    // Handle wraparound (e.g., window at 00:00 means pre-wake at 23:45)
+    uint8_t prewake_increment = (window_start > 0) ? (window_start - 1) : 95;
+    
+    // We're approaching if we're at the pre-wake time
+    // or anywhere between pre-wake and window end
+    bool in_prewake_window = false;
+    if (prewake_increment < window_end) {
+        // Normal case: window doesn't wrap midnight
+        in_prewake_window = (current_increment >= prewake_increment && 
+                             current_increment <= window_end);
+    } else {
+        // Window wraps midnight
+        in_prewake_window = (current_increment >= prewake_increment || 
+                             current_increment <= window_end);
+    }
+    
+    return in_prewake_window;
+}
+
+// Check if light sleep is detected based on accelerometer activity.
+// Light sleep is characterized by increased motion and orientation changes
+// compared to deep sleep baseline.
+// Returns true if light sleep indicators are present.
+static bool is_light_sleep_detected(void) {
+    // Only valid if we have an accelerometer and tracking is active
+    if (!movement_state.has_lis2dw || !smart_alarm_tracking.tracking_active) {
+        return false;
+    }
+    
+    // Light sleep detection criteria:
+    // 1. At least 2 motion events in the last 5 minutes (indicates restlessness)
+    // 2. OR at least 1 orientation change (indicates position shift)
+    
+    // Get current time
+    watch_date_time_t now = watch_rtc_get_date_time();
+    uint32_t current_time = now.unit.hour * 3600 + now.unit.minute * 60 + now.unit.second;
+    
+    // Check if we have recent motion (within last 5 minutes = 300 seconds)
+    uint32_t time_since_motion = current_time - smart_alarm_tracking.last_motion_time;
+    bool recent_motion = (time_since_motion < 300);
+    
+    // Light sleep detected if:
+    // - Multiple motion events AND recent activity
+    // - OR orientation changes detected
+    bool light_sleep = (smart_alarm_tracking.motion_event_count >= 2 && recent_motion) ||
+                       (smart_alarm_tracking.orientation_changes >= 1);
+    
+    return light_sleep;
+}
+
+// Reset smart alarm tracking state
+// Called when alarm fires or user wakes naturally
+static void reset_smart_alarm_tracking(void) {
+    smart_alarm_tracking.motion_event_count = 0;
+    smart_alarm_tracking.orientation_changes = 0;
+    smart_alarm_tracking.last_motion_time = 0;
+    smart_alarm_tracking.tracking_active = false;
+}
+
+// Update smart alarm tracking with new motion event
+// Called from the deferred wake handler (not ISR)
+static void update_smart_alarm_tracking(bool is_orientation_change) {
+    if (!smart_alarm_tracking.tracking_active) {
+        return;
+    }
+    
+    // Increment motion event counter
+    smart_alarm_tracking.motion_event_count++;
+    
+    // Track orientation changes separately
+    if (is_orientation_change) {
+        smart_alarm_tracking.orientation_changes++;
+    }
+    
+    // Update timestamp
+    watch_date_time_t now = watch_rtc_get_date_time();
+    smart_alarm_tracking.last_motion_time = 
+        now.unit.hour * 3600 + now.unit.minute * 60 + now.unit.second;
+}
+
 // Deferred handler for accelerometer wake events.
 // Must NOT be called from an ISR — it performs blocking I2C reads.
 // Called by app_loop on the next tick after accelerometer_woke is set.
@@ -1608,23 +2003,54 @@ static void _movement_handle_accelerometer_wake(void) {
     // Check interrupt source via I2C (safe here — we are in the main loop).
     lis2dw_interrupt_source_t int_src = lis2dw_get_interrupt_source();
 
-    if (int_src & (LIS2DW_INTERRUPT_SRC_DOUBLE_TAP | LIS2DW_INTERRUPT_SRC_SINGLE_TAP)) {
+    bool is_tap = (int_src & (LIS2DW_INTERRUPT_SRC_DOUBLE_TAP | LIS2DW_INTERRUPT_SRC_SINGLE_TAP)) != 0;
+    bool is_orientation_change = (int_src & LIS2DW_INTERRUPT_SRC_6D) != 0;
+
+    if (is_tap) {
         // This was a tap - set pending accelerometer flag for event processing
         movement_volatile_state.has_pending_accelerometer = true;
+    }
+
+    // Smart Alarm Pre-Wake Monitoring (Stream 3)
+    // If we're approaching the alarm window, activate tracking and monitor for light sleep
+    if (is_approaching_alarm_window()) {
+        // Activate tracking if not already active
+        if (!smart_alarm_tracking.tracking_active) {
+            smart_alarm_tracking.tracking_active = true;
+        }
+
+        // Update tracking with this motion event
+        update_smart_alarm_tracking(is_orientation_change);
+
+        // Check if light sleep is detected
+        if (is_light_sleep_detected()) {
+            // Trigger alarm immediately — light sleep detected within window.
+            // This will be picked up by the smart_alarm_face_advise function.
+            movement_volatile_state.minute_alarm_fired = true;
+            reset_smart_alarm_tracking();
+        }
+    } else {
+        // Not in alarm window — reset tracking if it was active
+        if (smart_alarm_tracking.tracking_active) {
+            reset_smart_alarm_tracking();
+        }
     }
 
     // Active Hours Sleep Mode: Suppress motion wake during confirmed sleep.
     // This prevents wrist rolls from waking the display at night while still
     // allowing tap-to-wake (INT1/A3) and button wake to function normally.
     // Motion wake only suppressed when BOTH time window and accelerometer agree.
-    if (is_confirmed_asleep()) {
+    // Exception: Don't suppress during smart alarm pre-wake window (let tracking happen).
+    if (is_confirmed_asleep() && !is_approaching_alarm_window()) {
+        // Stream 4: Log orientation changes during sleep
+        uint8_t orientation = get_current_orientation();
+        sleep_tracking_log_orientation(orientation);
+
         // We're in confirmed sleep — only process tap events, ignore motion.
-        // If this was a tap, the flag is already set above and will be processed.
-        // Motion events are simply discarded during sleep hours.
         return;
     }
 
-    // Not in sleep mode: normal behavior — wake on any motion.
+    // Not in sleep mode (or in alarm pre-wake window): normal behavior — wake on any motion.
     movement_volatile_state.pending_events |= 1 << EVENT_ACCELEROMETER_WAKE;
     _movement_reset_inactivity_countdown();
 }
