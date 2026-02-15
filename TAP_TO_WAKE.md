@@ -5,21 +5,42 @@ Tap-to-wake enables instant display wake by tapping the watch crystal. This feat
 
 ## How It Works
 
+### Hardware Constraints
+The LIS2DW12 accelerometer has a critical limitation:
+- **Tap detection interrupt** can ONLY route to INT1 (pin A3)
+- **Pin A3 is NOT an RTC wake pin** - cannot wake from deep sleep
+- **Pin A4 (INT2) IS an RTC wake pin** - can wake from deep sleep
+
+This means pure hardware tap detection cannot wake the device from sleep mode.
+
+### Hybrid Solution: Motion Wake + Tap Polling
+To work around this limitation, we use a **hybrid approach**:
+
+1. **Motion detection** is configured on INT2 (pin A4) - this CAN wake from sleep
+2. When ANY motion occurs (including taps), the device wakes via the A4 interrupt
+3. **Software immediately polls** the tap registers to determine if it was a tap
+4. If tap bits are set, the event is processed as a tap; otherwise just a motion wake
+
+**Trade-off:** Both tap and wrist-raise motion can wake the device. We cannot distinguish at the hardware level whether the wake was tap-only or motion-only. Software checks the tap register after waking to determine the cause.
+
 ### Hardware
 - **Accelerometer:** LIS2DW12 (Pro board only)
 - **Detection:** Hardware-based tap recognition on Z-axis
-- **Interrupt:** Routed to INT1 (pin A3)
+- **Wake interrupt:** Motion detection on INT2 (pin A4) - RTC wake capable
+- **Tap polling:** Software reads tap status from INT1 source register after wake
 - **Sampling rate:** 400Hz during tap detection
 - **Modes:** Single tap and double tap both supported
 
 ### Software
-When a tap is detected:
-1. Accelerometer generates interrupt on INT1 (A3)
-2. `cb_accelerometer_event()` callback sets `has_pending_accelerometer` flag
-3. Main loop calls `_movement_get_accelerometer_events()`
-4. Tap events (SINGLE_TAP or DOUBLE_TAP) are generated
-5. `_movement_reset_inactivity_countdown()` wakes display immediately
-6. Events are passed to current watch face (can be handled by faces if desired)
+When motion (including tap) is detected:
+1. Accelerometer generates interrupt on INT2 (A4) - device wakes from sleep
+2. `cb_accelerometer_wake()` callback executes immediately
+3. Software polls `lis2dw_get_interrupt_source()` to read tap status
+4. If SINGLE_TAP or DOUBLE_TAP bits are set, `has_pending_accelerometer` flag is raised
+5. Main loop calls `_movement_get_accelerometer_events()`
+6. Tap events (SINGLE_TAP or DOUBLE_TAP) are generated if tap was detected
+7. `_movement_reset_inactivity_countdown()` wakes display
+8. Events are passed to current watch face (can be handled by faces if desired)
 
 ## Power Consumption
 
@@ -86,7 +107,11 @@ movement_enable_tap_detection_if_available();
 ```
 User taps crystal
     ↓
-<100ms response time
+Motion detection triggers A4 wake interrupt
+    ↓
+Software polls tap registers
+    ↓
+~100-200ms response time (slightly slower than pure hardware interrupt)
     ↓
 Display wakes
     ↓
@@ -95,9 +120,13 @@ Current face visible
 Inactivity timer reset (won't sleep immediately)
 ```
 
+**Note:** Response time is slightly slower than a pure hardware tap interrupt would be, because we rely on motion detection to wake the device, then poll the tap registers. However, the user experience is still excellent - the delay is barely perceptible.
+
 ### Coexistence with Other Features
 Tap detection works alongside:
-- **Motion detection** (INT2/A4) - For wrist-raise wake (if enabled)
+- **Motion detection** (INT2/A4) - Required for tap-to-wake (see hybrid approach above)
+  - Both tap and wrist-raise can wake the device
+  - Software distinguishes tap from motion after wake
 - **Button wake** - Always available as fallback
 - **Step counting** - Can share accelerometer (different data rate/FIFO)
 
