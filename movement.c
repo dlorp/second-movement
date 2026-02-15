@@ -1900,6 +1900,7 @@ static struct {
 // Outputs window_start and window_end in 15-minute increments (0-95)
 static bool get_smart_alarm_config(uint8_t *window_start, uint8_t *window_end) {
     uint32_t config = watch_get_backup_data(3);
+
     
     *window_start = (config >> 0) & 0x7F;   // Bits 0-6
     *window_end = (config >> 7) & 0x7F;     // Bits 7-13
