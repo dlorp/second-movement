@@ -273,6 +273,69 @@ static void blue_led_setting_advance(void) {
     movement_set_backlight_color(color);
 }
 
+static void active_hours_enabled_setting_display(uint8_t subsecond) {
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "ActHr", "AH");
+    watch_display_text(WATCH_POSITION_BOTTOM, "enable");
+    if (subsecond % 2) {
+        movement_active_hours_t settings = movement_get_active_hours();
+        if (settings.bit.enabled) {
+            watch_display_text(WATCH_POSITION_TOP_RIGHT, " Y");
+        } else {
+            watch_display_text(WATCH_POSITION_TOP_RIGHT, " N");
+        }
+    }
+}
+
+static void active_hours_enabled_setting_advance(void) {
+    movement_active_hours_t settings = movement_get_active_hours();
+    settings.bit.enabled = !settings.bit.enabled;
+    movement_set_active_hours(settings);
+}
+
+static void active_hours_start_setting_display(uint8_t subsecond) {
+    char buf[8];
+    movement_active_hours_t settings = movement_get_active_hours();
+    
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "ActHr", "AH");
+    if (subsecond % 2) {
+        // Convert quarter-hours to HH:MM format
+        uint8_t hour = settings.bit.start_quarter_hours / 4;
+        uint8_t minute = (settings.bit.start_quarter_hours % 4) * 15;
+        sprintf(buf, "St%2d%02d", hour, minute);
+        watch_display_text(WATCH_POSITION_BOTTOM, buf);
+    }
+}
+
+static void active_hours_start_setting_advance(void) {
+    movement_active_hours_t settings = movement_get_active_hours();
+    // Increment by 1 quarter-hour (15 minutes), wrap at 96 (24 hours)
+    settings.bit.start_quarter_hours = (settings.bit.start_quarter_hours + 1) % 96;
+    movement_set_active_hours(settings);
+    active_hours_start_setting_display(1);
+}
+
+static void active_hours_end_setting_display(uint8_t subsecond) {
+    char buf[8];
+    movement_active_hours_t settings = movement_get_active_hours();
+    
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "ActHr", "AH");
+    if (subsecond % 2) {
+        // Convert quarter-hours to HH:MM format
+        uint8_t hour = settings.bit.end_quarter_hours / 4;
+        uint8_t minute = (settings.bit.end_quarter_hours % 4) * 15;
+        sprintf(buf, "En%2d%02d", hour, minute);
+        watch_display_text(WATCH_POSITION_BOTTOM, buf);
+    }
+}
+
+static void active_hours_end_setting_advance(void) {
+    movement_active_hours_t settings = movement_get_active_hours();
+    // Increment by 1 quarter-hour (15 minutes), wrap at 96 (24 hours)
+    settings.bit.end_quarter_hours = (settings.bit.end_quarter_hours + 1) % 96;
+    movement_set_active_hours(settings);
+    active_hours_end_setting_display(1);
+}
+
 static void  git_hash_setting_display(uint8_t subsecond) {
     (void) subsecond;
     char buf[8];
@@ -293,7 +356,7 @@ void settings_face_setup(uint8_t watch_face_index, void ** context_ptr) {
         settings_state_t *state = (settings_state_t *)*context_ptr;
         int8_t current_setting = 0;
 
-        state->num_settings = 7; // baseline, without LED settings
+        state->num_settings = 10; // baseline: 7 original + 3 active hours settings
 #ifdef BUILD_GIT_HASH
         state->num_settings++;
 #endif
@@ -357,6 +420,15 @@ void settings_face_setup(uint8_t watch_face_index, void ** context_ptr) {
         (void)blue_led_setting_advance;
 #endif
     state->led_color_end = current_setting;
+        state->settings_screens[current_setting].display = active_hours_enabled_setting_display;
+        state->settings_screens[current_setting].advance = active_hours_enabled_setting_advance;
+        current_setting++;
+        state->settings_screens[current_setting].display = active_hours_start_setting_display;
+        state->settings_screens[current_setting].advance = active_hours_start_setting_advance;
+        current_setting++;
+        state->settings_screens[current_setting].display = active_hours_end_setting_display;
+        state->settings_screens[current_setting].advance = active_hours_end_setting_advance;
+        current_setting++;
 #ifdef BUILD_GIT_HASH
         state->settings_screens[current_setting].display = git_hash_setting_display;
         state->settings_screens[current_setting].advance = git_hash_setting_advance;
