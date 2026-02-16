@@ -4,110 +4,44 @@
  * Copyright (c) 2026 Diego Perez
  *
  * Unified Communications Face - Phase 1 Implementation
- * Uses chirpy_tx library by Gabor L Ugray for acoustic FSK transmission
+ * Uses FESK library by Eirik S. Morland (PR #139 to second-movement)
  */
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "comms_face.h"
 #include "circadian_score.h"
 
-#define PACKET_SYNC 0xA5
-#define MAX_PAYLOAD_SIZE 60
+// Hex encoding lookup
+static const char hex_chars[] = "0123456789ABCDEF";
 
-static comms_face_state_t *g_state = NULL;
-
-// Packet assembly helpers
-static uint8_t _pack_header(uint8_t direction, uint8_t stream_type, uint8_t sequence) {
-    return ((direction & 0x03) << 6) | ((stream_type & 0x03) << 4) | (sequence & 0x0F);
-}
-
-static void _build_packet(comms_face_state_t *state, const uint8_t *payload, uint8_t payload_len) {
-    uint8_t *pkt = state->packet_buffer;
-    uint8_t idx = 0;
-    
-    // SYNC byte
-    pkt[idx++] = PACKET_SYNC;
-    
-    // HDR (direction=00, stream_type=00 for sleep, sequence)
-    uint8_t hdr = _pack_header(0, 0, state->packet_seq);
-    pkt[idx++] = hdr;
-    
-    // LEN
-    pkt[idx++] = payload_len;
-    
-    // PAYLOAD
-    memcpy(&pkt[idx], payload, payload_len);
-    idx += payload_len;
-    
-    // CRC8 over HDR + LEN + PAYLOAD
-    uint8_t crc = chirpy_crc8(&pkt[1], 2 + payload_len);
-    pkt[idx++] = crc;
-    
-    state->packet_size = idx;
-    state->packet_pos = 0;
-    state->packet_seq = (state->packet_seq + 1) % 16;
-}
-
-// Callback for chirpy_tx to get next byte
-static uint8_t _get_next_byte(uint8_t *next_byte) {
-    if (!g_state) return 0;
-    
-    if (g_state->packet_pos < g_state->packet_size) {
-        *next_byte = g_state->packet_buffer[g_state->packet_pos++];
-        return 1;
+static void _hex_encode(const uint8_t *data, size_t len, char *out) {
+    for (size_t i = 0; i < len; i++) {
+        out[i * 2] = hex_chars[(data[i] >> 4) & 0xF];
+        out[i * 2 + 1] = hex_chars[data[i] & 0xF];
     }
-    
-    return 0;  // End of packet
+    out[len * 2] = '\0';
 }
 
-// Buzzer tick callback (called at ~20Hz for chirping)
-static void _tx_tick(void *context) {
-    (void) context;
-    if (!g_state || !g_state->buzzer_active) return;
-    
-    uint8_t tone = chirpy_get_next_tone(&g_state->encoder);
-    
-    if (tone == 255) {
-        // Packet transmission complete
-        g_state->buzzer_active = false;
-        watch_set_buzzer_off();
-        
-        // Check if more data to send
-        uint16_t remaining = g_state->export_size - g_state->bytes_sent;
-        
-        if (remaining > 0) {
-            // Build next packet
-            uint8_t chunk_size = (remaining > MAX_PAYLOAD_SIZE) ? MAX_PAYLOAD_SIZE : remaining;
-            _build_packet(g_state, &g_state->export_buffer[g_state->bytes_sent], chunk_size);
-            g_state->bytes_sent += chunk_size;
-            
-            // Start next packet transmission
-            chirpy_init_encoder(&g_state->encoder, _get_next_byte);
-            g_state->buzzer_active = true;
-        } else {
-            // All done
-            g_state->mode = COMMS_MODE_TX_DONE;
-        }
-    } else {
-        // Buzz the tone
-        uint16_t period = chirpy_get_tone_period(tone);
-        watch_set_buzzer_period(period);
-        watch_set_buzzer_on();
-    }
+static void _on_transmission_end(void *user_data) {
+    comms_face_state_t *state = (comms_face_state_t *)user_data;
+    state->mode = COMMS_MODE_TX_DONE;
+    state->transmission_active = false;
+    watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
-// Main tick callback (64Hz) - delegates to chirpy tick
-static void _comms_tick(void *context) {
-    if (!g_state) return;
-    
-    g_state->tick_state.tick_count++;
-    if (g_state->tick_state.tick_count >= g_state->tick_state.tick_compare) {
-        g_state->tick_state.tick_count = 0;
-        if (g_state->tick_state.tick_fun) {
-            g_state->tick_state.tick_fun(context);
-        }
-    }
+static void _on_transmission_start(void *user_data) {
+    (void)user_data;
+    watch_set_indicator(WATCH_INDICATOR_BELL);
+}
+
+static void _on_error(fesk_result_t error, void *user_data) {
+    (void)error;
+    comms_face_state_t *state = (comms_face_state_t *)user_data;
+    state->mode = COMMS_MODE_IDLE;
+    state->transmission_active = false;
+    watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
 static void _start_transmission(comms_face_state_t *state) {
@@ -121,59 +55,58 @@ static void _start_transmission(comms_face_state_t *state) {
     
     if (state->export_size == 0) {
         // No data or buffer too small
-        watch_display_string("NO DAT", 0);
+        watch_display_text(WATCH_POSITION_BOTTOM, "NO DAT");
         return;
     }
     
-    // Initialize transmission
-    state->mode = COMMS_MODE_TX_ACTIVE;
-    state->bytes_sent = 0;
-    state->packet_seq = 0;
+    // Hex-encode binary data
+    _hex_encode(state->export_buffer, state->export_size, state->hex_buffer);
     
-    // Build first packet
-    uint8_t first_chunk = (state->export_size > MAX_PAYLOAD_SIZE) ? MAX_PAYLOAD_SIZE : state->export_size;
-    _build_packet(state, state->export_buffer, first_chunk);
-    state->bytes_sent = first_chunk;
+    // Configure FESK session
+    fesk_session_config_t config = fesk_session_config_defaults();
+    config.static_message = state->hex_buffer;
+    config.mode = FESK_MODE_4FSK;
+    config.enable_countdown = false;  // No countdown, start immediately
+    config.show_bell_indicator = false;  // We manage it manually
+    config.on_transmission_start = _on_transmission_start;
+    config.on_transmission_end = _on_transmission_end;
+    config.on_error = _on_error;
+    config.user_data = state;
     
-    // Initialize encoder
-    chirpy_init_encoder(&state->encoder, _get_next_byte);
-    state->buzzer_active = true;
+    fesk_session_init(&state->fesk_session, &config);
     
-    // Set up tick handler
-    state->tick_state.tick_count = 0;
-    state->tick_state.tick_compare = 3;  // 64Hz / 3 ≈ 21Hz tone rate
-    state->tick_state.tick_fun = _tx_tick;
-    
-    // Start buzzing
-    movement_request_tick_frequency(64);
+    if (fesk_session_start(&state->fesk_session)) {
+        state->mode = COMMS_MODE_TX_ACTIVE;
+        state->transmission_active = true;
+    } else {
+        watch_display_text(WATCH_POSITION_BOTTOM, "BUSY  ");
+        fesk_session_dispose(&state->fesk_session);
+    }
 }
 
 static void _stop_transmission(comms_face_state_t *state) {
+    fesk_session_cancel(&state->fesk_session);
+    fesk_session_dispose(&state->fesk_session);
     state->mode = COMMS_MODE_IDLE;
-    state->buzzer_active = false;
-    watch_set_buzzer_off();
-    movement_request_tick_frequency(1);
+    state->transmission_active = false;
+    watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
 static void _update_display(comms_face_state_t *state) {
-    char buf[7] = {0};
-    
     switch (state->mode) {
         case COMMS_MODE_IDLE:
-            sprintf(buf, "TX RDY");
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "CO", "Comms");
+            watch_display_text(WATCH_POSITION_BOTTOM, " RDY  ");
             break;
-        case COMMS_MODE_TX_ACTIVE: {
-            // Show progress as percentage
-            uint8_t pct = (state->bytes_sent * 100) / state->export_size;
-            sprintf(buf, "TX %3d", pct);
+        case COMMS_MODE_TX_ACTIVE:
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
+            watch_display_text(WATCH_POSITION_BOTTOM, "      ");
             break;
-        }
         case COMMS_MODE_TX_DONE:
-            sprintf(buf, "TX END");
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "OK", "Done");
+            watch_display_text(WATCH_POSITION_BOTTOM, "      ");
             break;
     }
-    
-    watch_display_string(buf, 0);
 }
 
 void comms_face_setup(uint8_t watch_face_index, void **context_ptr) {
@@ -186,8 +119,8 @@ void comms_face_setup(uint8_t watch_face_index, void **context_ptr) {
 
 void comms_face_activate(void *context) {
     comms_face_state_t *state = (comms_face_state_t *)context;
-    g_state = state;  // Set global for callbacks
     state->mode = COMMS_MODE_IDLE;
+    state->transmission_active = false;
     _update_display(state);
 }
 
@@ -196,13 +129,8 @@ bool comms_face_loop(movement_event_t event, void *context) {
     
     switch (event.event_type) {
         case EVENT_ACTIVATE:
-            _update_display(state);
-            break;
         case EVENT_TICK:
-            if (state->mode == COMMS_MODE_TX_ACTIVE) {
-                _comms_tick(context);
-                _update_display(state);
-            }
+            _update_display(state);
             break;
         case EVENT_ALARM_BUTTON_UP:
             if (state->mode == COMMS_MODE_IDLE) {
@@ -233,8 +161,7 @@ bool comms_face_loop(movement_event_t event, void *context) {
 
 void comms_face_resign(void *context) {
     comms_face_state_t *state = (comms_face_state_t *)context;
-    if (state->mode == COMMS_MODE_TX_ACTIVE) {
+    if (state->transmission_active) {
         _stop_transmission(state);
     }
-    g_state = NULL;
 }

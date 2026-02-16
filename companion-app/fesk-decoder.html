@@ -261,8 +261,13 @@
             log('6. Transmission takes ~35 seconds for full export', '');
             log('', '');
             log('NOTE: This is a Phase 1 proof-of-concept decoder.', 'data');
-            log('Full FSK decoding requires signal processing library.', 'data');
-            log('Currently detects chirpy signal presence only.', 'data');
+            log('Full FESK decoding requires signal processing library.', 'data');
+            log('Currently detects signal presence only.', 'data');
+            log('', '');
+            log('DATA FORMAT:', 'data');
+            log('- Watch transmits 287 bytes as 574 hex chars (0-9A-F)', 'data');
+            log('- FESK 4-FSK protocol by Eirik S. Morland', 'data');
+            log('- Built-in CRC8 for error detection', 'data');
             log('', '');
             log('Ready to start...', 'success');
         };

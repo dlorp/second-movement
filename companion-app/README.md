@@ -53,17 +53,20 @@ iOS Safari restricts background audio processing for security. Adding to home sc
 
 ## Technical Details
 
-**Protocol:** FESK (Frequency-Encoded Shift Keying)
-- 9 tones (chirpy_tx encoder)
-- ~10 bytes/sec transfer rate
-- 287-byte full export in ~35 seconds
-- CRC8 error detection
+**Protocol:** FESK (Frequency-Encoded Shift Keying) by Eirik S. Morland
+- 4-FSK mode: 4 tones (D7/E7/F7#/G7#), 2 bits per symbol
+- Text-based protocol (42-character alphabet: a-z, 0-9, space, punctuation)
+- Binary data hex-encoded before transmission
+- 287 bytes → 574 hex chars
+- Built-in CRC8, START/END markers
+- ~60 seconds full export (hex encoding overhead)
 
 **Data Exported:**
 - 7 nights of sleep data (orientation logs)
 - Sleep onset/offset timestamps
 - Efficiency, WASO, awakenings
 - Light exposure during sleep
+- Transmitted as uppercase hex (0-9A-F)
 
 **Phase 1 Limitations:**
 - Signal detection only (not full FSK decoding yet)
