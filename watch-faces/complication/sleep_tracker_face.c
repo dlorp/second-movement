@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sleep_tracker_face.h"
+#include "circadian_score.h"
 
 // Cole-Kripke algorithm weights (empirically validated from 1992 paper)
 // 11-minute sliding window: [t-5, t-4, t-3, t-2, t-1, t, t+1, t+2, t+3, t+4, t+5]
@@ -88,6 +89,38 @@ static void _sleep_tracker_display_awakenings(sleep_tracker_state_t *state) {
     char buf[7];
     snprintf(buf, sizeof(buf), "%d  ", state->num_awakenings);
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
+}
+
+static void _sleep_tracker_display_score(sleep_tracker_state_t *state) {
+    // Calculate single-night sleep score (only when session is complete)
+    if (!state->session_complete) {
+        watch_display_string("SL  --", 0);
+        return;
+    }
+    
+    // Build night data structure for scoring
+    uint16_t total_minutes = state->total_sleep_minutes + state->total_wake_minutes;
+    uint8_t efficiency = (total_minutes > 0) ? 
+        (state->total_sleep_minutes * 100 / total_minutes) : 0;
+    uint8_t light_quality = (total_minutes > 0) ?
+        (state->total_dark_minutes * 100 / total_minutes) : 0;
+    
+    circadian_sleep_night_t night = {
+        .onset_timestamp = state->sleep_onset_time,
+        .offset_timestamp = state->sleep_offset_time,
+        .duration_min = state->total_sleep_minutes,
+        .efficiency = efficiency,
+        .waso_min = state->total_wake_minutes,
+        .awakenings = state->num_awakenings,
+        .light_quality = light_quality,
+        .valid = true
+    };
+    
+    uint8_t score = circadian_score_calculate_sleep_score(&night);
+    
+    char buf[7];
+    sprintf(buf, "SL  %2d", score);
+    watch_display_string(buf, 0);
 }
 
 //
@@ -307,6 +340,9 @@ bool sleep_tracker_face_loop(movement_event_t event, void *context) {
             
             // Display current metrics
             switch (state->display_mode) {
+                case SLEEP_DISPLAY_SCORE:
+                    _sleep_tracker_display_score(state);
+                    break;
                 case SLEEP_DISPLAY_DURATION:
                     _sleep_tracker_display_duration(state);
                     break;
@@ -330,9 +366,15 @@ bool sleep_tracker_face_loop(movement_event_t event, void *context) {
         
         case EVENT_ALARM_BUTTON_UP:
             // Cycle display mode
-            state->display_mode = (state->display_mode + 1) % 4;
+            // If tracking active, skip SCORE mode (only show when session complete)
+            do {
+                state->display_mode = (state->display_mode + 1) % 5;
+            } while (state->tracking_active && state->display_mode == SLEEP_DISPLAY_SCORE);
             
             switch (state->display_mode) {
+                case SLEEP_DISPLAY_SCORE:
+                    _sleep_tracker_display_score(state);
+                    break;
                 case SLEEP_DISPLAY_DURATION:
                     _sleep_tracker_display_duration(state);
                     break;
@@ -349,11 +391,19 @@ bool sleep_tracker_face_loop(movement_event_t event, void *context) {
             break;
         
         case EVENT_ALARM_LONG_PRESS:
-            // Manual start/stop tracking (for testing)
+            // Manual start/stop tracking (for naps, testing, validation)
             if (state->tracking_active) {
                 sleep_tracker_end_session(state);
+                // Show "END" briefly
+                watch_display_string("END   ", 0);
+                movement_illuminate_led();
+                // Will update to metrics on next tick
             } else {
                 sleep_tracker_start_session(state);
+                // Show "START" briefly
+                watch_display_string("START ", 0);
+                movement_illuminate_led();
+                // Will update to duration on next tick
             }
             break;
         

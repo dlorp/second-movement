@@ -93,3 +93,9 @@ uint8_t circadian_score_calculate_sleep_score(const circadian_sleep_night_t *nig
 // Load/save from flash (row 30)
 bool circadian_data_load_from_flash(circadian_data_t *data);
 bool circadian_data_save_to_flash(const circadian_data_t *data);
+
+// Export API for companion app / HealthKit integration
+// Formats 7-day buffer as structured binary data
+// Buffer must be at least 287 bytes (7 nights × 41 bytes each)
+// Returns actual bytes written
+uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buffer, uint16_t buffer_size);
