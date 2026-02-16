@@ -49,6 +49,7 @@
 
 #include "movement_config.h"
 #include "sleep_tracker_face.h"
+#include "circadian_score.h"
 
 #include "movement_custom_signal_tunes.h"
 #include "sleep_data.h"
@@ -136,6 +137,10 @@ int8_t _movement_dst_offset_cache[NUM_ZONE_NAMES] = {0};
 // Sleep tracking data (70 bytes)
 static sleep_data_t sleep_data;
 static bool sleep_data_dirty = false;  // Tracks if we need to save to flash
+
+// Circadian Score Data (receives completed sleep sessions)
+static circadian_data_t global_circadian_data = {0};
+static bool circadian_data_initialized = false;
 
 void cb_mode_btn_interrupt(void);
 void cb_light_btn_interrupt(void);
@@ -437,6 +442,37 @@ static void _movement_handle_top_of_minute(void) {
     } else if (!now_in_sleep_window && was_in_sleep_window) {
         // Leaving sleep window (e.g., 04:00) - end session
         sleep_tracker_end_session(&global_sleep_tracker);
+        
+        // Export completed night data to Circadian Score system
+        if (global_sleep_tracker.total_sleep_minutes > 0) {
+            // Calculate derived metrics
+            uint16_t total_minutes = global_sleep_tracker.total_sleep_minutes + 
+                                    global_sleep_tracker.total_wake_minutes;
+            uint8_t efficiency = (total_minutes > 0) ? 
+                (global_sleep_tracker.total_sleep_minutes * 100 / total_minutes) : 0;
+            uint8_t light_quality = (total_minutes > 0) ?
+                (global_sleep_tracker.total_dark_minutes * 100 / total_minutes) : 0;
+            
+            circadian_sleep_night_t night = {
+                .onset_timestamp = global_sleep_tracker.sleep_onset_time,
+                .offset_timestamp = global_sleep_tracker.sleep_offset_time,
+                .duration_min = global_sleep_tracker.total_sleep_minutes,
+                .efficiency = efficiency,
+                .waso_min = global_sleep_tracker.total_wake_minutes,
+                .awakenings = global_sleep_tracker.num_awakenings,
+                .light_quality = light_quality,
+                .valid = true
+            };
+            
+            // Load circadian data if not initialized
+            if (!circadian_data_initialized) {
+                circadian_data_load_from_flash(&global_circadian_data);
+                circadian_data_initialized = true;
+            }
+            
+            // Add night and persist
+            circadian_data_add_night(&global_circadian_data, &night);
+        }
     }
     
     was_in_sleep_window = now_in_sleep_window;
@@ -1253,6 +1289,19 @@ void app_setup(void) {
         global_sleep_tracker.tracking_active = false;
         sleep_minute_counter = 0;
         last_sleep_tick = 0;
+        
+        // Initialize circadian data (or load from flash)
+        if (!circadian_data_initialized) {
+            circadian_data_load_from_flash(&global_circadian_data);
+            // Set default Active Hours if not initialized (04:00-23:00)
+            if (global_circadian_data.active_hours_start_min == 0 && 
+                global_circadian_data.active_hours_end_min == 0) {
+                global_circadian_data.active_hours_start_min = 4 * 60;   // 04:00
+                global_circadian_data.active_hours_end_min = 23 * 60;    // 23:00
+                circadian_data_save_to_flash(&global_circadian_data);
+            }
+            circadian_data_initialized = true;
+        }
     }
 }
 

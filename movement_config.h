@@ -31,6 +31,8 @@ const watch_face_t watch_faces[] = {
     wyoscan_face,
     clock_face,
     sleep_tracker_face,
+    circadian_score_face,
+    sleep_score_face,
     world_clock_face,
     sunrise_sunset_face,
     moon_phase_face,
