@@ -21,6 +21,8 @@
 #define RX_MAX_PACKET_SIZE 68            // Max packet: SYNC + LEN + TYPE + DATA(64) + CRC8
 #define RX_BIT_TIMEOUT_TICKS 20          // 312ms @ 64 Hz (missed bit timeout, ~5x bit period at 16 bps)
 #define RX_PACKET_TIMEOUT_TICKS 7680     // 2 minutes @ 64 Hz
+#define RX_CALIBRATION_SAMPLES 64        // Number of samples for threshold calibration (1 second @ 64 Hz)
+#define RX_SYNC_TIMEOUT_TICKS 640        // 10 seconds @ 64 Hz (time to find sync pattern)
 
 // Packet types
 #define PACKET_TYPE_TIME_SYNC 0x01
@@ -179,13 +181,16 @@ static void process_packet(comms_face_state_t *state) {
                     ((uint32_t)state->rx_state.rx_buffer[5] << 24);
                 
                 // Extract timezone offset (2 bytes, little-endian, signed)
+                // Note: Currently unused - watch RTC stores UTC. Future enhancement:
+                // use tz_offset for display conversion or DST handling.
                 int16_t tz_offset = 
                     ((int16_t)state->rx_state.rx_buffer[6] << 0) |
                     ((int16_t)state->rx_state.rx_buffer[7] << 8);
+                (void)tz_offset;  // Suppress unused warning
                 
-                // Apply time sync (Unix timestamp includes timezone offset)
-                // Note: timestamp from phone should already be adjusted for timezone
-                watch_rtc_set_unix_time(timestamp + (tz_offset * 60));
+                // Set watch RTC to UTC time (watch_rtc_set_unix_time expects UTC)
+                // Phone sends: Date.now() / 1000 = seconds since Unix epoch (UTC)
+                watch_rtc_set_unix_time(timestamp);
                 
                 state->mode = COMMS_MODE_RX_DONE;
             } else {
