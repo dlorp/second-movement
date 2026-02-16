@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FESK Decoder">
     <title>Sensor Watch FESK Decoder</title>
     <style>
         body {
@@ -30,11 +33,13 @@
             color: #000;
             border: none;
             padding: 15px 30px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             margin: 10px;
             border-radius: 5px;
+            -webkit-tap-highlight-color: rgba(0, 255, 0, 0.3);
+            touch-action: manipulation;
         }
         button:hover {
             background: #00ff00;
@@ -226,11 +231,32 @@
         window.onload = () => {
             log('=== SENSOR WATCH FESK DECODER ===', 'success');
             log('', '');
+            
+            // Detect iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                log('📱 IPHONE/IPAD DETECTED', 'success');
+                log('', '');
+                log('SETUP (first time only):', 'success');
+                log('1. Tap Share button (bottom center)', '');
+                log('2. Scroll down, tap "Add to Home Screen"', '');
+                log('3. Name it "Watch Sync", tap Add', '');
+                log('4. Open from home screen (not Safari)', '');
+                log('', '');
+                log('WHY: Safari on iOS requires this for full-screen', 'data');
+                log('and reliable microphone access.', 'data');
+                log('', '');
+            }
+            
             log('INSTRUCTIONS:', 'success');
-            log('1. Click START LISTENING to enable microphone', '');
+            log('1. Tap START LISTENING to enable microphone', '');
+            log('   (iOS will ask permission first time)', '');
             log('2. On watch: Navigate to Comms face (CO)', '');
             log('3. Press ALARM button to start transmission', '');
             log('4. Hold watch buzzer 2-3 inches from phone mic', '');
+            if (isIOS) {
+                log('   (iPhone: bottom edge or back, depending on model)', '');
+            }
             log('5. Watch display shows TX progress (0-100%)', '');
             log('6. Transmission takes ~35 seconds for full export', '');
             log('', '');
