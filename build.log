@@ -1,0 +1,6 @@
+/bin/sh: sysctl: command not found
+make: the `-j' option requires a positive integral argument
+:
+CC build/startup_saml22.o
+make: arm-none-eabi-gcc: No such file or directory
+make: *** [build/startup_saml22.o] Error 1

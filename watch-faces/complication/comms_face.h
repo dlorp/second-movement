@@ -7,13 +7,15 @@
  * 
  * Implements Phase 1 of the Sensor Watch Pro Unified Comms Architecture:
  * - TX mode: Acoustic data transmission via FESK (Frequency-Encoded Shift Keying)
- * - Uses chirpy_tx library by Gabor L Ugray for FSK encoding
- * - Exports sleep/circadian data (287 bytes) to companion app via buzzer
+ * - Uses FESK library by Eirik S. Morland (PR #139 to second-movement)
+ * - Exports sleep/circadian data (287 bytes hex-encoded) to companion app via buzzer
  *
  * Protocol:
- * - Packet format: SYNC(0xA5) + HDR + LEN + PAYLOAD(max 60B) + CRC8
- * - Target rate: ~10 bytes/sec
- * - Full export: ~35 seconds
+ * - Binary data hex-encoded to FESK text format (42-char alphabet)
+ * - 287 bytes → 574 hex chars
+ * - FESK 4-FSK mode (2 bits/symbol, 4 tones: D7/E7/F7#/G7#)
+ * - Built-in CRC8, START/END markers
+ * - Full export: ~60 seconds (hex overhead)
  *
  * Future phases (not yet implemented):
  * - RX mode: Optical data reception via light sensor (BlinkyReceiver protocol)
@@ -41,7 +43,8 @@
 #pragma once
 
 #include "movement.h"
-#include "chirpy_tx.h"
+#include "fesk_tx.h"
+#include "fesk_session.h"
 
 /*
  * Unified Communications Face
@@ -70,21 +73,13 @@ typedef struct {
 
 typedef struct {
     comms_mode_t mode;
-    chirpy_encoder_state_t encoder;
-    chirpy_tick_state_t tick_state;
+    fesk_session_t fesk_session;
     
     // TX state
-    uint8_t export_buffer[287];  // Full circadian export
-    uint16_t export_size;        // Actual bytes to send
-    uint16_t bytes_sent;         // Progress tracking
-    uint8_t packet_seq;          // Current packet sequence number
-    
-    // Current packet being transmitted
-    uint8_t packet_buffer[64];   // SYNC + HDR + LEN + PAYLOAD(60) + CRC8
-    uint8_t packet_size;
-    uint8_t packet_pos;          // Position in packet for get_next_byte callback
-    
-    bool buzzer_active;
+    uint8_t export_buffer[287];  // Full circadian export (binary)
+    char hex_buffer[575];        // Hex-encoded + null terminator
+    uint16_t export_size;        // Actual bytes exported
+    bool transmission_active;
 } comms_face_state_t;
 
 void comms_face_setup(uint8_t watch_face_index, void **context_ptr);
