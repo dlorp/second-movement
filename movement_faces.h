@@ -81,4 +81,5 @@
 #include "ping_face.h"
 #include "rtccount_face.h"
 #include "wyoscan_face.h"
+#include "sleep_tracker_face.h"
 // New includes go above this line.
