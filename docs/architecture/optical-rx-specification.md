@@ -31,15 +31,16 @@ Manchester:▁▔  ▔▁  ▁▔  ▁▔  ▔▁  ▔▁
 ```
 
 ### Timing
-- **Bit rate:** 10 bps (bits per second) - slow but reliable
-- **Bit duration:** 100ms per bit
+- **Bit rate:** 16 bps (bits per second) - balanced speed/reliability
+- **Bit duration:** 62.5ms per bit
 - **Half-bit (cell) duration:** 50ms
 - **Sample rate:** 64 Hz (15.6ms per sample, ~3 samples per half-bit)
 
-**Why 10 bps?**
-- Reliable detection on phone screens (iOS/Android refresh rate variations)
-- Tolerant to light sensor noise and ambient light
-- Timex Datalink used ~6 bps, we use 10 bps for faster sync
+**Why 16 bps?**
+- Balanced speed/reliability: faster than Timex Datalink (~6 bps) but more reliable than BlinkyReceiver's OOK
+- Still self-clocking (4 samples/bit @ 64 Hz - minimum for Manchester edge detection)
+- Tolerant to phone screen refresh variations and ambient light
+- Time sync completes in ~6.5 seconds (vs 10s at 10 bps or 4s with OOK)
 
 ### Packet Format
 ```
@@ -52,7 +53,7 @@ DATA:  0-64 bytes (variable payload)
 CRC8:  1 byte (CRC-8/MAXIM checksum)
 ```
 
-**Maximum packet:** 68 bytes @ 10 bps = ~54 seconds
+**Maximum packet:** 68 bytes @ 16 bps = ~34 seconds
 
 ### Packet Types
 
@@ -229,7 +230,7 @@ int8_t decode_manchester_bit(bool first_half, bool second_half) {
 - **MODE button:** Exit to next face (when not receiving)
 
 ### Timeout Handling
-- **Sync timeout:** 10 seconds (if no sync pattern detected)
+- **Sync timeout:** 7 seconds (if no sync pattern detected)
 - **Bit timeout:** 500ms (if no transition within expected window)
 - **Packet timeout:** 2 minutes (entire packet must complete within 2 min)
 
@@ -313,9 +314,9 @@ function flashByte(byte) {
 - **Packet success rate:** >95% (1 retry acceptable)
 - **Sync time:** <5 seconds (time to detect sync pattern)
 - **Total transmission time:**
-  - Time sync: ~10 seconds (10 bytes @ 10 bps)
-  - Config update: ~20 seconds (15 bytes @ 10 bps)
-  - Max packet: ~68 seconds (68 bytes @ 10 bps)
+  - Time sync: ~6.5 seconds (10 bytes @ 16 bps)
+  - Config update: ~12 seconds (15 bytes @ 16 bps)
+  - Max packet: ~34 seconds (68 bytes @ 16 bps)
 
 ### Error Handling
 - **CRC mismatch:** Display "RX ERR CRC", return to IDLE

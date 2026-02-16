@@ -10,14 +10,14 @@ Send time sync and config updates to Sensor Watch Pro via phone screen flashing.
 4. Press ALARM button on watch (watch displays `RX SYNC`)
 5. On phone, tap "Send Time Sync"
 6. **Hold phone screen facing watch** (distance: 2-6 inches)
-7. Keep still during transmission (~10 seconds)
+7. Keep still during transmission (~6-7 seconds)
 8. Watch displays `RX OK` when complete
 
 ## How It Works
 
 ### Protocol
 - **Encoding:** Manchester (self-clocking, error-detecting)
-- **Bit rate:** 10 bps (bits per second)
+- **Bit rate:** 16 bps (bits per second)
 - **Packet format:** `SYNC (0xAA) + LEN + TYPE + DATA + CRC8`
 - **CRC checksum:** CRC-8/MAXIM for error detection
 
@@ -27,12 +27,12 @@ Send time sync and config updates to Sensor Watch Pro via phone screen flashing.
 - **Manchester encoding:** Each bit has a transition
   - `0` = HIGH → LOW (white → black)
   - `1` = LOW → HIGH (black → white)
-- **Bit duration:** 100ms (50ms per half-bit)
+- **Bit duration:** 62.5ms (31.25ms per half-bit)
 
 ### Transmission Times
-- **Time sync:** ~10 seconds (10 bytes)
-- **Config update:** ~20 seconds (15 bytes)
-- **Maximum packet:** ~68 seconds (68 bytes max)
+- **Time sync:** ~6.5 seconds (10 bytes)
+- **Config update:** ~12 seconds (15 bytes)
+- **Maximum packet:** ~34 seconds (68 bytes max)
 
 ## Packet Types
 
