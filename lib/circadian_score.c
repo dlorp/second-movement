@@ -222,3 +222,59 @@ bool circadian_data_save_to_flash(const circadian_data_t *data) {
     return watch_storage_write(FLASH_ROW_CIRCADIAN, 0, 
                                 (const uint8_t*)data, sizeof(circadian_data_t));
 }
+
+uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buffer, uint16_t buffer_size) {
+    // Each night: 41 bytes (4 + 4 + 2 + 1 + 2 + 1 + 1 + 1 + padding = 41)
+    // 7 nights = 287 bytes minimum
+    if (buffer_size < 287) {
+        return 0;  // Buffer too small
+    }
+    
+    uint16_t offset = 0;
+    
+    // Export 7 nights in chronological order (starting from write_index)
+    for (uint8_t i = 0; i < 7; i++) {
+        uint8_t idx = (data->write_index + i) % 7;
+        const circadian_sleep_night_t *night = &data->nights[idx];
+        
+        // Pack into binary format (little-endian)
+        // Onset timestamp (4 bytes)
+        buffer[offset++] = (night->onset_timestamp >> 0) & 0xFF;
+        buffer[offset++] = (night->onset_timestamp >> 8) & 0xFF;
+        buffer[offset++] = (night->onset_timestamp >> 16) & 0xFF;
+        buffer[offset++] = (night->onset_timestamp >> 24) & 0xFF;
+        
+        // Offset timestamp (4 bytes)
+        buffer[offset++] = (night->offset_timestamp >> 0) & 0xFF;
+        buffer[offset++] = (night->offset_timestamp >> 8) & 0xFF;
+        buffer[offset++] = (night->offset_timestamp >> 16) & 0xFF;
+        buffer[offset++] = (night->offset_timestamp >> 24) & 0xFF;
+        
+        // Duration (2 bytes)
+        buffer[offset++] = (night->duration_min >> 0) & 0xFF;
+        buffer[offset++] = (night->duration_min >> 8) & 0xFF;
+        
+        // Efficiency (1 byte)
+        buffer[offset++] = night->efficiency;
+        
+        // WASO (2 bytes)
+        buffer[offset++] = (night->waso_min >> 0) & 0xFF;
+        buffer[offset++] = (night->waso_min >> 8) & 0xFF;
+        
+        // Awakenings (1 byte)
+        buffer[offset++] = night->awakenings;
+        
+        // Light quality (1 byte)
+        buffer[offset++] = night->light_quality;
+        
+        // Valid flag (1 byte)
+        buffer[offset++] = night->valid ? 1 : 0;
+        
+        // Padding to 41 bytes (for alignment)
+        for (uint8_t j = 0; j < 25; j++) {
+            buffer[offset++] = 0;
+        }
+    }
+    
+    return offset;  // Should be exactly 287 bytes
+}

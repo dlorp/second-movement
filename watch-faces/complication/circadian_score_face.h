@@ -37,6 +37,7 @@
  * - LI (Light): Light exposure quality (5% weight)
  *
  * ALARM button: cycle through CS → TI → DU → EF → AH → LI → CS
+ * LIGHT button: navigate historical nights (0-6 days ago)
  * MODE button: next face
  */
 
@@ -52,6 +53,7 @@ typedef enum {
 
 typedef struct {
     circadian_score_face_mode_t mode;
+    uint8_t historical_night;  // 0 = aggregate, 1-7 = individual nights
 } circadian_score_face_state_t;
 
 void circadian_score_face_setup(uint8_t watch_face_index, void **context_ptr);
