@@ -148,6 +148,8 @@ static void process_packet(comms_face_state_t *state) {
     if (state->bytes_received < 3) {
         // Too short (need at least LEN + TYPE + CRC8)
         state->mode = COMMS_MODE_RX_ERROR;
+        state->rx_error_code = RX_ERROR_INVALID_LENGTH;
+        optical_rx_disable(state);
         return;
     }
     
@@ -157,6 +159,8 @@ static void process_packet(comms_face_state_t *state) {
     // Validate length
     if (len > 64 || len + 3 != state->bytes_received) {
         state->mode = COMMS_MODE_RX_ERROR;
+        state->rx_error_code = RX_ERROR_INVALID_LENGTH;
+        optical_rx_disable(state);
         return;
     }
     
@@ -166,6 +170,8 @@ static void process_packet(comms_face_state_t *state) {
     
     if (expected_crc != calculated_crc) {
         state->mode = COMMS_MODE_RX_ERROR;
+        state->rx_error_code = RX_ERROR_CRC_FAIL;
+        optical_rx_disable(state);
         return;
     }
     
@@ -173,12 +179,31 @@ static void process_packet(comms_face_state_t *state) {
     switch (type) {
         case PACKET_TYPE_TIME_SYNC:
             if (len == 6) {
+                // Validate array access bounds
+                if (state->bytes_received < 9) {
+                    state->mode = COMMS_MODE_RX_ERROR;
+                    state->rx_error_code = RX_ERROR_INVALID_LENGTH;
+                    optical_rx_disable(state);
+                    return;
+                }
+                
                 // Extract timestamp (4 bytes, little-endian)
                 uint32_t timestamp = 
                     ((uint32_t)state->rx_state.rx_buffer[2] << 0) |
                     ((uint32_t)state->rx_state.rx_buffer[3] << 8) |
                     ((uint32_t)state->rx_state.rx_buffer[4] << 16) |
                     ((uint32_t)state->rx_state.rx_buffer[5] << 24);
+                
+                // Validate timestamp range (2020-01-01 to 2040-01-01)
+                const uint32_t MIN_VALID_TIME = 1577836800;  // 2020-01-01 00:00:00 UTC
+                const uint32_t MAX_VALID_TIME = 2208988800;  // 2040-01-01 00:00:00 UTC
+                
+                if (timestamp < MIN_VALID_TIME || timestamp > MAX_VALID_TIME) {
+                    state->mode = COMMS_MODE_RX_ERROR;
+                    state->rx_error_code = RX_ERROR_INVALID_LENGTH;
+                    optical_rx_disable(state);
+                    return;
+                }
                 
                 // Extract timezone offset (2 bytes, little-endian, signed)
                 // Note: Currently unused - watch RTC stores UTC. Future enhancement:
@@ -193,24 +218,31 @@ static void process_packet(comms_face_state_t *state) {
                 watch_rtc_set_unix_time(timestamp);
                 
                 state->mode = COMMS_MODE_RX_DONE;
+                optical_rx_disable(state);
             } else {
                 state->mode = COMMS_MODE_RX_ERROR;
+                state->rx_error_code = RX_ERROR_INVALID_LENGTH;
+                optical_rx_disable(state);
             }
             break;
             
         case PACKET_TYPE_CONFIG:
             // Config update (not yet implemented)
             state->mode = COMMS_MODE_RX_DONE;
+            optical_rx_disable(state);
             break;
             
         case PACKET_TYPE_ACK:
             // ACK packet (not yet implemented)
             state->mode = COMMS_MODE_RX_DONE;
+            optical_rx_disable(state);
             break;
             
         default:
             // Unknown packet type
             state->mode = COMMS_MODE_RX_ERROR;
+            state->rx_error_code = RX_ERROR_INVALID_TYPE;
+            optical_rx_disable(state);
             break;
     }
 }
@@ -239,8 +271,16 @@ void optical_rx_poll(comms_face_state_t *state) {
             state->rx_state.bit_buffer = (state->rx_state.bit_buffer << 1) | (current_state ? 1 : 0);
             state->rx_state.bit_count++;
             
-            // Check for sync byte
-            if (state->rx_state.bit_count >= 8 && state->rx_state.bit_buffer == RX_SYNC_BYTE) {
+            // Prevent infinite bit accumulation during sync
+            if (state->rx_state.bit_count > 255) {
+                state->mode = COMMS_MODE_RX_ERROR;
+                state->rx_error_code = RX_ERROR_SYNC_TIMEOUT;
+                optical_rx_disable(state);
+                return;
+            }
+            
+            // Check for sync byte (mask to ensure 8-bit comparison)
+            if (state->rx_state.bit_count >= 8 && (state->rx_state.bit_buffer & 0xFF) == RX_SYNC_BYTE) {
                 state->rx_state.synced = true;
                 state->rx_state.bit_count = 0;
                 state->rx_state.bit_buffer = 0;
@@ -252,6 +292,9 @@ void optical_rx_poll(comms_face_state_t *state) {
             if (state->rx_state.rx_timeout > RX_SYNC_TIMEOUT_TICKS) {
                 // Sync timeout
                 state->mode = COMMS_MODE_RX_ERROR;
+                state->rx_error_code = RX_ERROR_SYNC_TIMEOUT;
+                optical_rx_disable(state);
+                return;
             }
         }
     } else {
@@ -265,26 +308,47 @@ void optical_rx_poll(comms_face_state_t *state) {
             state->rx_state.bit_buffer = (state->rx_state.bit_buffer << 1) | (current_state ? 1 : 0);
             state->rx_state.bit_count++;
             
+            // Protect against bit counter overflow
+            if (state->rx_state.bit_count > 8) {
+                state->mode = COMMS_MODE_RX_ERROR;
+                state->rx_error_code = RX_ERROR_BIT_TIMEOUT;
+                optical_rx_disable(state);
+                return;
+            }
+            
             // Check if we have a complete byte
             if (state->rx_state.bit_count == 8) {
-                // Store byte
-                if (state->rx_state.rx_index < sizeof(state->rx_state.rx_buffer)) {
-                    state->rx_state.rx_buffer[state->rx_state.rx_index++] = state->rx_state.bit_buffer;
-                    state->bytes_received++;
-                    
-                    // Check if packet is complete
-                    if (state->bytes_received >= 3) {
-                        uint8_t expected_len = state->rx_state.rx_buffer[0];
-                        if (state->bytes_received == expected_len + 3) {
-                            // Packet complete
-                            process_packet(state);
-                            return;
-                        }
-                    }
-                } else {
-                    // Buffer overflow
+                // CHECK BUFFER SPACE BEFORE WRITING (moved before write)
+                if (state->rx_state.rx_index >= sizeof(state->rx_state.rx_buffer)) {
                     state->mode = COMMS_MODE_RX_ERROR;
+                    state->rx_error_code = RX_ERROR_BUFFER_OVERFLOW;
+                    optical_rx_disable(state);
                     return;
+                }
+                
+                // Safe to write now
+                state->rx_state.rx_buffer[state->rx_state.rx_index++] = state->rx_state.bit_buffer;
+                state->bytes_received++;
+                
+                // Validate length field early (first byte received)
+                if (state->bytes_received == 1) {
+                    uint8_t len = state->rx_state.rx_buffer[0];
+                    if (len > 64) {
+                        state->mode = COMMS_MODE_RX_ERROR;
+                        state->rx_error_code = RX_ERROR_INVALID_LENGTH;
+                        optical_rx_disable(state);
+                        return;
+                    }
+                }
+                
+                // Check if packet is complete
+                if (state->bytes_received >= 3) {
+                    uint8_t expected_len = state->rx_state.rx_buffer[0];
+                    if (state->bytes_received == expected_len + 3) {
+                        // Packet complete
+                        process_packet(state);
+                        return;
+                    }
                 }
                 
                 // Reset for next byte
@@ -295,12 +359,26 @@ void optical_rx_poll(comms_face_state_t *state) {
             // No edge, check timeouts
             state->rx_state.rx_timeout++;
             
+            // Detect overflow (wrapped to 0)
+            if (state->rx_state.rx_timeout == 0) {
+                state->mode = COMMS_MODE_RX_ERROR;
+                state->rx_error_code = RX_ERROR_PACKET_TIMEOUT;
+                optical_rx_disable(state);
+                return;
+            }
+            
             if (state->rx_state.rx_timeout > RX_BIT_TIMEOUT_TICKS) {
                 // Bit timeout (missed transition)
                 state->mode = COMMS_MODE_RX_ERROR;
+                state->rx_error_code = RX_ERROR_BIT_TIMEOUT;
+                optical_rx_disable(state);
+                return;
             } else if (state->rx_state.rx_timeout > RX_PACKET_TIMEOUT_TICKS) {
                 // Packet timeout
                 state->mode = COMMS_MODE_RX_ERROR;
+                state->rx_error_code = RX_ERROR_PACKET_TIMEOUT;
+                optical_rx_disable(state);
+                return;
             }
         }
     }
