@@ -49,19 +49,28 @@
 /*
  * Unified Communications Face
  *
- * Phase 1: TX Mode Only
- * - ALARM button: Start TX / Cancel
- * - MODE button: Next face (when not transmitting)
- * - Display: "TX" + progress (segments show % complete)
+ * Bidirectional Communication (TX + RX):
+ * - TX mode: Acoustic data transmission via FESK (buzzer → phone mic)
+ * - RX mode: Optical data reception (phone screen → light sensor)
+ * - LIGHT button: Cycle modes (TX ↔ RX)
+ * - ALARM button: Start transmission/reception or cancel
  *
- * Transmits 287 bytes of circadian data via buzzer chirps (~35 seconds)
- * Companion app (phone mic) receives and decodes FESK packets
+ * TX: Transmits 287 bytes of circadian data via buzzer chirps (~35 seconds)
+ * RX: Receives time sync, config updates via screen flashing (optical)
  */
+
+typedef enum {
+    COMMS_TX,              // TX mode selected
+    COMMS_RX,              // RX mode selected
+} comms_active_mode_t;
 
 typedef enum {
     COMMS_MODE_IDLE,       // Waiting to start
     COMMS_MODE_TX_ACTIVE,  // Transmitting data
     COMMS_MODE_TX_DONE,    // Transmission complete
+    COMMS_MODE_RX_ACTIVE,  // Receiving data
+    COMMS_MODE_RX_DONE,    // Reception complete
+    COMMS_MODE_RX_ERROR,   // Reception error (timeout, CRC fail)
 } comms_mode_t;
 
 // Packet header bitfield
@@ -71,15 +80,33 @@ typedef struct {
     uint8_t sequence : 4;     // 0-15, wraps
 } comms_packet_hdr_t;
 
+// Optical RX decoder state
 typedef struct {
-    comms_mode_t mode;
+    uint16_t light_threshold;     // Light level threshold (calibrated)
+    uint8_t bit_buffer;           // Current byte being received
+    uint8_t bit_count;            // Bits received in current byte
+    uint8_t rx_buffer[64];        // Received data buffer (max packet size)
+    uint8_t rx_index;             // Current write position in rx_buffer
+    uint16_t rx_timeout;          // Ticks since last transition
+    bool last_state;              // Previous light state (for edge detection)
+    bool synced;                  // Have we found sync pattern?
+} optical_rx_state_t;
+
+typedef struct {
+    comms_active_mode_t active_mode;  // Current mode (TX or RX)
+    comms_mode_t mode;                // Current state machine state
     fesk_session_t fesk_session;
     
     // TX state
-    uint8_t export_buffer[287];  // Full circadian export (binary)
-    char hex_buffer[575];        // Hex-encoded + null terminator
-    uint16_t export_size;        // Actual bytes exported
+    uint8_t export_buffer[287];   // Full circadian export (binary)
+    char hex_buffer[575];         // Hex-encoded + null terminator
+    uint16_t export_size;         // Actual bytes exported
     bool transmission_active;
+    
+    // RX state
+    optical_rx_state_t rx_state;  // Optical receiver state
+    uint8_t bytes_received;       // Total bytes received
+    bool light_sensor_active;     // Is light sensor enabled?
 } comms_face_state_t;
 
 void comms_face_setup(uint8_t watch_face_index, void **context_ptr);

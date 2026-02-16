@@ -3,8 +3,9 @@
  *
  * Copyright (c) 2026 Diego Perez
  *
- * Unified Communications Face - Phase 1 Implementation
- * Uses FESK library by Eirik S. Morland (PR #139 to second-movement)
+ * Unified Communications Face - Phase 2a Implementation (TX + RX Foundation)
+ * TX: Uses FESK library by Eirik S. Morland (PR #139 to second-movement)
+ * RX: Optical data reception via ambient light sensor (Manchester encoding)
  */
 
 #include <stdlib.h>
@@ -13,8 +14,17 @@
 #include "comms_face.h"
 #include "circadian_score.h"
 
+#ifdef HAS_IR_SENSOR
+#include "adc.h"
+#endif
+
 // Hex encoding lookup
 static const char hex_chars[] = "0123456789ABCDEF";
+
+// RX configuration
+#define RX_CALIBRATION_SAMPLES 64   // Number of samples for threshold calibration
+#define RX_SAMPLE_RATE_HZ 64        // Light sensor polling rate (samples per second)
+#define RX_SYNC_TIMEOUT_TICKS 640   // 10 seconds @ 64 Hz
 
 static void _hex_encode(const uint8_t *data, size_t len, char *out) {
     for (size_t i = 0; i < len; i++) {
@@ -121,6 +131,8 @@ void comms_face_activate(void *context) {
     comms_face_state_t *state = (comms_face_state_t *)context;
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
+    state->active_mode = COMMS_TX;  // Default to TX mode
+    state->light_sensor_active = false;
     _update_display(state);
 }
 
