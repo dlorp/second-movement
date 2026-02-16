@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Watch FESK Decoder</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        h1 {
+            text-align: center;
+            color: #00cc00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        .status {
+            padding: 20px;
+            margin: 20px 0;
+            background: #000;
+            border: 2px solid #00cc00;
+            border-radius: 5px;
+        }
+        button {
+            background: #00cc00;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #00ff00;
+        }
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        #log {
+            background: #000;
+            padding: 15px;
+            height: 300px;
+            overflow-y: scroll;
+            border: 2px solid #00cc00;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        .packet {
+            margin: 5px 0;
+            padding: 5px;
+            background: #111;
+        }
+        .error {
+            color: #ff0000;
+        }
+        .success {
+            color: #00ff00;
+        }
+        .data {
+            color: #ffaa00;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔊 SENSOR WATCH FESK DECODER</h1>
+    
+    <div class="status">
+        <p><strong>Status:</strong> <span id="status">Ready</span></p>
+        <p><strong>Packets Received:</strong> <span id="packet-count">0</span></p>
+        <p><strong>Bytes Decoded:</strong> <span id="byte-count">0</span></p>
+        <p><strong>CRC Errors:</strong> <span id="crc-errors">0</span></p>
+    </div>
+    
+    <div style="text-align: center;">
+        <button id="start-btn" onclick="startListening()">START LISTENING</button>
+        <button id="stop-btn" onclick="stopListening()" disabled>STOP</button>
+        <button onclick="clearLog()">CLEAR LOG</button>
+    </div>
+    
+    <div id="log"></div>
+    
+    <script>
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let isListening = false;
+        let packetCount = 0;
+        let byteCount = 0;
+        let crcErrors = 0;
+        
+        const PACKET_SYNC = 0xA5;
+        
+        // CRC8 implementation (CRC-8/MAXIM)
+        function crc8(data) {
+            let crc = 0;
+            for (let i = 0; i < data.length; i++) {
+                crc ^= data[i];
+                for (let j = 0; j < 8; j++) {
+                    if (crc & 0x01) {
+                        crc = (crc >> 1) ^ 0x8C;
+                    } else {
+                        crc >>= 1;
+                    }
+                }
+            }
+            return crc & 0xFF;
+        }
+        
+        function log(message, className = '') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `packet ${className}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            packetCount = 0;
+            byteCount = 0;
+            crcErrors = 0;
+            updateStatus();
+        }
+        
+        function updateStatus() {
+            document.getElementById('packet-count').textContent = packetCount;
+            document.getElementById('byte-count').textContent = byteCount;
+            document.getElementById('crc-errors').textContent = crcErrors;
+        }
+        
+        async function startListening() {
+            try {
+                document.getElementById('status').textContent = 'Requesting microphone...';
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                audioContext = new AudioContext();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                
+                analyser.fftSize = 2048;
+                microphone.connect(analyser);
+                
+                isListening = true;
+                document.getElementById('start-btn').disabled = true;
+                document.getElementById('stop-btn').disabled = false;
+                document.getElementById('status').textContent = 'Listening...';
+                
+                log('Microphone active - Hold watch buzzer near phone', 'success');
+                log('Ready to receive FESK packets', 'success');
+                
+                // Start simple tone detection (placeholder - full FSK decoder is complex)
+                // This is a minimal proof-of-concept
+                processAudio();
+                
+            } catch (err) {
+                log('Microphone access denied: ' + err.message, 'error');
+                document.getElementById('status').textContent = 'Error';
+            }
+        }
+        
+        function stopListening() {
+            isListening = false;
+            
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('stop-btn').disabled = true;
+            document.getElementById('status').textContent = 'Stopped';
+            
+            log('Listening stopped', 'success');
+        }
+        
+        function processAudio() {
+            if (!isListening || !analyser) return;
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            // TODO: Implement full chirpy FSK decoder
+            // For now, this is a placeholder that detects audio presence
+            
+            // Check for strong signal in chirpy frequency range (~1-8 kHz)
+            const sampleRate = audioContext.sampleRate;
+            const binWidth = sampleRate / (analyser.fftSize);
+            const startBin = Math.floor(1000 / binWidth);  // 1 kHz
+            const endBin = Math.floor(8000 / binWidth);    // 8 kHz
+            
+            let maxAmplitude = 0;
+            for (let i = startBin; i < endBin; i++) {
+                if (dataArray[i] > maxAmplitude) {
+                    maxAmplitude = dataArray[i];
+                }
+            }
+            
+            // Simple signal presence indicator
+            if (maxAmplitude > 150) {
+                // Audio detected in chirpy range
+                // Real decoder would extract tone sequence and decode bytes
+                log(`Signal detected (amplitude: ${maxAmplitude})`, 'data');
+            }
+            
+            requestAnimationFrame(processAudio);
+        }
+        
+        // Display instructions on load
+        window.onload = () => {
+            log('=== SENSOR WATCH FESK DECODER ===', 'success');
+            log('', '');
+            log('INSTRUCTIONS:', 'success');
+            log('1. Click START LISTENING to enable microphone', '');
+            log('2. On watch: Navigate to Comms face (CO)', '');
+            log('3. Press ALARM button to start transmission', '');
+            log('4. Hold watch buzzer 2-3 inches from phone mic', '');
+            log('5. Watch display shows TX progress (0-100%)', '');
+            log('6. Transmission takes ~35 seconds for full export', '');
+            log('', '');
+            log('NOTE: This is a Phase 1 proof-of-concept decoder.', 'data');
+            log('Full FSK decoding requires signal processing library.', 'data');
+            log('Currently detects chirpy signal presence only.', 'data');
+            log('', '');
+            log('Ready to start...', 'success');
+        };
+    </script>
+</body>
+</html>
