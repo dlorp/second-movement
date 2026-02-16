@@ -16,6 +16,35 @@ Added crystal tap detection for instant display wake on Sensor Watch Pro boards:
 
 **Hardware constraint:** LIS2DW12 tap interrupts can only route to INT1 (A3), which is not an RTC wake pin. Solution uses motion detection on INT2 (A4) to wake from STANDBY sleep, then polls tap register to distinguish tap events from wrist movement.
 
+### Active Hours Feature
+**What it means:** Active Hours define when you're awake and active. Outside these hours (your sleep window), the watch enters a low-power mode that prevents accidental display wakes from rolling over in bed.
+
+**What changes during sleep hours:**
+- **Motion wake disabled:** Wrist movement no longer triggers display wake (prevents false wakes from tossing/turning)
+- **Tap-to-wake still works:** Crystal tap always wakes display (intentional gesture)
+- **Button wake always works:** Physical buttons always wake display
+- **Sleep tracking enabled:** Orientation changes logged for sleep quality metrics (Stream 4)
+- **Smart alarm active:** Light sleep detection begins 15 min before alarm window (Stream 3)
+
+**Default configuration:**
+- Active Hours: 04:00 - 23:00 (awake)
+- Sleep Window: 23:00 - 04:00 (sleeping)
+- User-configurable via settings face (15-minute increments)
+
+**Components:**
+- **Stream 1 (Core Logic):** Sleep detection and motion wake suppression
+- **Stream 2 (Settings UI):** User-configurable Active Hours in settings face
+- **Stream 3 (Smart Alarm):** Up band-style alarm with light sleep detection
+- **Stream 4 (Sleep Tracking):** Orientation logging for sleep quality (70 bytes, 7 nights)
+
+**Power impact:**
+- Deep sleep mode: Minimal power draw (accelerometer at 1.6Hz stationary mode)
+- Sleep tracking overhead: Under 5µA (orientation logging only)
+- Smart alarm pre-wake: Ramps to 45-90µA for 15 min before alarm window
+
+**Persistence:**
+Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power cycles, resets on complete battery removal (standard Sensor Watch behavior).
+
 ---
 
 This is a work-in-progress refactor of the Movement firmware for [Sensor Watch](https://www.sensorwatch.net).
