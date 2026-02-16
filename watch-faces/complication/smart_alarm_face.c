@@ -29,6 +29,93 @@
 #include "watch.h"
 #include "watch_utility.h"
 
+// Fairy Fountain alarm tune - progressive wake sequence
+// 3-phase acceleration: Dreamy → Building → Urgent
+// B4-E5-A5-B5 warm lower octave, progressing to B5-E6-A6-B6 high cascade
+static const int8_t smart_alarm_tune[] = {
+    // === CYCLE 1 ===
+    // Phase 1: Dreamy harp (B4-E5-A5-B5)
+    BUZZER_NOTE_B4, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_E5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_A5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B4, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_E5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_A5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B5, 10, BUZZER_NOTE_REST, 2,
+    // Phase 2: Building tempo
+    BUZZER_NOTE_B4, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B4, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 6, BUZZER_NOTE_REST, 1,
+    // Phase 3: Urgent octave jump (B5-E6-A6-B6)
+    BUZZER_NOTE_B5, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B6, 3, BUZZER_NOTE_REST, 10,
+    
+    // === CYCLE 2 ===
+    BUZZER_NOTE_B4, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_E5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_A5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B4, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_E5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_A5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B4, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B4, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B6, 3, BUZZER_NOTE_REST, 10,
+    
+    // === CYCLE 3 ===
+    BUZZER_NOTE_B4, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_E5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_A5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B4, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_E5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_A5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B5, 10, BUZZER_NOTE_REST, 2,
+    BUZZER_NOTE_B4, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B4, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 6, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B5, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_E6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_A6, 3, BUZZER_NOTE_REST, 1,
+    BUZZER_NOTE_B6, 3, BUZZER_NOTE_REST, 10,
+    0  // End marker
+};
+
 // Convert 15-minute increment index to hour and minute
 // increment: 0-95 (0=00:00, 4=01:00, 95=23:45)
 static void _increment_to_time(uint8_t increment, uint8_t *hour, uint8_t *minute) {
@@ -240,8 +327,8 @@ bool smart_alarm_face_loop(movement_event_t event, void *context) {
             break;
 
         case EVENT_BACKGROUND_TASK:
-            // Alarm triggered - play alarm sound
-            movement_play_alarm();
+            // Alarm triggered - play Fairy Fountain wake sequence
+            movement_play_sequence((int8_t *)smart_alarm_tune, BUZZER_PRIORITY_ALARM);
             break;
 
         case EVENT_TIMEOUT:
