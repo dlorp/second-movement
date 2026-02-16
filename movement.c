@@ -45,8 +45,10 @@
 #include "evsys.h"
 #include "delay.h"
 #include "thermistor_driver.h"
+#include "adc.h"
 
 #include "movement_config.h"
+#include "sleep_tracker_face.h"
 
 #include "movement_custom_signal_tunes.h"
 #include "sleep_data.h"
@@ -152,6 +154,8 @@ void cb_buzzer_stop(void);
 
 void cb_accelerometer_event(void);
 void cb_accelerometer_wake(void);
+static bool is_sleep_window(void);
+static bool is_confirmed_asleep(void);
 
 #if __EMSCRIPTEN__
 void yield(void) {
@@ -419,6 +423,23 @@ static void _movement_handle_top_of_minute(void) {
             // TODO: handle other advisory types
         }
     }
+    
+    // Sleep Tracking Session Management
+    // Track state transitions to start/end sleep sessions
+    static bool was_in_sleep_window = false;
+    bool now_in_sleep_window = is_sleep_window();
+    
+    if (now_in_sleep_window && !was_in_sleep_window) {
+        // Entering sleep window (e.g., 23:00) - start new session
+        sleep_tracker_start_session(&global_sleep_tracker);
+        last_sleep_tick = watch_rtc_get_counter();
+        sleep_minute_counter = 0;
+    } else if (!now_in_sleep_window && was_in_sleep_window) {
+        // Leaving sleep window (e.g., 04:00) - end session
+        sleep_tracker_end_session(&global_sleep_tracker);
+    }
+    
+    was_in_sleep_window = now_in_sleep_window;
 }
 
 static void _movement_handle_scheduled_tasks(void) {
@@ -1225,6 +1246,13 @@ void app_setup(void) {
 
         watch_faces[movement_state.current_face_idx].activate(watch_face_contexts[movement_state.current_face_idx]);
         movement_volatile_state.pending_events |=  1 << EVENT_ACTIVATE;
+        
+        // Initialize sleep tracker with default light modifiers
+        static const int16_t default_light_modifiers[4] = {-200, -50, +100, +400};
+        memcpy(global_sleep_tracker.light_modifiers, default_light_modifiers, sizeof(default_light_modifiers));
+        global_sleep_tracker.tracking_active = false;
+        sleep_minute_counter = 0;
+        last_sleep_tick = 0;
     }
 }
 
