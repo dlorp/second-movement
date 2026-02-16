@@ -1,0 +1,53 @@
+name: clang-tidy
+
+on:
+  pull_request:
+    paths:
+      - '**.c'
+      - '**.h'
+      - '.clang-tidy'
+  push:
+    branches: [main]
+    paths:
+      - '**.c'
+      - '**.h'
+      - '.clang-tidy'
+
+jobs:
+  clang-tidy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install clang-tidy
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-tidy
+    
+    - name: Run clang-tidy on changed files
+      run: |
+        # Find all .c and .h files (exclude test frameworks)
+        FILES=$(find watch-faces lib -name "*.c" -o -name "*.h" | \
+                grep -v "test/unity" | \
+                grep -v "test/watch_tcc" || true)
+        
+        if [ -n "$FILES" ]; then
+          echo "Running clang-tidy on:"
+          echo "$FILES"
+          
+          # Run clang-tidy (don't fail build initially, just report)
+          clang-tidy $FILES -- \
+            -I. \
+            -Iwatch-faces/complication \
+            -Ilib \
+            -DHAS_IR_SENSOR \
+            -D__ARM_ARCH_6M__ || true
+        else
+          echo "No C files to check"
+        fi
+    
+    - name: Summary
+      run: |
+        echo "✅ clang-tidy analysis complete"
+        echo "Review warnings above - not blocking merge initially"

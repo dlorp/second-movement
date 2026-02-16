@@ -1,0 +1,56 @@
+---
+# clang-tidy configuration for second-movement (Sensor Watch embedded C)
+# Focuses on security, buffer safety, and embedded C best practices
+
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  cert-*,
+  readability-*,
+  performance-*,
+  portability-*,
+  -bugprone-easily-swappable-parameters,
+  -readability-magic-numbers,
+  -readability-function-cognitive-complexity,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp
+
+WarningsAsErrors: ''
+
+CheckOptions:
+  # Naming conventions
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.TypedefCase
+    value: lower_case
+  - key: readability-identifier-naming.EnumCase
+    value: lower_case
+  - key: readability-identifier-naming.MacroCase
+    value: UPPER_CASE
+  
+  # Buffer safety
+  - key: bugprone-sizeof-expression.WarnOnSizeOfCompareToConstant
+    value: 1
+  - key: bugprone-sizeof-expression.WarnOnSizeOfPointerToAggregate
+    value: 1
+  
+  # Integer safety
+  - key: cert-int30-c.CheckCasts
+    value: 1
+  
+  # Performance
+  - key: performance-move-const-arg.CheckTriviallyCopyableMove
+    value: 0
+  
+  # Readability thresholds
+  - key: readability-function-size.LineThreshold
+    value: 150
+  - key: readability-function-size.StatementThreshold
+    value: 100
+
+HeaderFilterRegex: '(watch-faces|lib)/.*\.(h|c)$'
