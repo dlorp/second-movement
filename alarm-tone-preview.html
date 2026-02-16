@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Alarm Tone Preview</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 600px;
+            margin: 50px auto;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-family: monospace;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #0d0; }
+        button:active { background: #090; }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #0f0;
+        }
+        h1 { color: #0f0; }
+        .pattern {
+            background: #222;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔊 Smart Alarm Tone Preview - Gentle Wake Patterns</h1>
+    
+    <div class="pattern">
+        <strong>1. ANIMAL CROSSING:</strong> Soft ascending bells → gentle melody<br>
+        <strong>2. PLAYSTATION BOOT:</strong> PS1 boot (orchestral swell → bell cascade)<br>
+        <strong>3. FINAL FANTASY:</strong> Victory fanfare → triumphant melody<br>
+        <strong>4. ZELDA FOUNTAIN:</strong> Magical harp pattern (B-E-A-B ascending)<br>
+        <strong>5. LO-FI MORNING:</strong> Warm ambient swell → chill melody<br>
+        <strong>6. CHRONO TRIGGER:</strong> Mysterious portal → hopeful resolve
+    </div>
+
+    <button onclick="playAnimalCrossing()">▶ 1. Animal Crossing</button>
+    <button onclick="playPlayStation()">▶ 2. PlayStation</button>
+    <button onclick="playFinalFantasy()">▶ 3. Final Fantasy</button>
+    <button onclick="playZeldaFountain()">▶ 4. Zelda Fountain</button>
+    <button onclick="playLoFiMorning()">▶ 5. Lo-Fi Morning</button>
+    <button onclick="playChronoTrigger()">▶ 6. Chrono Trigger</button>
+    <button onclick="stopAll()">⏹ Stop</button>
+
+    <div class="status" id="status">Ready. Click a button to preview.</div>
+
+    <script>
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let currentTimeout = null;
+        let scheduledNotes = [];
+
+        // Note frequencies (Hz)
+        const notes = {
+            C4: 261.63,
+            D4: 293.66,
+            E4: 329.63,
+            F4: 349.23,
+            'F#4': 369.99,
+            G4: 392.00,
+            A4: 440.00,
+            B4: 493.88,
+            C5: 523.25,
+            D5: 587.33,
+            E5: 659.25,
+            F5: 698.46,
+            'F#5': 739.99,
+            G5: 783.99,
+            A5: 880.00,
+            B5: 987.77,
+            C6: 1046.50,
+            D6: 1174.66,
+            E6: 1318.51,
+            'F#6': 1479.98,
+            G6: 1567.98,
+            A6: 1760.00,
+            B6: 1975.53,
+            C7: 2093.00,
+            D7: 2349.32,
+            E7: 2637.02,
+            F7: 2793.83,
+            G7: 3135.96
+        };
+
+        function playTone(frequency, duration, startTime) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'square'; // Buzzer-like sound
+            
+            // Envelope for less harsh sound
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+            gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+            
+            scheduledNotes.push(oscillator);
+        }
+
+        function playAnimalCrossing() {
+            stopAll();
+            document.getElementById('status').textContent = 'Playing: 1. Animal Crossing - Gentle hourly chime';
+            
+            let time = audioContext.currentTime + 0.1;
+            
+            // Phase 1: Soft ascending bell tones - 2 seconds
+            playTone(notes.E5, 0.5, time);
+            playTone(notes.A5, 0.5, time + 0.6);
+            playTone(notes.C6, 0.6, time + 1.2);
+            time += 2;
+            
+            // Phase 2: Peaceful chime melody - 2 seconds
+            playTone(notes.E5, 0.35, time);
+            playTone(notes.G5, 0.35, time + 0.45);
+            playTone(notes.A5, 0.35, time + 0.9);
+            playTone(notes.C6, 0.4, time + 1.35);
+            time += 2;
+            
+            // Phase 3: Gentle resolve - 1.5 seconds
+            playTone(notes.E5, 0.3, time);
+            playTone(notes.A5, 0.3, time + 0.4);
+            playTone(notes.E6, 0.5, time + 0.8);
+            
+            finishTimeout(6000);
+        }
+
+        function playPlayStation() {
+            stopAll();
+            document.getElementById('status').textContent = 'Playing: 2. PlayStation - Iconic boot reimagined';
+            
+            let time = audioContext.currentTime + 0.1;
+            
+            // PS1 boot: Spacious Sweep (G→C) + bells
+            // Phase 1: Spacious Sweep first note (G) - 1.5 seconds
+            playTone(notes.G4, 0.8, time);
+            playTone(notes.G5, 0.8, time + 0.05); // Doubling for richness
+            time += 1.2;
+            
+            // Phase 2: Twinkling bells (G→C→D→G) - 1.5 seconds
+            playTone(notes.G6, 0.15, time);
+            playTone(notes.C7, 0.15, time + 0.2);
+            playTone(notes.D7, 0.15, time + 0.4);
+            playTone(notes.G7, 0.2, time + 0.6);
+            time += 1;
+            
+            // Phase 3: Spacious Sweep second note (C lower) - 1.5 seconds
+            playTone(notes.C4, 0.6, time);
+            playTone(notes.C5, 0.6, time + 0.05);
+            time += 0.8;
+            
+            // Phase 4: C major arpeggio bells - 1.5 seconds
+            playTone(notes.C6, 0.2, time);
+            playTone(notes.E6, 0.2, time + 0.25);
+            playTone(notes.G6, 0.2, time + 0.5);
+            playTone(notes.C7, 0.3, time + 0.75);
+            
+            finishTimeout(6000);
+        }
+
+        function playFinalFantasy() {
+            stopAll();
+            document.getElementById('status').textContent = 'Playing: 3. Final Fantasy - Victory fanfare';
+            
+            let time = audioContext.currentTime + 0.1;
+            
+            // Phase 1: Opening fanfare (four C notes) - 2 seconds
+            playTone(notes.C5, 0.3, time);
+            playTone(notes.C5, 0.3, time + 0.4);
+            playTone(notes.C5, 0.3, time + 0.8);
+            playTone(notes.C5, 0.5, time + 1.2);
+            time += 2;
+            
+            // Phase 2: Ascending melody - 1.8 seconds
+            playTone(notes.C5, 0.25, time);
+            playTone(notes.E5, 0.25, time + 0.3);
+            playTone(notes.G5, 0.25, time + 0.6);
+            playTone(notes.C6, 0.3, time + 0.9);
+            playTone(notes.E6, 0.35, time + 1.25);
+            time += 1.7;
+            
+            // Phase 3: Triumphant resolve - 1.5 seconds
+            playTone(notes.G6, 0.4, time);
+            playTone(notes.C6, 0.3, time + 0.5);
+            playTone(notes.E6, 0.6, time + 0.9);
+            
+            finishTimeout(6000);
+        }
+
+        function playZeldaFountain() {
+            stopAll();
+            document.getElementById('status').textContent = 'Playing: 4. Zelda Fountain - Simple melodic harp';
+            
+            let time = audioContext.currentTime + 0.1;
+            
+            // Simple ascending harp melody: B-E-A-B pattern
+            const pattern = [notes.B5, notes.E6, notes.A6, notes.B6];
+            
+            // Phase 1: Slow gentle harp - 2.5 seconds
+            for (let i = 0; i < pattern.length; i++) {
+                playTone(pattern[i], 0.4, time + (i * 0.35));
+            }
+            time += 1.6;
+            for (let i = 0; i < pattern.length; i++) {
+                playTone(pattern[i], 0.35, time + (i * 0.3));
+            }
+            time += 1.4;
+            
+            // Phase 2: Medium tempo - 1.5 seconds
+            for (let i = 0; i < pattern.length; i++) {
+                playTone(pattern[i], 0.28, time + (i * 0.22));
+            }
+            time += 1;
+            for (let i = 0; i < pattern.length; i++) {
+                playTone(pattern[i], 0.25, time + (i * 0.2));
+            }
+            time += 0.9;
+            
+            // Phase 3: Faster tempo - 1.5 seconds
+            for (let rep = 0; rep < 3; rep++) {
+                for (let i = 0; i < pattern.length; i++) {
+                    playTone(pattern[i], 0.18, time + (rep * 0.5) + (i * 0.12));
+                }
+            }
+            
+            finishTimeout(6500);
+        }
+
+        function playLoFiMorning() {
+            stopAll();
+            document.getElementById('status').textContent = 'Playing: 5. Lo-Fi Morning - Warm ambient swell';
+            
+            let time = audioContext.currentTime + 0.1;
+            
+            // Phase 1: Warm pad swell (triangle wave for softer sound) - 2.5 seconds
+            playTone(notes.C4, 0.8, time);
+            playTone(notes.E4, 0.8, time + 0.5);
+            playTone(notes.G4, 0.8, time + 1.0);
+            time += 2.5;
+            
+            // Phase 2: Soft melody - 2 seconds
+            playTone(notes.G5, 0.35, time);
+            playTone(notes.E5, 0.35, time + 0.4);
+            playTone(notes.C5, 0.35, time + 0.8);
+            playTone(notes.E5, 0.4, time + 1.2);
+            time += 1.8;
+            
+            // Phase 3: Chill pulse - 2 seconds
+            playTone(notes.C5, 0.3, time);
+            playTone(notes.E5, 0.3, time + 0.4);
+            playTone(notes.G5, 0.3, time + 0.8);
+            playTone(notes.C6, 0.5, time + 1.2);
+            
+            finishTimeout(7000);
+        }
+
+        function playChronoTrigger() {
+            stopAll();
+            document.getElementById('status').textContent = 'Playing: 6. Chrono Trigger - Time portal';
+            
+            let time = audioContext.currentTime + 0.1;
+            
+            // Phase 1: Mysterious time portal melody - 2 seconds
+            playTone(notes.B5, 0.25, time);
+            playTone(notes.E6, 0.25, time + 0.3);
+            playTone(notes.G6, 0.25, time + 0.6);
+            playTone(notes['F#6'], 0.3, time + 0.9);
+            playTone(notes.B5, 0.25, time + 1.3);
+            playTone(notes.E6, 0.3, time + 1.65);
+            time += 2;
+            
+            // Phase 2: Building progression - 2 seconds
+            playTone(notes.E5, 0.3, time);
+            playTone(notes.G5, 0.3, time + 0.4);
+            playTone(notes.B5, 0.3, time + 0.8);
+            playTone(notes.E6, 0.4, time + 1.2);
+            time += 1.7;
+            
+            // Phase 3: Hopeful resolve - 1.5 seconds
+            playTone(notes.G5, 0.3, time);
+            playTone(notes.B5, 0.3, time + 0.4);
+            playTone(notes.E6, 0.5, time + 0.8);
+            
+            finishTimeout(6000);
+        }
+
+        function finishTimeout(ms) {
+            currentTimeout = setTimeout(() => {
+                document.getElementById('status').textContent = 'Ready. Click a button to preview.';
+            }, ms);
+        }
+
+        function stopAll() {
+            scheduledNotes.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            scheduledNotes = [];
+            if (currentTimeout) {
+                clearTimeout(currentTimeout);
+                currentTimeout = null;
+            }
+            document.getElementById('status').textContent = 'Ready. Click a button to preview.';
+        }
+    </script>
+</body>
+</html>
