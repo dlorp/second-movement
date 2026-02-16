@@ -32,7 +32,8 @@ static void _on_transmission_end(void *user_data) {
 }
 
 static void _on_transmission_start(void *user_data) {
-    (void)user_data;
+    comms_face_state_t *state = (comms_face_state_t *)user_data;
+    state->tx_elapsed_seconds = 0;
     watch_set_indicator(WATCH_INDICATOR_BELL);
 }
 
@@ -41,6 +42,7 @@ static void _on_error(fesk_result_t error, void *user_data) {
     comms_face_state_t *state = (comms_face_state_t *)user_data;
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
+    state->tx_elapsed_seconds = 0;
     watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
@@ -89,22 +91,45 @@ static void _stop_transmission(comms_face_state_t *state) {
     fesk_session_dispose(&state->fesk_session);
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
+    state->tx_elapsed_seconds = 0;
     watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
 static void _update_display(comms_face_state_t *state) {
+    char buf[16];
+    
     switch (state->mode) {
         case COMMS_MODE_IDLE:
             watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "CO", "Comms");
             watch_display_text(WATCH_POSITION_BOTTOM, " RDY  ");
             break;
-        case COMMS_MODE_TX_ACTIVE:
+        case COMMS_MODE_TX_ACTIVE: {
             watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
-            watch_display_text(WATCH_POSITION_BOTTOM, "      ");
+            
+            // Calculate remaining time
+            // FESK 4-FSK rate: 26 bps (bits per second) = 3.25 bytes/second
+            // Hex encoding: 287 bytes → 574 hex chars
+            // Total bits: 574 * 8 = 4592 bits
+            // Total time: 4592 / 26 ≈ 177 seconds (~3 minutes)
+            uint16_t hex_bytes = state->export_size * 2;  // Hex encoding doubles size
+            uint16_t total_bits = hex_bytes * 8;
+            uint16_t total_seconds = (total_bits + 25) / 26;  // Round up (26 bps)
+            uint16_t elapsed = state->tx_elapsed_seconds;
+            int16_t remaining = total_seconds - elapsed;
+            
+            if (remaining < 0) remaining = 0;
+            
+            if (remaining < 100) {
+                sprintf(buf, " %2ds  ", remaining);
+            } else {
+                sprintf(buf, "%3ds  ", remaining);
+            }
+            watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
+        }
         case COMMS_MODE_TX_DONE:
-            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "OK", "Done");
-            watch_display_text(WATCH_POSITION_BOTTOM, "      ");
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
+            watch_display_text(WATCH_POSITION_BOTTOM, " END  ");
             break;
     }
 }
@@ -121,6 +146,7 @@ void comms_face_activate(void *context) {
     comms_face_state_t *state = (comms_face_state_t *)context;
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
+    state->tx_elapsed_seconds = 0;
     _update_display(state);
 }
 
@@ -129,7 +155,12 @@ bool comms_face_loop(movement_event_t event, void *context) {
     
     switch (event.event_type) {
         case EVENT_ACTIVATE:
+            _update_display(state);
+            break;
         case EVENT_TICK:
+            if (state->mode == COMMS_MODE_TX_ACTIVE) {
+                state->tx_elapsed_seconds++;
+            }
             _update_display(state);
             break;
         case EVENT_ALARM_BUTTON_UP:
@@ -141,6 +172,7 @@ bool comms_face_loop(movement_event_t event, void *context) {
                 _update_display(state);
             } else if (state->mode == COMMS_MODE_TX_DONE) {
                 state->mode = COMMS_MODE_IDLE;
+                state->tx_elapsed_seconds = 0;
                 _update_display(state);
             }
             break;

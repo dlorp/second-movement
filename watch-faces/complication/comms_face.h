@@ -13,9 +13,9 @@
  * Protocol:
  * - Binary data hex-encoded to FESK text format (42-char alphabet)
  * - 287 bytes → 574 hex chars
- * - FESK 4-FSK mode (2 bits/symbol, 4 tones: D7/E7/F7#/G7#)
+ * - FESK 4-FSK mode: 26 bps (bits per second)
  * - Built-in CRC8, START/END markers
- * - Full export: ~60 seconds (hex overhead)
+ * - Full export: ~177 seconds (~3 minutes)
  *
  * Future phases (not yet implemented):
  * - RX mode: Optical data reception via light sensor (BlinkyReceiver protocol)
@@ -79,6 +79,7 @@ typedef struct {
     uint8_t export_buffer[287];  // Full circadian export (binary)
     char hex_buffer[575];        // Hex-encoded + null terminator
     uint16_t export_size;        // Actual bytes exported
+    uint16_t tx_elapsed_seconds; // Elapsed time during transmission
     bool transmission_active;
 } comms_face_state_t;
 
