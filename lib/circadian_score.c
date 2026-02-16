@@ -15,6 +15,7 @@
 
 #include "circadian_score.h"
 #include "watch.h"
+#include "watch_utility.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -72,8 +73,8 @@ void circadian_score_calculate_components(const circadian_data_t *data,
         if (!data->nights[i].valid) continue;
         
         // Extract hour from timestamps
-        watch_date_time_t onset_dt = watch_rtc_convert_to_date_time(data->nights[i].onset_timestamp);
-        watch_date_time_t offset_dt = watch_rtc_convert_to_date_time(data->nights[i].offset_timestamp);
+        watch_date_time_t onset_dt = watch_utility_date_time_from_unix_time(data->nights[i].onset_timestamp, 0);
+        watch_date_time_t offset_dt = watch_utility_date_time_from_unix_time(data->nights[i].offset_timestamp, 0);
         
         uint16_t onset_min = onset_dt.unit.hour * 60 + onset_dt.unit.minute;
         uint16_t offset_min = offset_dt.unit.hour * 60 + offset_dt.unit.minute;
@@ -128,10 +129,10 @@ uint8_t circadian_score_calculate_sri(const circadian_data_t *data) {
         if (!data->nights[i].valid || !data->nights[i+1].valid) continue;
         
         // Calculate time-of-day for onset/offset
-        watch_date_time_t onset1 = watch_rtc_convert_to_date_time(data->nights[i].onset_timestamp);
-        watch_date_time_t onset2 = watch_rtc_convert_to_date_time(data->nights[i+1].onset_timestamp);
-        watch_date_time_t offset1 = watch_rtc_convert_to_date_time(data->nights[i].offset_timestamp);
-        watch_date_time_t offset2 = watch_rtc_convert_to_date_time(data->nights[i+1].offset_timestamp);
+        watch_date_time_t onset1 = watch_utility_date_time_from_unix_time(data->nights[i].onset_timestamp, 0);
+        watch_date_time_t onset2 = watch_utility_date_time_from_unix_time(data->nights[i+1].onset_timestamp, 0);
+        watch_date_time_t offset1 = watch_utility_date_time_from_unix_time(data->nights[i].offset_timestamp, 0);
+        watch_date_time_t offset2 = watch_utility_date_time_from_unix_time(data->nights[i+1].offset_timestamp, 0);
         
         uint16_t onset1_min = onset1.unit.hour * 60 + onset1.unit.minute;
         uint16_t onset2_min = onset2.unit.hour * 60 + onset2.unit.minute;
