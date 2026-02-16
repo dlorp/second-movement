@@ -1,7 +1,7 @@
 Second Movement
 ===============
 
-**Note:** This is dlorp's fork of second-movement. See upstream at [joeycastillo/second-movement](https://github.com/joeycastillo/second-movement).
+**Note:** This is my fork of second-movement. See upstream at [joeycastillo/second-movement](https://github.com/joeycastillo/second-movement).
 
 ## Fork Changes
 
