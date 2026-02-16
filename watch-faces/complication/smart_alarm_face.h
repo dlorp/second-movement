@@ -82,6 +82,8 @@ typedef struct {
     uint32_t alarm_enabled : 1;     // Smart alarm on/off
     uint32_t reserved : 1;          // Reserved for future use
     smart_alarm_setting_mode_t setting_mode : 2;  // Current UI setting mode
+    bool alarming;                  // True while alarm is playing
+    uint16_t alarm_ticks;           // Tick counter for LED breathing sync
 } smart_alarm_state_t;
 
 void smart_alarm_face_setup(uint8_t watch_face_index, void **context_ptr);
