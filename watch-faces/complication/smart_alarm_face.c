@@ -196,6 +196,39 @@ static inline void button_beep(void) {
     }
 }
 
+// Update LED breathing pattern based on tune phase
+static void _update_alarm_led(smart_alarm_state_t *state) {
+    // Get user's preferred LED color (4-bit values)
+    movement_color_t color = movement_backlight_color();
+    
+    // Calculate which cycle and phase we're in
+    // Each cycle is ~194 ticks (phase1: 96, phase2: 56, phase3: 42)
+    uint16_t cycle_tick = state->alarm_ticks % 194;
+    uint8_t brightness;
+    
+    if (cycle_tick < 96) {
+        // Phase 1: Slow breathing (10+2 tick notes)
+        // Sine wave breathing over 12 ticks per note
+        uint16_t phase_tick = cycle_tick % 12;
+        brightness = 128 + (127 * phase_tick / 12);  // 128-255 (50-100%)
+    } else if (cycle_tick < 152) {
+        // Phase 2: Medium breathing (6+1 tick notes)
+        uint16_t phase_tick = (cycle_tick - 96) % 7;
+        brightness = 192 + (63 * phase_tick / 7);  // 192-255 (75-100%)
+    } else {
+        // Phase 3: Fast breathing (3+1 tick notes)
+        uint16_t phase_tick = (cycle_tick - 152) % 4;
+        brightness = 224 + (31 * phase_tick / 4);  // 224-255 (88-100%)
+    }
+    
+    // Convert 4-bit color to 8-bit and apply brightness scaling
+    uint8_t red = ((color.red | (color.red << 4)) * brightness) / 255;
+    uint8_t green = ((color.green | (color.green << 4)) * brightness) / 255;
+    uint8_t blue = ((color.blue | (color.blue << 4)) * brightness) / 255;
+    
+    movement_force_led_on(red, green, blue);
+}
+
 //
 // Exported functions
 //
@@ -241,6 +274,20 @@ bool smart_alarm_face_loop(movement_event_t event, void *context) {
             break;
 
         case EVENT_TICK:
+            // Handle LED breathing during alarm
+            if (state->alarming) {
+                state->alarm_ticks++;
+                _update_alarm_led(state);
+                // Stop alarm after ~600 ticks (~75 seconds, 3 full cycles)
+                if (state->alarm_ticks >= 600) {
+                    state->alarming = false;
+                    movement_force_led_off();
+                    watch_buzzer_abort_sequence();
+                    movement_request_tick_frequency(1);
+                }
+                break;
+            }
+            
             // In normal mode, no action needed
             if (state->setting_mode == SMART_ALARM_SETTING_NONE) {
                 break;
@@ -254,6 +301,15 @@ bool smart_alarm_face_loop(movement_event_t event, void *context) {
             break;
 
         case EVENT_LIGHT_BUTTON_DOWN:
+            // If alarm is playing, dismiss it
+            if (state->alarming) {
+                state->alarming = false;
+                movement_force_led_off();
+                watch_buzzer_abort_sequence();
+                movement_request_tick_frequency(1);
+                break;
+            }
+            
             switch (state->setting_mode) {
                 case SMART_ALARM_SETTING_NONE:
                     // Normal mode: illuminate LED
@@ -278,6 +334,15 @@ bool smart_alarm_face_loop(movement_event_t event, void *context) {
             break;
 
         case EVENT_ALARM_BUTTON_UP:
+            // If alarm is playing, dismiss it
+            if (state->alarming) {
+                state->alarming = false;
+                movement_force_led_off();
+                watch_buzzer_abort_sequence();
+                movement_request_tick_frequency(1);
+                break;
+            }
+            
             if (state->setting_mode == SMART_ALARM_SETTING_NONE) {
                 // Toggle alarm on/off
                 state->alarm_enabled ^= 1;
@@ -327,7 +392,10 @@ bool smart_alarm_face_loop(movement_event_t event, void *context) {
             break;
 
         case EVENT_BACKGROUND_TASK:
-            // Alarm triggered - play Fairy Fountain wake sequence
+            // Alarm triggered - start alarming sequence with LED breathing
+            state->alarming = true;
+            state->alarm_ticks = 0;
+            movement_request_tick_frequency(8);  // 8Hz for smooth LED breathing
             movement_play_sequence((int8_t *)smart_alarm_tune, BUZZER_PRIORITY_ALARM);
             break;
 
