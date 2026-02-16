@@ -59,4 +59,5 @@ SRCS += \
   ./watch-faces/complication/sleep_tracker_face.c \
   ./watch-faces/complication/circadian_score_face.c \
   ./watch-faces/complication/comms_face.c \
+./watch-faces/complication/comms_rx.c \
 # New watch faces go above this line.

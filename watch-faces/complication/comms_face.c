@@ -102,19 +102,52 @@ static void _stop_transmission(comms_face_state_t *state) {
     watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
+// RX functions (implemented in comms_rx.c)
+#ifdef HAS_IR_SENSOR
+extern void optical_rx_start(comms_face_state_t *state);
+extern void optical_rx_stop(comms_face_state_t *state);
+extern void optical_rx_poll(comms_face_state_t *state);
+#endif
+
 static void _update_display(comms_face_state_t *state) {
+    char buf[16];
+    
     switch (state->mode) {
         case COMMS_MODE_IDLE:
-            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "CO", "Comms");
-            watch_display_text(WATCH_POSITION_BOTTOM, " RDY  ");
+            if (state->active_mode == COMMS_TX) {
+                watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
+                watch_display_text(WATCH_POSITION_BOTTOM, " RDY  ");
+            } else {
+                watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "Recv");
+                watch_display_text(WATCH_POSITION_BOTTOM, " RDY  ");
+            }
             break;
         case COMMS_MODE_TX_ACTIVE:
             watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
             watch_display_text(WATCH_POSITION_BOTTOM, "      ");
             break;
         case COMMS_MODE_TX_DONE:
-            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "OK", "Done");
-            watch_display_text(WATCH_POSITION_BOTTOM, "      ");
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
+            watch_display_text(WATCH_POSITION_BOTTOM, " END  ");
+            break;
+        case COMMS_MODE_RX_ACTIVE:
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "Recv");
+            if (state->rx_state.synced) {
+                // Receiving data - show bytes received
+                sprintf(buf, " %2db  ", state->bytes_received);
+                watch_display_text(WATCH_POSITION_BOTTOM, buf);
+            } else {
+                // Looking for sync
+                watch_display_text(WATCH_POSITION_BOTTOM, " SYNC ");
+            }
+            break;
+        case COMMS_MODE_RX_DONE:
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "Recv");
+            watch_display_text(WATCH_POSITION_BOTTOM, "  OK  ");
+            break;
+        case COMMS_MODE_RX_ERROR:
+            watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "Recv");
+            watch_display_text(WATCH_POSITION_BOTTOM, " ERR  ");
             break;
     }
 }
@@ -141,26 +174,58 @@ bool comms_face_loop(movement_event_t event, void *context) {
     
     switch (event.event_type) {
         case EVENT_ACTIVATE:
+            _update_display(state);
+            break;
         case EVENT_TICK:
+            // Poll RX if active
+            #ifdef HAS_IR_SENSOR
+            if (state->mode == COMMS_MODE_RX_ACTIVE) {
+                optical_rx_poll(state);
+            }
+            #endif
             _update_display(state);
             break;
         case EVENT_ALARM_BUTTON_UP:
             if (state->mode == COMMS_MODE_IDLE) {
-                _start_transmission(state);
+                // Start TX or RX depending on mode
+                if (state->active_mode == COMMS_TX) {
+                    _start_transmission(state);
+                } else {
+                    #ifdef HAS_IR_SENSOR
+                    optical_rx_start(state);
+                    #endif
+                }
                 _update_display(state);
             } else if (state->mode == COMMS_MODE_TX_ACTIVE) {
                 _stop_transmission(state);
                 _update_display(state);
-            } else if (state->mode == COMMS_MODE_TX_DONE) {
+            } else if (state->mode == COMMS_MODE_RX_ACTIVE) {
+                #ifdef HAS_IR_SENSOR
+                optical_rx_stop(state);
+                #endif
+                _update_display(state);
+            } else if (state->mode == COMMS_MODE_TX_DONE || 
+                       state->mode == COMMS_MODE_RX_DONE || 
+                       state->mode == COMMS_MODE_RX_ERROR) {
                 state->mode = COMMS_MODE_IDLE;
                 _update_display(state);
             }
             break;
         case EVENT_LIGHT_BUTTON_DOWN:
-            movement_illuminate_led();
+            // Suppress LED when in RX mode (would interfere with light sensor)
+            if (state->active_mode != COMMS_RX) {
+                movement_illuminate_led();
+            }
+            break;
+        case EVENT_LIGHT_LONG_PRESS:
+            // Toggle TX ↔ RX mode (only when idle)
+            if (state->mode == COMMS_MODE_IDLE) {
+                state->active_mode = (state->active_mode == COMMS_TX) ? COMMS_RX : COMMS_TX;
+                _update_display(state);
+            }
             break;
         case EVENT_TIMEOUT:
-            if (state->mode != COMMS_MODE_TX_ACTIVE) {
+            if (state->mode != COMMS_MODE_TX_ACTIVE && state->mode != COMMS_MODE_RX_ACTIVE) {
                 movement_move_to_face(0);
             }
             break;
@@ -176,4 +241,9 @@ void comms_face_resign(void *context) {
     if (state->transmission_active) {
         _stop_transmission(state);
     }
+    #ifdef HAS_IR_SENSOR
+    if (state->light_sensor_active) {
+        optical_rx_stop(state);
+    }
+    #endif
 }
