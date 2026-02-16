@@ -45,8 +45,10 @@
 #include "evsys.h"
 #include "delay.h"
 #include "thermistor_driver.h"
+#include "adc.h"
 
 #include "movement_config.h"
+#include "sleep_tracker_face.h"
 
 #include "movement_custom_signal_tunes.h"
 
@@ -128,6 +130,11 @@ int8_t alarm_tune[] = {
 int8_t _movement_dst_offset_cache[NUM_ZONE_NAMES] = {0};
 #define TIMEZONE_DOES_NOT_OBSERVE (-127)
 
+// Sleep Tracker State (integration with Active Hours)
+static sleep_tracker_state_t global_sleep_tracker = {0};
+static uint16_t sleep_minute_counter = 0;
+static rtc_counter_t last_sleep_tick = 0;
+
 void cb_mode_btn_interrupt(void);
 void cb_light_btn_interrupt(void);
 void cb_alarm_btn_interrupt(void);
@@ -145,6 +152,8 @@ void cb_buzzer_stop(void);
 
 void cb_accelerometer_event(void);
 void cb_accelerometer_wake(void);
+static bool is_sleep_window(void);
+static bool is_confirmed_asleep(void);
 
 #if __EMSCRIPTEN__
 void yield(void) {
@@ -391,6 +400,23 @@ static void _movement_handle_top_of_minute(void) {
             // TODO: handle other advisory types
         }
     }
+    
+    // Sleep Tracking Session Management
+    // Track state transitions to start/end sleep sessions
+    static bool was_in_sleep_window = false;
+    bool now_in_sleep_window = is_sleep_window();
+    
+    if (now_in_sleep_window && !was_in_sleep_window) {
+        // Entering sleep window (e.g., 23:00) - start new session
+        sleep_tracker_start_session(&global_sleep_tracker);
+        last_sleep_tick = watch_rtc_get_counter();
+        sleep_minute_counter = 0;
+    } else if (!now_in_sleep_window && was_in_sleep_window) {
+        // Leaving sleep window (e.g., 04:00) - end session
+        sleep_tracker_end_session(&global_sleep_tracker);
+    }
+    
+    was_in_sleep_window = now_in_sleep_window;
 }
 
 static void _movement_handle_scheduled_tasks(void) {
@@ -1164,6 +1190,13 @@ void app_setup(void) {
 
         watch_faces[movement_state.current_face_idx].activate(watch_face_contexts[movement_state.current_face_idx]);
         movement_volatile_state.pending_events |=  1 << EVENT_ACTIVATE;
+        
+        // Initialize sleep tracker with default light modifiers
+        static const int16_t default_light_modifiers[4] = {-200, -50, +100, +400};
+        memcpy(global_sleep_tracker.light_modifiers, default_light_modifiers, sizeof(default_light_modifiers));
+        global_sleep_tracker.tracking_active = false;
+        sleep_minute_counter = 0;
+        last_sleep_tick = 0;
     }
 }
 
@@ -1600,7 +1633,36 @@ void cb_accelerometer_wake(void) {
     // allowing tap-to-wake (INT1/A3) and button wake to function normally.
     // Motion wake only suppressed when BOTH time window and accelerometer agree.
     if (is_confirmed_asleep()) {
-        // We're in confirmed sleep - only process tap events, ignore motion
+        // We're in confirmed sleep - run sleep tracking
+        // Check if a minute has passed since last tick
+        rtc_counter_t now = watch_rtc_get_counter();
+        if (now - last_sleep_tick >= 60) {
+            last_sleep_tick = now;
+            sleep_minute_counter++;
+            
+            // Count this motion event as activity
+            uint16_t activity_count = 1;  // Single motion event
+            
+            // Read light sensor if available
+            uint8_t light_level = 0;
+            #ifdef HAS_IR_SENSOR
+            // Enable IR sensor briefly
+            HAL_GPIO_IR_ENABLE_clr();
+            delay_ms(1);
+            light_level = adc_get_analog_value(HAL_GPIO_IRSENSE_pin());
+            HAL_GPIO_IR_ENABLE_set();
+            #endif
+            
+            // Classify this epoch
+            bool is_asleep = sleep_tracker_classify_epoch(&global_sleep_tracker, 
+                                                          activity_count, 
+                                                          light_level);
+            
+            // Update sleep metrics
+            sleep_tracker_update_metrics(&global_sleep_tracker, is_asleep);
+        }
+        
+        // Only process tap events, ignore motion during sleep
         // If this was a tap, the flag is already set above and will be processed
         // Motion events are simply discarded during sleep hours
         return;
