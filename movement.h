@@ -101,6 +101,19 @@ typedef union {
     uint32_t reg;
 } movement_location_t;
 
+// movement_active_hours_t stores user-configurable active hours (awake window).
+// Sleep window is the inverse (when motion wake is suppressed).
+// Stored in BKUP[2] register.
+typedef union {
+    struct {
+        uint8_t start_quarter_hours : 7;  // 0-95 (0=00:00, 95=23:45, 15-min increments)
+        uint8_t end_quarter_hours : 7;    // 0-95 (0=00:00, 95=23:45, 15-min increments)
+        bool enabled : 1;                  // active hours enabled/disabled
+        uint8_t reserved : 17;             // reserved for future use
+    } bit;
+    uint32_t reg;
+} movement_active_hours_t;
+
 // movement_reserved_t is a placeholder for future use of the BKUP[3] register.
 typedef union {
     struct {
