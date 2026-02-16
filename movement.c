@@ -140,6 +140,37 @@ static rtc_counter_t last_sleep_tick = 0;
 static circadian_data_t global_circadian_data = {0};
 static bool circadian_data_initialized = false;
 
+// Active Hours configuration (BKUP[2] storage)
+// Format: 17 bits packed (7-bit start, 7-bit end, 1-bit enabled, 17 reserved)
+typedef struct {
+    uint8_t start;   // 0-95 (15-min increments, 0=00:00, 95=23:45)
+    uint8_t end;     // 0-95
+    bool enabled;    // True = use Active Hours, False = 24h active
+} active_hours_config_t;
+
+static active_hours_config_t get_active_hours(void) {
+    uint32_t reg = watch_get_backup_data(2);
+    active_hours_config_t config;
+    
+    // Extract from BKUP[2]
+    config.start = (reg & 0x7F);         // Bits 0-6
+    config.end = ((reg >> 7) & 0x7F);    // Bits 7-13
+    config.enabled = ((reg >> 14) & 0x1); // Bit 14
+    
+    // Validate or set defaults (04:00-23:00)
+    if (config.start > 95 || config.end > 95 || config.start == config.end) {
+        config.start = 16;   // 04:00 (4 * 4)
+        config.end = 92;     // 23:00 (23 * 4)
+        config.enabled = true;
+        
+        // Save defaults
+        uint32_t default_reg = config.start | (config.end << 7) | (config.enabled << 14);
+        watch_store_backup_data(default_reg, 2);
+    }
+    
+    return config;
+}
+
 void cb_mode_btn_interrupt(void);
 void cb_light_btn_interrupt(void);
 void cb_alarm_btn_interrupt(void);
@@ -159,6 +190,11 @@ void cb_accelerometer_event(void);
 void cb_accelerometer_wake(void);
 static bool is_sleep_window(void);
 static bool is_confirmed_asleep(void);
+
+// Expose sleep tracker state for smart alarm integration
+struct sleep_tracker_state_t* movement_get_sleep_tracker_state(void) {
+    return &global_sleep_tracker;
+}
 
 #if __EMSCRIPTEN__
 void yield(void) {
@@ -1237,13 +1273,13 @@ void app_setup(void) {
         // Initialize circadian data (or load from flash)
         if (!circadian_data_initialized) {
             circadian_data_load_from_flash(&global_circadian_data);
-            // Set default Active Hours if not initialized (04:00-23:00)
-            if (global_circadian_data.active_hours_start_min == 0 && 
-                global_circadian_data.active_hours_end_min == 0) {
-                global_circadian_data.active_hours_start_min = 4 * 60;   // 04:00
-                global_circadian_data.active_hours_end_min = 23 * 60;    // 23:00
-                circadian_data_save_to_flash(&global_circadian_data);
-            }
+            
+            // Sync Active Hours from BKUP[2]
+            active_hours_config_t config = get_active_hours();
+            global_circadian_data.active_hours_start_min = (config.start * 15);  // Convert quarters to minutes
+            global_circadian_data.active_hours_end_min = (config.end * 15);
+            circadian_data_save_to_flash(&global_circadian_data);
+            
             circadian_data_initialized = true;
         }
     }
@@ -1634,12 +1670,25 @@ void cb_accelerometer_event(void) {
 // Returns true if outside this window (i.e., in sleep window 23:00-04:00).
 // Note: This will be made configurable in Stream 2 via BKUP[2] register.
 static bool is_sleep_window(void) {
-    watch_date_time_t now = watch_rtc_get_date_time();
-    uint8_t hour = now.unit.hour;
+    active_hours_config_t config = get_active_hours();
     
-    // Sleep window is 23:00 (23) through 03:59 (3)
-    // Active hours are 04:00 (4) through 22:59 (22)
-    return (hour >= 23 || hour < 4);
+    // If Active Hours disabled, always return false (24h active mode)
+    if (!config.enabled) {
+        return false;
+    }
+    
+    // Convert current time to 15-min increments (0-95)
+    watch_date_time_t now = watch_rtc_get_date_time();
+    uint8_t current_quarter = (now.unit.hour * 4) + (now.unit.minute / 15);
+    
+    // Check if outside Active Hours window
+    if (config.start < config.end) {
+        // Normal range (e.g., 08:00-22:00): outside if before start or after end
+        return (current_quarter < config.start || current_quarter >= config.end);
+    } else {
+        // Midnight-wrapping range (e.g., 22:00-08:00): outside if between end and start
+        return (current_quarter >= config.end && current_quarter < config.start);
+    }
 }
 
 // Check if wearer is confirmed to be asleep.

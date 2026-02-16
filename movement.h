@@ -408,3 +408,12 @@ bool movement_set_accelerometer_motion_threshold(uint8_t new_threshold);
 // If the board has multiple temperature sensors, it will use the most accurate one available.
 // If the board has no temperature sensors, it will return 0xFFFFFFFF.
 float movement_get_temperature(void);
+
+
+// Forward declaration for smart alarm integration
+
+// Forward declaration for smart alarm integration
+struct sleep_tracker_state_t;
+
+// Get global sleep tracker state for smart alarm light sleep detection
+struct sleep_tracker_state_t* movement_get_sleep_tracker_state(void);
