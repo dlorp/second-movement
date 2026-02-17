@@ -241,12 +241,21 @@ void smart_alarm_face_setup(uint8_t watch_face_index, void **context_ptr) {
         smart_alarm_state_t *state = (smart_alarm_state_t *)*context_ptr;
         memset(*context_ptr, 0, sizeof(smart_alarm_state_t));
 
-        // Default alarm window: 06:45-07:15 (27 to 29 in 15-min increments)
-        // 06:45 = (6 * 4) + 3 = 27
-        // 07:15 = (7 * 4) + 1 = 29
-        state->window_start = 27;  // 06:45
-        state->window_end = 29;    // 07:15
-        state->alarm_enabled = 0;
+        // Restore settings from BKUP[3] if previously saved
+        // Format: bits 0-6 = window_start, bits 7-13 = window_end, bit 14 = alarm_enabled
+        uint32_t bkup = watch_get_backup_data(3);
+        if (bkup != 0) {
+            state->window_start   = (bkup >> 0)  & 0x7F;
+            state->window_end     = (bkup >> 7)  & 0x7F;
+            state->alarm_enabled  = (bkup >> 14) & 0x01;
+        } else {
+            // Default alarm window: 06:45-07:15 (27 to 29 in 15-min increments)
+            // 06:45 = (6 * 4) + 3 = 27
+            // 07:15 = (7 * 4) + 1 = 29
+            state->window_start = 27;  // 06:45
+            state->window_end = 29;    // 07:15
+            state->alarm_enabled = 0;
+        }
         state->setting_mode = SMART_ALARM_SETTING_NONE;
     }
 }
@@ -257,7 +266,12 @@ void smart_alarm_face_activate(void *context) {
 }
 
 void smart_alarm_face_resign(void *context) {
-    (void) context;
+    smart_alarm_state_t *state = (smart_alarm_state_t *)context;
+    // Persist settings to BKUP[3] on every resign so they survive power cycles
+    uint32_t bkup = (state->window_start  & 0x7F)       |
+                    ((state->window_end   & 0x7F) << 7)  |
+                    ((state->alarm_enabled & 0x01) << 14);
+    watch_store_backup_data(bkup, 3);
 }
 
 bool smart_alarm_face_loop(movement_event_t event, void *context) {
@@ -329,6 +343,13 @@ bool smart_alarm_face_loop(movement_event_t event, void *context) {
                     movement_set_alarm_enabled(true);
                     watch_set_indicator(WATCH_INDICATOR_SIGNAL);
                     _smart_alarm_display_window(state);
+                    // Persist settings immediately after window is confirmed
+                    {
+                        uint32_t bkup = (state->window_start  & 0x7F)       |
+                                        ((state->window_end   & 0x7F) << 7)  |
+                                        ((state->alarm_enabled & 0x01) << 14);
+                        watch_store_backup_data(bkup, 3);
+                    }
                     break;
             }
             break;
@@ -352,6 +373,13 @@ bool smart_alarm_face_loop(movement_event_t event, void *context) {
                 } else {
                     watch_clear_indicator(WATCH_INDICATOR_SIGNAL);
                     movement_set_alarm_enabled(false);
+                }
+                // Persist the toggled alarm_enabled state immediately
+                {
+                    uint32_t bkup = (state->window_start  & 0x7F)       |
+                                    ((state->window_end   & 0x7F) << 7)  |
+                                    ((state->alarm_enabled & 0x01) << 14);
+                    watch_store_backup_data(bkup, 3);
                 }
             }
             break;

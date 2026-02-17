@@ -50,6 +50,7 @@
 
 #include "movement_custom_signal_tunes.h"
 #include "sleep_data.h"
+#include "smart_alarm_face.h"
 
 #if __EMSCRIPTEN__
 #include <emscripten.h>
@@ -1891,7 +1892,7 @@ static bool is_confirmed_asleep(void) {
 static struct {
     uint8_t motion_event_count;     // Count of motion events in tracking window
     uint8_t orientation_changes;    // Count of orientation changes
-    uint32_t last_motion_time;      // Timestamp of last motion event (in seconds)
+    uint32_t last_motion_time;      // Timestamp of last motion event (minutes of day, 0-1439)
     bool tracking_active;           // Whether we're actively monitoring for light sleep
 } smart_alarm_tracking = {0, 0, 0, false};
 
@@ -1957,13 +1958,14 @@ static bool is_light_sleep_detected(void) {
     // 1. At least 2 motion events in the last 5 minutes (indicates restlessness)
     // 2. OR at least 1 orientation change (indicates position shift)
     
-    // Get current time
+    // Get current time as minutes-of-day (0-1439)
     watch_date_time_t now = watch_rtc_get_date_time();
-    uint32_t current_time = now.unit.hour * 3600 + now.unit.minute * 60 + now.unit.second;
-    
-    // Check if we have recent motion (within last 5 minutes = 300 seconds)
-    uint32_t time_since_motion = current_time - smart_alarm_tracking.last_motion_time;
-    bool recent_motion = (time_since_motion < 300);
+    uint32_t current_minutes = now.unit.hour * 60 + now.unit.minute;
+
+    // Check if we have recent motion (within last 5 minutes).
+    // Use modular arithmetic to handle midnight rollover (e.g., current=0:05, last=23:55 → 10 min).
+    uint32_t minutes_since_motion = ((current_minutes - smart_alarm_tracking.last_motion_time + 1440) % 1440);
+    bool recent_motion = (minutes_since_motion < 5);
     
     // Light sleep detected if:
     // - Multiple motion events AND recent activity
@@ -1998,10 +2000,9 @@ static void update_smart_alarm_tracking(bool is_orientation_change) {
         smart_alarm_tracking.orientation_changes++;
     }
     
-    // Update timestamp
+    // Update timestamp as minutes-of-day (matches is_light_sleep_detected rollover math)
     watch_date_time_t now = watch_rtc_get_date_time();
-    smart_alarm_tracking.last_motion_time = 
-        now.unit.hour * 3600 + now.unit.minute * 60 + now.unit.second;
+    smart_alarm_tracking.last_motion_time = now.unit.hour * 60 + now.unit.minute;
 }
 
 // Deferred handler for accelerometer wake events.
@@ -2033,8 +2034,15 @@ static void _movement_handle_accelerometer_wake(void) {
         // Check if light sleep is detected
         if (is_light_sleep_detected()) {
             // Trigger alarm immediately — light sleep detected within window.
-            // This will be picked up by the smart_alarm_face_advise function.
-            movement_volatile_state.minute_alarm_fired = true;
+            // Dispatch EVENT_BACKGROUND_TASK directly to the smart alarm face
+            // so its own handler (not the generic minute-alarm path) fires the alarm.
+            movement_event_t bg_event = { EVENT_BACKGROUND_TASK, 0 };
+            for (uint8_t fi = 0; fi < MOVEMENT_NUM_FACES; fi++) {
+                if (watch_faces[fi].loop == smart_alarm_face_loop) {
+                    watch_faces[fi].loop(bg_event, watch_face_contexts[fi]);
+                    break;
+                }
+            }
             reset_smart_alarm_tracking();
         }
     } else {
