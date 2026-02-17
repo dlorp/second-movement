@@ -126,9 +126,9 @@ static void _update_display(comms_face_state_t *state) {
             if (remaining < 0) remaining = 0;
             
             if (remaining < 100) {
-                sprintf(buf, " %2ds  ", remaining);
+                snprintf(buf, sizeof(buf), " %2ds  ", remaining);
             } else {
-                sprintf(buf, "%3ds  ", remaining);
+                snprintf(buf, sizeof(buf), "%3ds  ", remaining);
             }
             watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
@@ -144,6 +144,7 @@ void comms_face_setup(uint8_t watch_face_index, void **context_ptr) {
     (void) watch_face_index;
     if (*context_ptr == NULL) {
         *context_ptr = malloc(sizeof(comms_face_state_t));
+        if (*context_ptr == NULL) return;
         memset(*context_ptr, 0, sizeof(comms_face_state_t));
     }
 }

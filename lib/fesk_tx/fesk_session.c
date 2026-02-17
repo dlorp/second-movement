@@ -166,9 +166,12 @@ static void _finish_session(fesk_session_t *session, bool notify) {
         watch_clear_indicator(WATCH_INDICATOR_BELL);
     }
 
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
     if (_fesk_active_session == session) {
         _fesk_active_session = NULL;
     }
+    __set_PRIMASK(primask);
 
     watch_buzzer_abort_sequence();
     watch_set_buzzer_off();
@@ -421,10 +424,16 @@ static bool _start_transmission(fesk_session_t *session) {
         watch_set_indicator(WATCH_INDICATOR_BELL);
     }
 
-    if (_fesk_active_session && _fesk_active_session != session) {
-        _finish_session(_fesk_active_session, false);
+    {
+        uint32_t primask = __get_PRIMASK();
+        __disable_irq();
+        fesk_session_t *prev_session = (_fesk_active_session != session) ? _fesk_active_session : NULL;
+        _fesk_active_session = session;
+        __set_PRIMASK(primask);
+        if (prev_session) {
+            _finish_session(prev_session, false);
+        }
     }
-    _fesk_active_session = session;
 
     _call_simple(session->config.on_transmission_start, session->config.user_data);
     watch_buzzer_play_raw_source(_fesk_raw_source, session, _fesk_transmission_complete);
@@ -444,11 +453,16 @@ static void _start_countdown(fesk_session_t *session) {
                     session->seconds_remaining,
                     session->config.user_data);
 
-    if (_fesk_active_session && _fesk_active_session != session) {
-        _finish_session(_fesk_active_session, false);
+    {
+        uint32_t primask = __get_PRIMASK();
+        __disable_irq();
+        fesk_session_t *prev_session = (_fesk_active_session != session) ? _fesk_active_session : NULL;
+        _fesk_active_session = session;
+        __set_PRIMASK(primask);
+        if (prev_session) {
+            _finish_session(prev_session, false);
+        }
     }
-
-    _fesk_active_session = session;
 
     const int8_t *sequence = session->config.countdown_beep
                                ? _fesk_countdown_sequence
@@ -480,19 +494,27 @@ static bool _handle_cancel(fesk_session_t *session) {
 }
 
 static void _fesk_transmission_complete(void) {
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
     if (!_fesk_active_session) {
+        __set_PRIMASK(primask);
         return;
     }
     fesk_session_t *session = _fesk_active_session;
     _fesk_active_session = NULL;
+    __set_PRIMASK(primask);
     _finish_session(session, true);
 }
 
 static void _fesk_countdown_step_done(void) {
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
     if (!_fesk_active_session) {
+        __set_PRIMASK(primask);
         return;
     }
     fesk_session_t *session = _fesk_active_session;
+    __set_PRIMASK(primask);
     if (session->phase != FESK_SESSION_COUNTDOWN) {
         return;
     }
@@ -543,10 +565,6 @@ void fesk_session_init(fesk_session_t *session, const fesk_session_config_t *con
 void fesk_session_dispose(fesk_session_t *session) {
     if (!session) {
         return;
-    }
-    if (_fesk_active_session == session) {
-        _fesk_active_session = NULL;
-        watch_buzzer_abort_sequence();
     }
     _finish_session(session, false);
 }
