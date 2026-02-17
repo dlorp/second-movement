@@ -54,7 +54,8 @@
  * - MODE button: Next face (when not transmitting)
  * - Display: "TX" + progress (segments show % complete)
  *
- * Transmits 287 bytes of circadian data via buzzer chirps (~35 seconds)
+ * Transmits 112 bytes of circadian data via buzzer chirps (~18 seconds)
+ * Compressed from 287 bytes (-61% reduction) by removing padding
  * Companion app (phone mic) receives and decodes FESK packets
  */
 
@@ -76,6 +77,8 @@ typedef struct {
     fesk_session_t fesk_session;
     
     // TX state
+    uint8_t export_buffer[112];  // Full circadian export (binary, compressed)
+    char hex_buffer[225];        // Hex-encoded + null terminator (112 * 2 + 1)
     uint16_t export_size;        // Actual bytes exported
     uint16_t tx_elapsed_seconds; // Elapsed time during transmission
     bool transmission_active;
