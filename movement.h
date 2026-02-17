@@ -109,7 +109,7 @@ typedef union {
         uint8_t start_quarter_hours : 7;  // 0-95 (0=00:00, 95=23:45, 15-min increments)
         uint8_t end_quarter_hours : 7;    // 0-95 (0=00:00, 95=23:45, 15-min increments)
         bool enabled : 1;                  // active hours enabled/disabled
-        uint8_t reserved : 17;             // reserved for future use
+        uint32_t reserved : 17;            // reserved for future use
     } bit;
     uint32_t reg;
 } movement_active_hours_t;
