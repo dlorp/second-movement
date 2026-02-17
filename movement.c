@@ -285,8 +285,9 @@ static void _movement_renew_top_of_minute_alarm(void) {
     movement_volatile_state.schedule_next_comp = true;
 }
 
-// Forward declaration — defined after app_loop (depends on sleep helpers below).
+// Forward declarations -- defined after app_loop (depends on sleep helpers below).
 static void _movement_handle_accelerometer_wake(void);
+static bool is_sleep_window(void);
 
 static uint32_t _movement_get_accelerometer_events() {
     uint32_t accelerometer_events = 0;
@@ -1738,11 +1739,12 @@ static void check_and_start_new_night(void) {
 
 // Get 6D orientation from accelerometer
 static uint8_t get_current_orientation(void) {
-    lis2dw_6d_source_t source = lis2dw_get_6d_source();
-    
-    if (source & LIS2DW_6D_SRC_ZH) {
+    /* Read SIXD_SRC register directly; driver has no lis2dw_get_6d_source() wrapper */
+    uint8_t source = watch_i2c_read8(LIS2DW_ADDRESS, LIS2DW_REG_SIXD_SRC);
+
+    if (source & LIS2DW_WAKE_UP_SRC_VAL_ZH) {
         return SLEEP_ORIENTATION_FACE_UP;
-    } else if (source & LIS2DW_6D_SRC_ZL) {
+    } else if (source & LIS2DW_WAKE_UP_SRC_VAL_ZL) {
         return SLEEP_ORIENTATION_FACE_DOWN;
     } else {
         return SLEEP_ORIENTATION_TILTED;
