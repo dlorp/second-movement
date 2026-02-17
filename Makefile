@@ -78,6 +78,8 @@ INCLUDES += \
   -I./lib/TOTP \
   -I./lib/chirpy_tx \
   -I./lib/base64 \
+  -I./lib/fesk_tx \
+  -I./lib \
   -I./watch-library/shared/watch \
   -I./watch-library/shared/driver \
   -I./watch-faces/clock \
@@ -105,6 +107,9 @@ SRCS += \
   ./lib/TOTP/TOTP.c \
   ./lib/chirpy_tx/chirpy_tx.c \
   ./lib/base64/base64.c \
+  ./lib/circadian_score.c \
+  ./lib/fesk_tx/fesk_tx.c \
+  ./lib/fesk_tx/fesk_session.c \
   ./watch-library/shared/driver/thermistor_driver.c \
   ./watch-library/shared/watch/watch_common_buzzer.c \
   ./watch-library/shared/watch/watch_common_display.c \

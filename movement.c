@@ -45,8 +45,11 @@
 #include "evsys.h"
 #include "delay.h"
 #include "thermistor_driver.h"
+#include "adc.h"
 
 #include "movement_config.h"
+#include "sleep_tracker_face.h"
+#include "circadian_score.h"
 
 #include "movement_custom_signal_tunes.h"
 #include "sleep_data.h"
@@ -135,6 +138,46 @@ int8_t _movement_dst_offset_cache[NUM_ZONE_NAMES] = {0};
 static sleep_data_t sleep_data;
 static bool sleep_data_dirty = false;  // Tracks if we need to save to flash
 
+// Circadian Score Data (receives completed sleep sessions)
+static circadian_data_t global_circadian_data = {0};
+static bool circadian_data_initialized = false;
+
+/* Sleep tracker state (Cole-Kripke algorithm) */
+static sleep_tracker_state_t global_sleep_tracker = {0};
+static uint32_t last_sleep_tick = 0;
+static uint16_t sleep_minute_counter = 0;
+
+// Active Hours configuration (BKUP[2] storage)
+// Format: 17 bits packed (7-bit start, 7-bit end, 1-bit enabled, 17 reserved)
+typedef struct {
+    uint8_t start;   // 0-95 (15-min increments, 0=00:00, 95=23:45)
+    uint8_t end;     // 0-95
+    bool enabled;    // True = use Active Hours, False = 24h active
+} active_hours_config_t;
+
+static active_hours_config_t get_active_hours(void) {
+    uint32_t reg = watch_get_backup_data(2);
+    active_hours_config_t config;
+    
+    // Extract from BKUP[2]
+    config.start = (reg & 0x7F);         // Bits 0-6
+    config.end = ((reg >> 7) & 0x7F);    // Bits 7-13
+    config.enabled = ((reg >> 14) & 0x1); // Bit 14
+    
+    // Validate or set defaults (04:00-23:00)
+    if (config.start > 95 || config.end > 95 || config.start == config.end) {
+        config.start = 16;   // 04:00 (4 * 4)
+        config.end = 92;     // 23:00 (23 * 4)
+        config.enabled = true;
+        
+        // Save defaults
+        uint32_t default_reg = config.start | (config.end << 7) | (config.enabled << 14);
+        watch_store_backup_data(default_reg, 2);
+    }
+    
+    return config;
+}
+
 void cb_mode_btn_interrupt(void);
 void cb_light_btn_interrupt(void);
 void cb_alarm_btn_interrupt(void);
@@ -152,6 +195,13 @@ void cb_buzzer_stop(void);
 
 void cb_accelerometer_event(void);
 void cb_accelerometer_wake(void);
+static bool is_sleep_window(void);
+static bool is_confirmed_asleep(void);
+
+// Expose sleep tracker state for smart alarm integration
+sleep_tracker_state_t* movement_get_sleep_tracker_state(void) {
+    return &global_sleep_tracker;
+}
 
 #if __EMSCRIPTEN__
 void yield(void) {
@@ -419,6 +469,54 @@ static void _movement_handle_top_of_minute(void) {
             // TODO: handle other advisory types
         }
     }
+    
+    // Sleep Tracking Session Management
+    // Track state transitions to start/end sleep sessions
+    static bool was_in_sleep_window = false;
+    bool now_in_sleep_window = is_sleep_window();
+    
+    if (now_in_sleep_window && !was_in_sleep_window) {
+        // Entering sleep window (e.g., 23:00) - start new session
+        sleep_tracker_start_session(&global_sleep_tracker);
+        last_sleep_tick = watch_rtc_get_counter();
+        sleep_minute_counter = 0;
+    } else if (!now_in_sleep_window && was_in_sleep_window) {
+        // Leaving sleep window (e.g., 04:00) - end session
+        sleep_tracker_end_session(&global_sleep_tracker);
+        
+        // Export completed night data to Circadian Score system
+        if (global_sleep_tracker.total_sleep_minutes > 0) {
+            // Calculate derived metrics
+            uint16_t total_minutes = global_sleep_tracker.total_sleep_minutes + 
+                                    global_sleep_tracker.total_wake_minutes;
+            uint8_t efficiency = (total_minutes > 0) ? 
+                (global_sleep_tracker.total_sleep_minutes * 100 / total_minutes) : 0;
+            uint8_t light_quality = (total_minutes > 0) ?
+                (global_sleep_tracker.total_dark_minutes * 100 / total_minutes) : 0;
+            
+            circadian_sleep_night_t night = {
+                .onset_timestamp = global_sleep_tracker.sleep_onset_time,
+                .offset_timestamp = global_sleep_tracker.sleep_offset_time,
+                .duration_min = global_sleep_tracker.total_sleep_minutes,
+                .efficiency = efficiency,
+                .waso_min = global_sleep_tracker.total_wake_minutes,
+                .awakenings = global_sleep_tracker.num_awakenings,
+                .light_quality = light_quality,
+                .valid = true
+            };
+            
+            // Load circadian data if not initialized
+            if (!circadian_data_initialized) {
+                circadian_data_load_from_flash(&global_circadian_data);
+                circadian_data_initialized = true;
+            }
+            
+            // Add night and persist
+            circadian_data_add_night(&global_circadian_data, &night);
+        }
+    }
+    
+    was_in_sleep_window = now_in_sleep_window;
 }
 
 static void _movement_handle_scheduled_tasks(void) {
@@ -1225,6 +1323,26 @@ void app_setup(void) {
 
         watch_faces[movement_state.current_face_idx].activate(watch_face_contexts[movement_state.current_face_idx]);
         movement_volatile_state.pending_events |=  1 << EVENT_ACTIVATE;
+        
+        // Initialize sleep tracker with default light modifiers
+        static const int16_t default_light_modifiers[4] = {-200, -50, +100, +400};
+        memcpy(global_sleep_tracker.light_modifiers, default_light_modifiers, sizeof(default_light_modifiers));
+        global_sleep_tracker.tracking_active = false;
+        sleep_minute_counter = 0;
+        last_sleep_tick = 0;
+        
+        // Initialize circadian data (or load from flash)
+        if (!circadian_data_initialized) {
+            circadian_data_load_from_flash(&global_circadian_data);
+            
+            // Sync Active Hours from BKUP[2]
+            active_hours_config_t config = get_active_hours();
+            global_circadian_data.active_hours_start_min = (config.start * 15);  // Convert quarters to minutes
+            global_circadian_data.active_hours_end_min = (config.end * 15);
+            circadian_data_save_to_flash(&global_circadian_data);
+            
+            circadian_data_initialized = true;
+        }
     }
 }
 
