@@ -142,6 +142,11 @@ static bool sleep_data_dirty = false;  // Tracks if we need to save to flash
 static circadian_data_t global_circadian_data = {0};
 static bool circadian_data_initialized = false;
 
+/* Sleep tracker state (Cole-Kripke algorithm) */
+static sleep_tracker_state_t global_sleep_tracker = {0};
+static uint32_t last_sleep_tick = 0;
+static uint16_t sleep_minute_counter = 0;
+
 // Active Hours configuration (BKUP[2] storage)
 // Format: 17 bits packed (7-bit start, 7-bit end, 1-bit enabled, 17 reserved)
 typedef struct {
