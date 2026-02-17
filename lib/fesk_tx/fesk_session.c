@@ -30,6 +30,17 @@
 #include "watch.h"
 #include "watch_tcc.h"
 
+/* Portable critical-section macros.
+ * On hardware (ARM M0+): save/restore PRIMASK around _fesk_active_session accesses.
+ * On the Emscripten simulator: no-ops (single-threaded, no real ISR preemption). */
+#ifndef __EMSCRIPTEN__
+#define FESK_ENTER_CRITICAL(p) do { (p) = __get_PRIMASK(); __disable_irq(); } while (0)
+#define FESK_EXIT_CRITICAL(p)  __set_PRIMASK(p)
+#else
+#define FESK_ENTER_CRITICAL(p) do { (p) = 0; } while (0)
+#define FESK_EXIT_CRITICAL(p)  do { (void)(p); } while (0)
+#endif
+
 #define FESK_SESSION_DEFAULT_COUNTDOWN_SECONDS 3
 #define FESK_SESSION_TICKS_PER_SECOND 64
 #define FESK_COUNTDOWN_BEEP_TICKS 8
@@ -166,12 +177,12 @@ static void _finish_session(fesk_session_t *session, bool notify) {
         watch_clear_indicator(WATCH_INDICATOR_BELL);
     }
 
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
+    uint32_t primask;
+    FESK_ENTER_CRITICAL(primask);
     if (_fesk_active_session == session) {
         _fesk_active_session = NULL;
     }
-    __set_PRIMASK(primask);
+    FESK_EXIT_CRITICAL(primask);
 
     watch_buzzer_abort_sequence();
     watch_set_buzzer_off();
@@ -425,11 +436,11 @@ static bool _start_transmission(fesk_session_t *session) {
     }
 
     {
-        uint32_t primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t primask;
+        FESK_ENTER_CRITICAL(primask);
         fesk_session_t *prev_session = (_fesk_active_session != session) ? _fesk_active_session : NULL;
         _fesk_active_session = session;
-        __set_PRIMASK(primask);
+        FESK_EXIT_CRITICAL(primask);
         if (prev_session) {
             _finish_session(prev_session, false);
         }
@@ -454,11 +465,11 @@ static void _start_countdown(fesk_session_t *session) {
                     session->config.user_data);
 
     {
-        uint32_t primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t primask;
+        FESK_ENTER_CRITICAL(primask);
         fesk_session_t *prev_session = (_fesk_active_session != session) ? _fesk_active_session : NULL;
         _fesk_active_session = session;
-        __set_PRIMASK(primask);
+        FESK_EXIT_CRITICAL(primask);
         if (prev_session) {
             _finish_session(prev_session, false);
         }
@@ -494,27 +505,27 @@ static bool _handle_cancel(fesk_session_t *session) {
 }
 
 static void _fesk_transmission_complete(void) {
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
+    uint32_t primask;
+    FESK_ENTER_CRITICAL(primask);
     if (!_fesk_active_session) {
-        __set_PRIMASK(primask);
+        FESK_EXIT_CRITICAL(primask);
         return;
     }
     fesk_session_t *session = _fesk_active_session;
     _fesk_active_session = NULL;
-    __set_PRIMASK(primask);
+    FESK_EXIT_CRITICAL(primask);
     _finish_session(session, true);
 }
 
 static void _fesk_countdown_step_done(void) {
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
+    uint32_t primask;
+    FESK_ENTER_CRITICAL(primask);
     if (!_fesk_active_session) {
-        __set_PRIMASK(primask);
+        FESK_EXIT_CRITICAL(primask);
         return;
     }
     fesk_session_t *session = _fesk_active_session;
-    __set_PRIMASK(primask);
+    FESK_EXIT_CRITICAL(primask);
     if (session->phase != FESK_SESSION_COUNTDOWN) {
         return;
     }
