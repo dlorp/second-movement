@@ -76,8 +76,6 @@ typedef struct {
     fesk_session_t fesk_session;
     
     // TX state
-    uint8_t export_buffer[287];  // Full circadian export (binary)
-    char hex_buffer[575];        // Hex-encoded + null terminator
     uint16_t export_size;        // Actual bytes exported
     uint16_t tx_elapsed_seconds; // Elapsed time during transmission
     bool transmission_active;
