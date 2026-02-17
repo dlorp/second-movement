@@ -16,6 +16,12 @@
 // Hex encoding lookup
 static const char hex_chars[] = "0123456789ABCDEF";
 
+/* Static TX buffers: allocated once in BSS, not per-session on heap.
+ * 287 bytes binary + 575 bytes hex (574 chars + NUL) = 862 bytes total.
+ * Safe on embedded: zeroed at startup, reused each transmission. */
+static uint8_t _export_buffer[287];
+static char    _hex_buffer[575];
+
 static void _hex_encode(const uint8_t *data, size_t len, char *out) {
     for (size_t i = 0; i < len; i++) {
         out[i * 2] = hex_chars[(data[i] >> 4) & 0xF];
@@ -51,9 +57,9 @@ static void _start_transmission(comms_face_state_t *state) {
     circadian_data_t circadian_data;
     circadian_data_load_from_flash(&circadian_data);
     
-    state->export_size = circadian_data_export_binary(&circadian_data, 
-                                                       state->export_buffer, 
-                                                       sizeof(state->export_buffer));
+    state->export_size = circadian_data_export_binary(&circadian_data,
+                                                       _export_buffer,
+                                                       sizeof(_export_buffer));
     
     if (state->export_size == 0) {
         // No data or buffer too small
@@ -62,11 +68,11 @@ static void _start_transmission(comms_face_state_t *state) {
     }
     
     // Hex-encode binary data
-    _hex_encode(state->export_buffer, state->export_size, state->hex_buffer);
+    _hex_encode(_export_buffer, state->export_size, _hex_buffer);
     
     // Configure FESK session
     fesk_session_config_t config = fesk_session_config_defaults();
-    config.static_message = state->hex_buffer;
+    config.static_message = _hex_buffer;
     config.mode = FESK_MODE_4FSK;
     config.enable_countdown = false;  // No countdown, start immediately
     config.show_bell_indicator = false;  // We manage it manually
@@ -112,7 +118,7 @@ static void _update_display(comms_face_state_t *state) {
             // Total bits: 574 * 8 = 4592 bits
             // Total time: 4592 / 26 ≈ 177 seconds (~3 minutes)
             uint16_t hex_bytes = state->export_size * 2;  // Hex encoding doubles size
-            uint16_t total_bits = hex_bytes * 8;
+            uint16_t total_bits = hex_bytes * 6;  // 6 bits per FESK character
             uint16_t total_seconds = (total_bits + 25) / 26;  // Round up (26 bps)
             uint16_t elapsed = state->tx_elapsed_seconds;
             int16_t remaining = total_seconds - elapsed;

@@ -13,7 +13,7 @@ static circadian_data_t global_circadian_data = {0};
 static bool data_loaded = false;
 
 static void _circadian_score_face_update_display(circadian_score_face_state_t *state) {
-    char buf[7] = {0};
+    char buf[9] = {0};
     
     // Load data from flash if not yet loaded
     if (!data_loaded) {
@@ -28,22 +28,22 @@ static void _circadian_score_face_update_display(circadian_score_face_state_t *s
         
         switch (state->mode) {
             case CSFACE_MODE_CS:
-                sprintf(buf, "CS  %2d", components.overall_score);
+                snprintf(buf, sizeof(buf), "CS  %2d", components.overall_score);
                 break;
             case CSFACE_MODE_TI:
-                sprintf(buf, "TI  %2d", components.timing_score);
+                snprintf(buf, sizeof(buf), "TI  %2d", components.timing_score);
                 break;
             case CSFACE_MODE_DU:
-                sprintf(buf, "DU  %2d", components.duration_score);
+                snprintf(buf, sizeof(buf), "DU  %2d", components.duration_score);
                 break;
             case CSFACE_MODE_EF:
-                sprintf(buf, "EF  %2d", components.efficiency_score);
+                snprintf(buf, sizeof(buf), "EF  %2d", components.efficiency_score);
                 break;
             case CSFACE_MODE_AH:
-                sprintf(buf, "AH  %2d", components.compliance_score);
+                snprintf(buf, sizeof(buf), "AH  %2d", components.compliance_score);
                 break;
             case CSFACE_MODE_LI:
-                sprintf(buf, "LI  %2d", components.light_score);
+                snprintf(buf, sizeof(buf), "LI  %2d", components.light_score);
                 break;
         }
     } else {
@@ -52,30 +52,30 @@ static void _circadian_score_face_update_display(circadian_score_face_state_t *s
         const circadian_sleep_night_t *night = &global_circadian_data.nights[night_idx];
         
         if (!night->valid) {
-            sprintf(buf, "-%d  --", state->historical_night);
+            snprintf(buf, sizeof(buf), "-%d  --", state->historical_night);
         } else {
             switch (state->mode) {
                 case CSFACE_MODE_CS: {
                     uint8_t score = circadian_score_calculate_sleep_score(night);
-                    sprintf(buf, "-%d  %2d", state->historical_night, score);
+                    snprintf(buf, sizeof(buf), "-%d  %2d", state->historical_night, score);
                     break;
                 }
                 case CSFACE_MODE_DU: {
                     uint8_t hours = night->duration_min / 60;
                     uint8_t mins = night->duration_min % 60;
-                    sprintf(buf, "-%dh%2d%02d", state->historical_night, hours, mins);
+                    snprintf(buf, sizeof(buf), "-%dh%2d%02d", state->historical_night, hours, mins);
                     break;
                 }
                 case CSFACE_MODE_EF:
-                    sprintf(buf, "-%d  %2d", state->historical_night, night->efficiency);
+                    snprintf(buf, sizeof(buf), "-%d  %2d", state->historical_night, night->efficiency);
                     break;
                 case CSFACE_MODE_AH:
                 case CSFACE_MODE_TI:
                     // Not meaningful for single night
-                    sprintf(buf, "-%d  --", state->historical_night);
+                    snprintf(buf, sizeof(buf), "-%d  --", state->historical_night);
                     break;
                 case CSFACE_MODE_LI:
-                    sprintf(buf, "-%d  %2d", state->historical_night, night->light_quality);
+                    snprintf(buf, sizeof(buf), "-%d  %2d", state->historical_night, night->light_quality);
                     break;
             }
         }
