@@ -388,9 +388,14 @@ static void _movement_handle_top_of_minute(void) {
     
     // Stream 4: Save sleep tracking data to flash periodically
     // Save once per hour during sleep window to batch writes and reduce flash wear
-    // Also save at end of sleep window (7:00) to persist the complete night
+    // Also save at end of sleep window to persist the complete night.
+    // End-of-sleep hour is user-configurable via BKUP[2] (active hours start = wake-up time).
     if (movement_state.has_lis2dw) {
-        bool is_end_of_sleep = (date_time.unit.hour == SLEEP_END_HOUR && date_time.unit.minute == 0);
+        movement_active_hours_t active_hours = movement_get_active_hours();
+        uint8_t sleep_end_hour = active_hours.bit.start_quarter_hours / 4;
+        bool is_end_of_sleep = (active_hours.bit.enabled &&
+                                date_time.unit.hour == sleep_end_hour &&
+                                date_time.unit.minute == 0);
         bool is_hourly_save = (date_time.unit.minute == 0);
         
         if (is_end_of_sleep || (is_hourly_save && is_sleep_window())) {
@@ -1663,15 +1668,19 @@ uint8_t sleep_tracking_get_current_bin(void) {
     watch_date_time_t now = watch_rtc_get_date_time();
     uint8_t hour = now.unit.hour;
     uint8_t minute = now.unit.minute;
-    
-    // Sleep window is 23:00 to 07:00
+
+    // Sleep end hour is user-configurable: active hours start = wake-up time (BKUP[2])
+    movement_active_hours_t active_hours = movement_get_active_hours();
+    uint8_t sleep_end_hour = active_hours.bit.start_quarter_hours / 4;
+
+    // Sleep window runs from SLEEP_START_HOUR until the configured wake-up hour
     int bin = -1;
     
     if (hour >= SLEEP_START_HOUR) {
-        // 23:00-23:59 -> bins 0-3
+        // Evening portion (e.g. 23:00-23:59) -> bins 0-3
         bin = (hour - SLEEP_START_HOUR) * 4 + (minute / SLEEP_BIN_MINUTES);
-    } else if (hour < SLEEP_END_HOUR) {
-        // 00:00-06:59 -> bins 4-31
+    } else if (hour < sleep_end_hour) {
+        // Post-midnight portion (e.g. 00:00 to wake hour) -> bins 4+
         bin = ((24 - SLEEP_START_HOUR) + hour) * 4 + (minute / SLEEP_BIN_MINUTES);
     }
     
