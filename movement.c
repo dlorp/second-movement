@@ -1739,9 +1739,9 @@ static void check_and_start_new_night(void) {
 
 // Get 6D orientation from accelerometer
 static uint8_t get_current_orientation(void) {
+#ifdef I2C_SERCOM
     /* Read SIXD_SRC register directly; driver has no lis2dw_get_6d_source() wrapper */
     uint8_t source = watch_i2c_read8(LIS2DW_ADDRESS, LIS2DW_REG_SIXD_SRC);
-
     if (source & LIS2DW_WAKE_UP_SRC_VAL_ZH) {
         return SLEEP_ORIENTATION_FACE_UP;
     } else if (source & LIS2DW_WAKE_UP_SRC_VAL_ZL) {
@@ -1749,6 +1749,10 @@ static uint8_t get_current_orientation(void) {
     } else {
         return SLEEP_ORIENTATION_TILTED;
     }
+#else
+    /* No accelerometer on boards without I2C (e.g. sensorwatch_red) */
+    return SLEEP_ORIENTATION_UNKNOWN;
+#endif
 }
 
 // Log an orientation change during sleep
