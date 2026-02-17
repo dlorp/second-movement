@@ -45,6 +45,46 @@ Added crystal tap detection for instant display wake on Sensor Watch Pro boards:
 **Persistence:**
 Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power cycles, resets on complete battery removal (standard Sensor Watch behavior).
 
+### Sleep & Circadian Tracking System
+**What it is:** Research-backed sleep detection + circadian health scoring for long-term pattern tracking. Uses accelerometer motion detection + ambient light sensor to distinguish sleep from wake, then calculates health metrics over 7-day rolling windows.
+
+**Three watch faces:**
+
+**1. Sleep Tracker Face (SLP)**
+- **During sleep window:** Shows live tracking metrics (duration, efficiency, WASO, awakenings)
+- **After wake-up:** Adds Sleep Score (SL 0-100) as first display mode
+- **Sleep Score formula:** 50% duration + 30% efficiency + 20% light exposure
+- **ALARM button:** Cycles SL → Duration → Efficiency → WASO → Awakenings
+- **Algorithm:** Cole-Kripke (1992) + Light Enhancement (11-min sliding window, 85-90% accuracy target)
+
+**2. Circadian Score Face (CS)**
+- **Overall score:** CS 0-100 (7-day aggregate, 75% evidence-based)
+- **ALARM button:** Drill down to 5 subscores (TI/DU/EF/AH/LI)
+- **Components:**
+  - **TI (Timing):** Sleep Regularity Index - 35% weight (Phillips et al. 2017)
+  - **DU (Duration):** Sleep duration penalty - 30% (Cappuccio U-curve, 7-8h optimal)
+  - **EF (Efficiency):** Sleep efficiency - 20% (% time asleep in bed)
+  - **AH (Active Hours):** Compliance with window - 10% (onset/offset within 1h)
+  - **LI (Light):** Light exposure quality - 5% (% time in darkness)
+
+**Data flow:**
+- Sleep tracking runs automatically 23:00-04:00 (synced with Active Hours from BKUP[2])
+- At window end: metrics exported to 7-day rolling buffer (flash row 30, ~200 bytes)
+- Circadian Score calculated on-demand when CS face is activated
+- Power: ~4-5µA during sleep (LIS2DW12 Low-Power Mode 1 + light ADC)
+
+**Smart alarm integration:**
+- Smart alarm (if enabled) can query sleep_tracker state for light sleep detection
+- Accelerometer motion patterns indicate light vs deep sleep phases
+- Alarm triggers during light sleep within configured window for gentler wake
+
+**Face navigation:**
+1. Wyoscan
+2. Clock
+3. **Sleep Tracker** (live + review with SL score)
+4. **Circadian Score** (7-day CS + drill-down)
+5. World Clock, Sunrise/Sunset, etc.
+
 ---
 
 This is a work-in-progress refactor of the Movement firmware for [Sensor Watch](https://www.sensorwatch.net).

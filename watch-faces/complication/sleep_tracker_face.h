@@ -86,14 +86,15 @@ typedef enum {
 
 // Display mode enum
 typedef enum {
-    SLEEP_DISPLAY_DURATION = 0,   // Show sleep duration
-    SLEEP_DISPLAY_EFFICIENCY = 1, // Show sleep efficiency %
-    SLEEP_DISPLAY_WASO = 2,       // Show wake after sleep onset
-    SLEEP_DISPLAY_AWAKENINGS = 3  // Show number of awakenings
+    SLEEP_DISPLAY_SCORE = 0,      // Show overall sleep score (0-100) when session complete
+    SLEEP_DISPLAY_DURATION = 1,   // Show sleep duration
+    SLEEP_DISPLAY_EFFICIENCY = 2, // Show sleep efficiency %
+    SLEEP_DISPLAY_WASO = 3,       // Show wake after sleep onset
+    SLEEP_DISPLAY_AWAKENINGS = 4  // Show number of awakenings
 } sleep_display_mode_t;
 
 // Sleep tracker state
-typedef struct {
+typedef struct sleep_tracker_state_t {
     // Cole-Kripke sliding window
     uint16_t activity_counts[COLE_KRIPKE_WINDOW_SIZE];
     uint8_t window_index;
