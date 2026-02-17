@@ -94,7 +94,7 @@ typedef enum {
 } sleep_display_mode_t;
 
 // Sleep tracker state
-typedef struct {
+typedef struct sleep_tracker_state_tag {
     // Cole-Kripke sliding window
     uint16_t activity_counts[COLE_KRIPKE_WINDOW_SIZE];
     uint8_t window_index;
