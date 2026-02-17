@@ -155,14 +155,6 @@ static void _call_error(fesk_session_error_cb cb,
     }
 }
 
-static void _clear_sequence(fesk_session_t *session) {
-    if (session->sequence) {
-        fesk_free_sequence(session->sequence);
-        session->sequence = NULL;
-        session->sequence_entries = 0;
-    }
-}
-
 static void _finish_session(fesk_session_t *session, bool notify) {
     if (session->config.show_bell_indicator) {
         watch_clear_indicator(WATCH_INDICATOR_BELL);
@@ -178,7 +170,6 @@ static void _finish_session(fesk_session_t *session, bool notify) {
     watch_buzzer_abort_sequence();
     watch_set_buzzer_off();
 
-    _clear_sequence(session);
     session->phase = FESK_SESSION_IDLE;
     session->seconds_remaining = 0;
 
@@ -516,8 +507,6 @@ void fesk_session_init(fesk_session_t *session, const fesk_session_config_t *con
     }
 
     session->phase = FESK_SESSION_IDLE;
-    session->sequence = NULL;
-    session->sequence_entries = 0;
 }
 
 void fesk_session_dispose(fesk_session_t *session) {

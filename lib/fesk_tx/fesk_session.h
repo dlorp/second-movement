@@ -43,9 +43,8 @@
  *   1. on_countdown_begin (if countdown enabled)
  *   2. on_countdown_tick (countdown_seconds times, counting down to 0)
  *   3. on_countdown_complete (when countdown reaches 0)
- *   4. on_sequence_ready (after encoding, before playback)
- *   5. on_transmission_start (when buzzer starts)
- *   6. on_transmission_end (when buzzer finishes)
+ *   4. on_transmission_start (when buzzer starts)
+ *   5. on_transmission_end (when buzzer finishes)
  *
  * Cancelled flow:
  *   - on_cancelled (if fesk_session_cancel called during countdown/transmission)
@@ -88,11 +87,6 @@ typedef void (*fesk_session_error_cb)(fesk_result_t error, void *user_data);
 /** Countdown tick callback (receives seconds remaining) */
 typedef void (*fesk_session_countdown_cb)(uint8_t seconds_remaining, void *user_data);
 
-/** Sequence ready callback (provides encoded sequence before transmission) */
-typedef void (*fesk_session_sequence_cb)(const int8_t *sequence,
-                                         size_t entries,
-                                         void *user_data);
-
 /** Configuration for FESK session behavior and callbacks */
 typedef struct {
     bool enable_countdown;                      /**< Enable countdown timer before transmission */
@@ -106,7 +100,6 @@ typedef struct {
     fesk_session_countdown_cb on_countdown_tick;/**< Called each countdown second */
     fesk_session_simple_cb on_countdown_complete;/**< Called when countdown reaches 0 */
     fesk_session_simple_cb on_transmission_start;/**< Called when buzzer starts playing */
-    fesk_session_sequence_cb on_sequence_ready; /**< Called after encoding, before playback */
     fesk_session_simple_cb on_transmission_end; /**< Called when transmission completes */
     fesk_session_simple_cb on_cancelled;        /**< Called if session cancelled */
     fesk_session_error_cb on_error;             /**< Called on encoding or validation errors */
@@ -134,8 +127,6 @@ typedef struct fesk_session_s {
     fesk_session_config_t config;   /**< Session configuration */
     fesk_session_phase_t phase;     /**< Current phase */
     uint8_t seconds_remaining;      /**< Countdown seconds remaining */
-    int8_t *sequence;               /**< Encoded sequence (managed internally) */
-    size_t sequence_entries;        /**< Number of sequence entries */
     // Raw source generation state (4-FSK dibits)
     const char *raw_payload;
     size_t raw_payload_length;
