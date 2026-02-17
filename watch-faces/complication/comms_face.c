@@ -19,8 +19,8 @@ static const char hex_chars[] = "0123456789ABCDEF";
 /* Static TX buffers: allocated once in BSS, not per-session on heap.
  * 287 bytes binary + 575 bytes hex (574 chars + NUL) = 862 bytes total.
  * Safe on embedded: zeroed at startup, reused each transmission. */
-static uint8_t _export_buffer[287];
-static char    _hex_buffer[575];
+static uint8_t _export_buffer[112];
+static char    _hex_buffer[225];
 
 static void _hex_encode(const uint8_t *data, size_t len, char *out) {
     for (size_t i = 0; i < len; i++) {
