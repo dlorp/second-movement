@@ -57,7 +57,7 @@ static const int16_t DEFAULT_LIGHT_MODIFIERS[4] = {
 //
 
 static void _sleep_tracker_display_duration(sleep_tracker_state_t *state) {
-    char buf[7];
+    char buf[8];
     uint8_t hours = state->total_sleep_minutes / 60;
     uint8_t minutes = state->total_sleep_minutes % 60;
     
@@ -118,8 +118,8 @@ static void _sleep_tracker_display_score(sleep_tracker_state_t *state) {
     
     uint8_t score = circadian_score_calculate_sleep_score(&night);
     
-    char buf[7];
-    sprintf(buf, "SL  %2d", score);
+    char buf[8];
+    snprintf(buf, sizeof(buf), "SL  %2d", score);
     watch_display_string(buf, 0);
 }
 
