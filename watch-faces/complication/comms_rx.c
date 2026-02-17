@@ -21,6 +21,8 @@
 #define RX_MAX_PACKET_SIZE 68            // Max packet: SYNC + LEN + TYPE + DATA(64) + CRC8
 #define RX_BIT_TIMEOUT_TICKS 20          // 312ms @ 64 Hz (missed bit timeout, ~5x bit period at 16 bps)
 #define RX_PACKET_TIMEOUT_TICKS 7680     // 2 minutes @ 64 Hz
+#define RX_CALIBRATION_SAMPLES 64        // Samples collected during light threshold calibration
+#define RX_SYNC_TIMEOUT_TICKS 640        // 10 seconds @ 64 Hz (sync search timeout)
 
 // Packet types
 #define PACKET_TYPE_TIME_SYNC 0x01
