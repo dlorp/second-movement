@@ -224,9 +224,10 @@ bool circadian_data_save_to_flash(const circadian_data_t *data) {
 }
 
 uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buffer, uint16_t buffer_size) {
-    // Each night: 41 bytes (4 + 4 + 2 + 1 + 2 + 1 + 1 + 1 + padding = 41)
-    // 7 nights = 287 bytes minimum
-    if (buffer_size < 287) {
+    // Each night: 16 bytes (4 + 4 + 2 + 1 + 2 + 1 + 1 + 1 = 16, no padding)
+    // 7 nights = 112 bytes minimum
+    // Compression: 287 → 112 bytes (-61%) = ~3 min → ~1 min transmission
+    if (buffer_size < 112) {
         return 0;  // Buffer too small
     }
     
@@ -237,7 +238,7 @@ uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buf
         uint8_t idx = (data->write_index + i) % 7;
         const circadian_sleep_night_t *night = &data->nights[idx];
         
-        // Pack into binary format (little-endian)
+        // Pack into binary format (little-endian, tightly packed)
         // Onset timestamp (4 bytes)
         buffer[offset++] = (night->onset_timestamp >> 0) & 0xFF;
         buffer[offset++] = (night->onset_timestamp >> 8) & 0xFF;
@@ -269,12 +270,7 @@ uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buf
         
         // Valid flag (1 byte)
         buffer[offset++] = night->valid ? 1 : 0;
-        
-        // Padding to 41 bytes (for alignment)
-        for (uint8_t j = 0; j < 25; j++) {
-            buffer[offset++] = 0;
-        }
     }
     
-    return offset;  // Should be exactly 287 bytes
+    return offset;  // Should be exactly 112 bytes
 }
