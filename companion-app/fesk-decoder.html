@@ -304,6 +304,11 @@
 </head>
 <body>
     <div class="container">
+        <!-- Back to UnifiedComms -->
+        <div style="padding:4px 0 8px; border-bottom:1px solid #306230; margin-bottom:8px;">
+            <a href="index.html" style="font-family:'Courier New',monospace;font-size:10px;color:#8bac0f;text-decoration:none;letter-spacing:1px;">&lt; back to UnifiedComms</a>
+        </div>
+
         <!-- Header -->
         <div class="header">
             <h1>◆ FESK DECODER ◆</h1>
@@ -389,6 +394,7 @@
     <!-- FESK Decoder Logic -->
     <script src="decoder.js"></script>
     <script>
+        // Standalone fallback — main app: index.html
         // Global state
         let decoder = new FESKDecoder();
         let currentNights = null;

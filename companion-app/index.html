@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="UnifiedComms">
+    <meta name="application-name" content="UnifiedComms">
+    <meta name="theme-color" content="#0f380f">
+    <meta name="description" content="Sensor Watch FESK Optical Communications - TX/RX unified companion app">
+    <title>UNIFIED COMMS · FESK</title>
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           DESIGN SYSTEM · GameBoy DMG palette + dlorp accents
+           8px grid · Courier New monospace · ASCII borders
+           ═══════════════════════════════════════════════════════ */
+        :root {
+            --gb-dark:       #0f380f;
+            --gb-mid-dark:   #306230;
+            --gb-mid-light:  #8bac0f;
+            --gb-light:      #9bbc0f;
+            --acc-orange:    #FB8B24;
+            --acc-yellow:    #F4E409;
+            --acc-turquoise: #50D8D7;
+            --acc-blue:      #3B60E4;
+            --font-mono: 'Courier New', 'Consolas', 'Monaco', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            background: var(--gb-dark);
+            color: var(--gb-light);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.4;
+            overflow-x: hidden;
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ─── VIEW SYSTEM ──────────────────────────────────── */
+        .view { display: none; }
+
+        #view-home.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 16px;
+            animation: gbFadeIn 0.2s ease;
+        }
+
+        #view-tx.active {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: #000;
+            animation: gbFadeIn 0.15s ease;
+        }
+
+        #view-rx.active {
+            display: block;
+            min-height: 100vh;
+            animation: gbFadeIn 0.2s ease;
+        }
+
+        @keyframes gbFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        /* ─── SHARED COMPONENTS ────────────────────────────── */
+        .container { max-width: 100vw; padding: 8px; }
+
+        .frame {
+            border: 2px solid var(--gb-mid-light);
+            background: var(--gb-dark);
+            padding: 8px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .frame::before {
+            content: attr(data-title);
+            position: absolute;
+            top: -8px;
+            left: 8px;
+            background: var(--gb-dark);
+            padding: 0 4px;
+            color: var(--gb-mid-light);
+            font-weight: bold;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        button {
+            padding: 8px 12px;
+            background: var(--gb-mid-dark);
+            color: var(--gb-light);
+            border: 2px solid var(--gb-mid-light);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.1s, color 0.1s;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        button:hover, button:focus { background: var(--gb-mid-light); color: var(--gb-dark); outline: none; }
+        button:active { transform: translate(1px, 1px); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+        .btn-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .btn-row button { flex: 1; min-width: 80px; }
+
+        .back-btn {
+            padding: 6px 10px;
+            background: var(--gb-mid-dark);
+            color: var(--gb-mid-light);
+            border: 1px solid var(--gb-mid-dark);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: color 0.1s, border-color 0.1s;
+            white-space: nowrap;
+        }
+        .back-btn:hover { color: var(--gb-light); border-color: var(--gb-mid-light); }
+
+        .status-msg {
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            border-left: 4px solid var(--gb-mid-light);
+            background: var(--gb-mid-dark);
+        }
+        .status-msg.error  { border-color: #ff4444; color: #ff8888; }
+        .status-msg.success { border-color: var(--gb-light); }
+
+        /* ═══════════════════════════════════════════════════════
+           HOME VIEW
+           ═══════════════════════════════════════════════════════ */
+        .home-wrap {
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .home-panel {
+            border: 2px solid var(--gb-mid-light);
+            background: var(--gb-dark);
+            padding: 24px 16px 16px;
+            position: relative;
+        }
+        .home-panel-title {
+            position: absolute;
+            top: -9px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gb-dark);
+            padding: 0 8px;
+            color: var(--gb-light);
+            font-weight: bold;
+            font-size: 11px;
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+
+        .home-watch-art {
+            font-size: 9px;
+            line-height: 1.35;
+            color: var(--gb-mid-light);
+            margin-bottom: 16px;
+            display: block;
+            text-align: center;
+        }
+
+        .home-title {
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: var(--gb-light);
+            text-shadow: 2px 2px 0 var(--gb-mid-dark);
+            margin-bottom: 2px;
+        }
+
+        .home-subtitle {
+            font-size: 9px;
+            color: var(--gb-mid-light);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .home-divider {
+            font-size: 9px;
+            color: var(--gb-mid-dark);
+            margin: 8px 0 16px;
+            letter-spacing: 2px;
+        }
+
+        .mode-cards {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .mode-card {
+            flex: 1;
+            border: 2px solid var(--gb-mid-dark);
+            padding: 16px 8px 12px;
+            cursor: pointer;
+            text-align: center;
+            background: var(--gb-mid-dark);
+            transition: background 0.1s, border-color 0.1s;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .mode-card:hover, .mode-card:focus {
+            border-color: var(--gb-light);
+            background: var(--gb-mid-light);
+            outline: none;
+        }
+        .mode-card:hover .mc-icon,
+        .mode-card:hover .mc-badge,
+        .mode-card:hover .mc-label,
+        .mode-card:hover .mc-name,
+        .mode-card:hover .mc-desc { color: var(--gb-dark); }
+        .mode-card:active { transform: translate(1px, 1px); }
+
+        .mc-icon  { font-size: 20px; color: var(--gb-light); display: block; margin-bottom: 4px; }
+        .mc-badge { font-size: 8px; color: var(--acc-orange); letter-spacing: 2px; display: block; margin-bottom: 2px; }
+        .mode-card.rx .mc-badge { color: var(--acc-turquoise); }
+        .mc-label { font-size: 20px; font-weight: bold; color: var(--gb-light); display: block; letter-spacing: 3px; }
+        .mc-name  { font-size: 8px; color: var(--gb-mid-light); display: block; letter-spacing: 2px; margin-bottom: 8px; }
+        .mc-desc  {
+            font-size: 9px; color: var(--gb-mid-light); display: block;
+            border-top: 1px solid var(--gb-dark);
+            padding-top: 8px; line-height: 1.4;
+        }
+
+        .home-footer {
+            font-size: 8px;
+            color: var(--gb-mid-dark);
+            line-height: 1.8;
+        }
+        .home-footer .hl { color: var(--gb-mid-light); }
+
+        /* ═══════════════════════════════════════════════════════
+           TX VIEW
+           ═══════════════════════════════════════════════════════ */
+        .tx-topbar {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            gap: 8px;
+            background: var(--gb-dark);
+            border-bottom: 2px solid var(--gb-mid-dark);
+            flex-shrink: 0;
+        }
+        .tx-topbar h2 {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--gb-light);
+        }
+        .tx-spacer { width: 60px; flex-shrink: 0; }
+
+        #tx-flash-area {
+            flex: 1;
+            background: var(--gb-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+            transition: background 0s;
+        }
+        .tx-flash-label {
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: var(--gb-mid-dark);
+        }
+        .tx-flash-icon {
+            font-size: 32px;
+            color: var(--gb-mid-dark);
+        }
+
+        .tx-controls {
+            padding: 16px;
+            background: var(--gb-dark);
+            border-top: 2px solid var(--gb-mid-dark);
+            flex-shrink: 0;
+        }
+
+        .tx-status {
+            text-align: center;
+            padding: 8px;
+            font-size: 11px;
+            color: var(--gb-light);
+            background: var(--gb-mid-dark);
+            border: 1px solid var(--gb-mid-light);
+            margin-bottom: 8px;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 1px;
+        }
+
+        .tx-hint {
+            text-align: center;
+            font-size: 9px;
+            color: var(--gb-mid-light);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        #sendTimeBtn {
+            width: 100%;
+            padding: 14px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            background: var(--gb-mid-dark);
+            border-color: var(--acc-orange);
+            color: var(--acc-orange);
+        }
+        #sendTimeBtn:hover { background: var(--acc-orange); color: var(--gb-dark); }
+
+        #cancelBtn {
+            width: 100%;
+            padding: 10px;
+            background: var(--gb-mid-dark);
+            border-color: #ff4444;
+            color: #ff8888;
+            margin-top: 8px;
+            display: none;
+        }
+        #cancelBtn:hover { background: #ff4444; color: #fff; }
+
+        /* ═══════════════════════════════════════════════════════
+           RX VIEW
+           ═══════════════════════════════════════════════════════ */
+        .rx-header {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 2px solid var(--gb-mid-dark);
+            gap: 8px;
+            background: var(--gb-dark);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .rx-header h1 {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            letter-spacing: 2px;
+            color: var(--gb-light);
+        }
+        .rx-header .rx-spacer { width: 60px; }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            background: var(--gb-mid-dark);
+            color: var(--gb-light);
+            border: 1px solid var(--gb-mid-light);
+            padding: 8px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            resize: vertical;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        textarea::placeholder { color: var(--gb-mid-light); opacity: 0.7; }
+
+        .cs-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .cs-metric {
+            background: var(--gb-mid-dark);
+            border: 1px solid var(--gb-mid-light);
+            padding: 8px;
+            text-align: center;
+        }
+        .cs-metric .label { font-size: 9px; color: var(--gb-mid-light); margin-bottom: 4px; }
+        .cs-metric .value { font-size: 20px; font-weight: bold; color: var(--gb-light); }
+        .cs-metric.main { grid-column: 1 / -1; }
+        .cs-metric.main .value { font-size: 32px; }
+
+        .chart-container {
+            background: var(--gb-mid-dark);
+            border: 2px solid var(--gb-mid-light);
+            padding: 8px;
+            margin-bottom: 8px;
+            overflow-x: auto;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .nights-grid { display: grid; gap: 4px; }
+
+        .night-card {
+            background: var(--gb-mid-dark);
+            border: 1px solid var(--gb-mid-light);
+            padding: 8px;
+            cursor: pointer;
+            transition: background 0.1s, color 0.1s;
+        }
+        .night-card:hover { background: var(--gb-mid-light); color: var(--gb-dark); border-color: var(--gb-light); }
+        .night-card.invalid { opacity: 0.3; cursor: default; }
+        .night-card .date { font-weight: bold; margin-bottom: 4px; font-size: 11px; }
+        .night-card .metrics { font-size: 9px; line-height: 1.6; }
+        .night-card .quality-bar {
+            height: 4px;
+            background: var(--gb-dark);
+            margin-top: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        .night-card .quality-bar::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; height: 100%;
+            background: var(--gb-light);
+            width: var(--quality);
+        }
+
+        .shortcuts {
+            font-size: 8px;
+            color: var(--gb-mid-light);
+            text-align: center;
+            padding: 8px;
+            border-top: 1px solid var(--gb-mid-dark);
+        }
+
+        /* ─── RESPONSIVE ───────────────────────────────────── */
+        @media (min-width: 640px) {
+            body { font-size: 12px; }
+            .home-title { font-size: 28px; }
+            .cs-metric .value { font-size: 24px; }
+            .cs-metric.main .value { font-size: 40px; }
+            .container { max-width: 640px; margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HOME VIEW  #home
+     ═══════════════════════════════════════════════════════════ -->
+<div id="view-home" class="view">
+    <div class="home-wrap">
+        <div class="home-panel">
+            <div class="home-panel-title">◆ UNIFIED COMMS ◆</div>
+
+            <pre class="home-watch-art">
+  .-----------.
+  |   00:00   |
+  |  SENSOR   |
+  |  _WATCH_  |
+  |___________|
+  |[o] [o] [o]|
+  '-----------'</pre>
+
+            <div class="home-title">UNIFIED COMMS</div>
+            <div class="home-subtitle">SENSOR WATCH · FESK OPTICAL COMMS</div>
+            <div class="home-divider">─────────────────────────────</div>
+
+            <div class="mode-cards">
+                <div class="mode-card" id="homeCardTX" onclick="navigate('#tx')" tabindex="0" role="button" aria-label="TX Transmit mode">
+                    <span class="mc-icon">▸</span>
+                    <span class="mc-badge">OPTICAL</span>
+                    <span class="mc-label">TX</span>
+                    <span class="mc-name">TRANSMIT</span>
+                    <span class="mc-desc">Optical time sync to watch</span>
+                </div>
+                <div class="mode-card rx" id="homeCardRX" onclick="navigate('#rx')" tabindex="0" role="button" aria-label="RX Receive mode">
+                    <span class="mc-icon">◆</span>
+                    <span class="mc-badge">SLEEP</span>
+                    <span class="mc-label">RX</span>
+                    <span class="mc-name">RECEIVE</span>
+                    <span class="mc-desc">Decode sleep data from FESK</span>
+                </div>
+            </div>
+
+            <div class="home-footer">
+                ─────────────────────────────────<br>
+                <span class="hl">FESK v1.0 · 10bps Manchester encoding</span><br>
+                second-movement · sensor watch project
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TX VIEW  #tx
+     ═══════════════════════════════════════════════════════════ -->
+<div id="view-tx" class="view">
+    <div class="tx-topbar">
+        <button class="back-btn" onclick="navigate('#home')" aria-label="Back to home">&lt; HOME</button>
+        <h2>▸ OPTICAL TX ▸</h2>
+        <div class="tx-spacer"></div>
+    </div>
+
+    <div id="tx-flash-area">
+        <div class="tx-flash-icon">▸</div>
+        <div class="tx-flash-label">STANDBY</div>
+    </div>
+
+    <div class="tx-controls">
+        <div id="tx-status" class="tx-status">Ready to transmit</div>
+        <div class="tx-hint">Hold screen 2-6 inches from watch sensor</div>
+        <button id="sendTimeBtn" onclick="sendTimeSync()">▸ SEND TIME SYNC</button>
+        <button id="cancelBtn" onclick="cancelTransmission()">✗ CANCEL TRANSMISSION</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     RX VIEW  #rx
+     ═══════════════════════════════════════════════════════════ -->
+<div id="view-rx" class="view">
+    <div class="rx-header">
+        <button class="back-btn" onclick="navigate('#home')" aria-label="Back to home">&lt; HOME</button>
+        <h1>◆ FESK DECODER ◆</h1>
+        <div class="rx-spacer"></div>
+    </div>
+
+    <div class="container">
+        <!-- Hex Input -->
+        <div class="frame" data-title="HEX INPUT">
+            <textarea id="hexInput" placeholder="Paste 574 hex characters (287 bytes x 7 nights)&#10;Example: A1B2C3D4..."></textarea>
+            <div class="btn-row">
+                <button id="decodeBtn" onclick="decodeData()">▸ DECODE</button>
+                <button id="clearBtn" onclick="clearData()">✗ CLEAR</button>
+                <button id="testBtn" onclick="loadTestData()">◆ TEST DATA</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div id="rx-status" style="display:none"></div>
+
+        <!-- Circadian Score Dashboard -->
+        <div id="csDashboard" style="display:none">
+            <div class="frame" data-title="CIRCADIAN SCORE">
+                <div class="cs-dashboard">
+                    <div class="cs-metric main">
+                        <div class="label">OVERALL CS</div>
+                        <div class="value" id="csValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">SRI</div>
+                        <div class="value" id="sriValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">DUR</div>
+                        <div class="value" id="durValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">EFF</div>
+                        <div class="value" id="effValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">CMP</div>
+                        <div class="value" id="cmpValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">LGT</div>
+                        <div class="value" id="lgtValue">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7-Day Chart -->
+        <div id="chartContainer" style="display:none">
+            <div class="frame chart-container" data-title="7-DAY SLEEP TIMELINE">
+                <canvas id="sleepChart" width="640" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Night Details -->
+        <div id="nightsContainer" style="display:none">
+            <div class="frame" data-title="NIGHT DETAILS">
+                <div class="nights-grid" id="nightsGrid"></div>
+            </div>
+        </div>
+
+        <!-- Export -->
+        <div id="exportSection" style="display:none">
+            <div class="frame" data-title="EXPORT">
+                <div class="btn-row">
+                    <button onclick="exportCSV()">↓ CSV</button>
+                    <button onclick="exportJSON()">↓ JSON</button>
+                    <button onclick="viewHistory()">⌂ HISTORY</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="shortcuts">
+            [D]ECODE &middot; [C]LEAR &middot; [E]XPORT &middot; ESC=RESET
+        </div>
+    </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   FESKDecoder  (inlined from decoder.js)
+   ═══════════════════════════════════════════════════════════════════════════ */
+class FESKDecoder {
+    constructor() {
+        this.db = null;
+        this.initDB();
+    }
+
+    async initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('FESKData', 1);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => { this.db = request.result; resolve(); };
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('sleepData')) {
+                    const store = db.createObjectStore('sleepData', { keyPath: 'timestamp' });
+                    store.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+            };
+        });
+    }
+
+    hexToBytes(hex) {
+        const clean = hex.replace(/[^0-9A-Fa-f]/g, '');
+        if (clean.length !== 574) {
+            throw new Error(`Invalid hex length: ${clean.length} (expected 574)`);
+        }
+        const bytes = new Uint8Array(287);
+        for (let i = 0; i < 287; i++) {
+            bytes[i] = parseInt(clean.substr(i * 2, 2), 16);
+        }
+        return bytes;
+    }
+
+    parseNights(bytes) {
+        const nights = [];
+        const view = new DataView(bytes.buffer);
+        for (let i = 0; i < 7; i++) {
+            const off = i * 41;
+            const night = {
+                onset:      view.getUint32(off,      true),
+                offset:     view.getUint32(off + 4,  true),
+                duration:   view.getUint16(off + 8,  true),
+                efficiency: view.getUint8 (off + 10),
+                waso:       view.getUint16(off + 11, true),
+                awakenings: view.getUint8 (off + 13),
+                light:      view.getUint8 (off + 14),
+                valid:      view.getUint8 (off + 15)
+            };
+            if (night.valid && night.onset > 0) {
+                night.onsetTime    = new Date(night.onset  * 1000);
+                night.offsetTime   = new Date(night.offset * 1000);
+                night.durationHours = (night.duration / 60).toFixed(1);
+                night.quality      = this.calculateQuality(night);
+            }
+            nights.push(night);
+        }
+        return nights;
+    }
+
+    calculateQuality(night) {
+        if (!night.valid) return 0;
+        const effScore   = night.efficiency;
+        const hours      = night.duration / 60;
+        const durScore   = (hours >= 7 && hours <= 9) ? 100 :
+                           (hours >= 6 && hours <  7) ? 80  :
+                           (hours >  9 && hours <= 10)? 80  : 60;
+        const awakeScore = Math.max(0, 100 - (night.awakenings * 15));
+        const wasoScore  = Math.max(0, 100 - (night.waso / 2));
+        return Math.round(effScore * 0.4 + durScore * 0.3 + awakeScore * 0.2 + wasoScore * 0.1);
+    }
+
+    calculateCircadianScore(nights) {
+        const valid = nights.filter(n => n.valid && n.onset > 0);
+        if (valid.length < 3) {
+            return { cs: 0, sri: 0, duration: 0, efficiency: 0, compliance: 0, light: 0 };
+        }
+        const onsetHours = valid.map(n => {
+            const d = new Date(n.onset * 1000);
+            return d.getHours() + d.getMinutes() / 60;
+        });
+        const meanOnset  = onsetHours.reduce((a, b) => a + b) / onsetHours.length;
+        const variance   = onsetHours.reduce((s, h) => s + Math.pow(h - meanOnset, 2), 0) / onsetHours.length;
+        const sri        = Math.max(0, Math.min(100, 100 - variance * 10));
+        const avgDur     = valid.reduce((s, n) => s + n.duration, 0) / valid.length / 60;
+        const duration   = (avgDur >= 7 && avgDur <= 9) ? 100 :
+                           (avgDur >= 6 && avgDur <  7) ? 85  :
+                           (avgDur >  9 && avgDur <= 10)? 85  : 60;
+        const efficiency = Math.round(valid.reduce((s, n) => s + n.efficiency, 0) / valid.length);
+        const compliance = Math.round(valid.length / 7 * 100);
+        const light      = Math.round(valid.reduce((s, n) => s + n.light, 0) / valid.length / 2.55);
+        const cs         = Math.round(sri * 0.25 + duration * 0.25 + efficiency * 0.25 + compliance * 0.15 + light * 0.10);
+        return { cs, sri: Math.round(sri), duration, efficiency, compliance, light };
+    }
+
+    async storeData(nights, circadianScore) {
+        if (!this.db) await this.initDB();
+        const tx    = this.db.transaction(['sleepData'], 'readwrite');
+        const store = tx.objectStore('sleepData');
+        const record = { timestamp: Date.now(), nights, circadianScore, receivedAt: new Date().toISOString() };
+        store.add(record);
+        return record;
+    }
+
+    async getAllData() {
+        if (!this.db) await this.initDB();
+        return new Promise((resolve, reject) => {
+            const tx      = this.db.transaction(['sleepData'], 'readonly');
+            const store   = tx.objectStore('sleepData');
+            const request = store.getAll();
+            request.onerror   = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+        });
+    }
+
+    exportCSV(nights, cs) {
+        let csv = 'Date,Onset,Offset,Duration(h),Efficiency(%),WASO(min),Awakenings,Light,Quality\n';
+        nights.forEach(n => {
+            if (n.valid && n.onset > 0) {
+                const date   = new Date(n.onset  * 1000).toISOString().split('T')[0];
+                const onset  = new Date(n.onset  * 1000).toTimeString().substr(0, 5);
+                const offset = new Date(n.offset * 1000).toTimeString().substr(0, 5);
+                csv += `${date},${onset},${offset},${n.durationHours},${n.efficiency},${n.waso},${n.awakenings},${n.light},${n.quality}\n`;
+            }
+        });
+        csv += `\nCircadian Score,${cs.cs}\nSRI,${cs.sri}\nDuration,${cs.duration}\nEfficiency,${cs.efficiency}\nCompliance,${cs.compliance}\nLight,${cs.light}\n`;
+        return csv;
+    }
+
+    exportJSON(nights, cs) {
+        return JSON.stringify({ version: '1.0', exportTime: new Date().toISOString(), nights, circadianScore: cs }, null, 2);
+    }
+
+    downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+const VIEWS = ['home', 'tx', 'rx'];
+
+function navigate(hash) {
+    const viewKey = (hash || '#home').replace('#', '') || 'home';
+    VIEWS.forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if (el) el.classList.remove('active');
+    });
+    const target = document.getElementById('view-' + viewKey);
+    if (target) {
+        target.classList.add('active');
+    } else {
+        document.getElementById('view-home').classList.add('active');
+    }
+    const newHash = '#' + (VIEWS.includes(viewKey) ? viewKey : 'home');
+    if (location.hash !== newHash) history.pushState(null, '', newHash);
+    // Lock scroll for TX (fullscreen flash), unlock for others
+    document.body.style.overflow = (viewKey === 'tx') ? 'hidden' : '';
+    // If leaving TX, cancel any ongoing transmission
+    if (viewKey !== 'tx' && transmitting) cancelTransmission();
+}
+
+window.addEventListener('popstate', () => navigate(location.hash || '#home'));
+
+// Keyboard shortcuts on Home
+document.getElementById('homeCardTX').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('#tx'); }
+});
+document.getElementById('homeCardRX').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('#rx'); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TX LOGIC  (from optical-tx.html)
+   ═══════════════════════════════════════════════════════════════════════════ */
+let transmitting = false;
+let wakeLock     = null;
+
+const txFlashArea  = document.getElementById('tx-flash-area');
+const txStatusEl   = document.getElementById('tx-status');
+const txFlashLabel = txFlashArea.querySelector('.tx-flash-label');
+const txFlashIcon  = txFlashArea.querySelector('.tx-flash-icon');
+
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+        }
+    } catch (err) {
+        console.log('Wake lock failed:', err);
+    }
+}
+
+// CRC-8/MAXIM  polynomial 0x31 reversed
+function crc8(data) {
+    let crc = 0;
+    for (const byte of data) {
+        crc ^= byte;
+        for (let i = 0; i < 8; i++) {
+            crc = (crc & 0x01) ? (crc >> 1) ^ 0x8C : crc >> 1;
+        }
+    }
+    return crc;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Manchester encoding: 0 = HIGH->LOW (white->black), 1 = LOW->HIGH (black->white)
+async function flashBit(bit) {
+    const h = 50; // 50ms half-bit => 100ms/bit => 10bps
+    if (bit === 0) {
+        txFlashArea.style.background = '#FFFFFF';
+        await sleep(h);
+        txFlashArea.style.background = '#000000';
+        await sleep(h);
+    } else {
+        txFlashArea.style.background = '#000000';
+        await sleep(h);
+        txFlashArea.style.background = '#FFFFFF';
+        await sleep(h);
+    }
+}
+
+async function flashByte(byte) {
+    for (let i = 7; i >= 0; i--) {
+        if (!transmitting) return;
+        await flashBit((byte >> i) & 0x01);
+    }
+}
+
+async function flashPacket(data) {
+    await flashByte(0xAA); // SYNC byte: 10101010
+    for (const byte of data) {
+        if (!transmitting) return;
+        await flashByte(byte);
+    }
+    txFlashArea.style.background = '#000000';
+}
+
+async function sendTimeSync() {
+    if (transmitting) return;
+    transmitting = true;
+
+    document.getElementById('sendTimeBtn').style.display = 'none';
+    document.getElementById('cancelBtn').style.display   = 'block';
+    txFlashLabel.textContent = 'TX';
+    txFlashIcon.textContent  = '▸';
+
+    await requestWakeLock();
+
+    const now            = Math.floor(Date.now() / 1000);
+    const tzOffset       = -new Date().getTimezoneOffset(); // minutes from UTC
+
+    // Packet: LEN(0x06) + TYPE(0x01) + timestamp(4 LE) + timezone(2 LE) + CRC
+    const packet = [
+        0x06,
+        0x01,
+        (now >>  0) & 0xFF,
+        (now >>  8) & 0xFF,
+        (now >> 16) & 0xFF,
+        (now >> 24) & 0xFF,
+        (tzOffset >> 0) & 0xFF,
+        (tzOffset >> 8) & 0xFF,
+    ];
+    packet.push(crc8(packet));
+
+    const totalBytes       = packet.length + 1; // +1 for SYNC
+    const estimatedSeconds = Math.ceil(totalBytes * 0.8);
+    txStatusEl.textContent = `Transmitting ${totalBytes} bytes (~${estimatedSeconds}s)...`;
+
+    try {
+        await flashPacket(packet);
+        if (transmitting) {
+            txFlashArea.style.background = 'var(--gb-dark)';
+            txFlashLabel.textContent = 'DONE';
+            txFlashIcon.textContent  = '✓';
+            txStatusEl.textContent   = 'Transmission complete!';
+            await sleep(2000);
+            txStatusEl.textContent   = 'Ready to transmit';
+            txFlashLabel.textContent = 'STANDBY';
+            txFlashIcon.textContent  = '▸';
+        }
+    } catch (err) {
+        txStatusEl.textContent = 'Error: ' + err.message;
+    } finally {
+        transmitting = false;
+        document.getElementById('sendTimeBtn').style.display = 'block';
+        document.getElementById('cancelBtn').style.display   = 'none';
+        txFlashArea.style.background = 'var(--gb-dark)';
+        if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    }
+}
+
+function cancelTransmission() {
+    if (!transmitting && document.getElementById('cancelBtn').style.display === 'none') return;
+    transmitting = false;
+    txFlashArea.style.background  = 'var(--gb-dark)';
+    txFlashLabel.textContent      = 'STANDBY';
+    txFlashIcon.textContent       = '▸';
+    txStatusEl.textContent        = 'Cancelled';
+    document.getElementById('sendTimeBtn').style.display = 'block';
+    document.getElementById('cancelBtn').style.display   = 'none';
+    setTimeout(() => { txStatusEl.textContent = 'Ready to transmit'; }, 2000);
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && transmitting) requestWakeLock();
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RX LOGIC  (from fesk-decoder.html)
+   ═══════════════════════════════════════════════════════════════════════════ */
+const decoder = new FESKDecoder();
+let currentNights = null;
+let currentCS     = null;
+
+async function decodeData() {
+    const hex = document.getElementById('hexInput').value;
+    try {
+        showRxStatus('Decoding binary data...', 'success');
+        const bytes  = decoder.hexToBytes(hex);
+        const nights = decoder.parseNights(bytes);
+        const cs     = decoder.calculateCircadianScore(nights);
+        currentNights = nights;
+        currentCS     = cs;
+        await decoder.storeData(nights, cs);
+        renderDashboard(cs);
+        renderChart(nights);
+        renderNights(nights);
+        const validCount = nights.filter(n => n.valid).length;
+        showRxStatus(`✓ Decoded ${validCount}/7 valid nights`, 'success');
+        document.getElementById('csDashboard').style.display    = 'block';
+        document.getElementById('chartContainer').style.display  = 'block';
+        document.getElementById('nightsContainer').style.display = 'block';
+        document.getElementById('exportSection').style.display   = 'block';
+    } catch (err) {
+        showRxStatus(`✗ Error: ${err.message}`, 'error');
+        console.error(err);
+    }
+}
+
+function renderDashboard(cs) {
+    document.getElementById('csValue').textContent  = cs.cs;
+    document.getElementById('sriValue').textContent = cs.sri;
+    document.getElementById('durValue').textContent = cs.duration;
+    document.getElementById('effValue').textContent = cs.efficiency;
+    document.getElementById('cmpValue').textContent = cs.compliance;
+    document.getElementById('lgtValue').textContent = cs.light;
+}
+
+function renderChart(nights) {
+    const canvas = document.getElementById('sleepChart');
+    const ctx    = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    ctx.fillStyle = '#306230';
+    ctx.fillRect(0, 0, W, H);
+
+    const maxH = H - 40;
+
+    // Grid lines every 2 hours
+    ctx.strokeStyle = '#0f380f';
+    ctx.lineWidth   = 1;
+    for (let hr = 2; hr <= 10; hr += 2) {
+        const y = H - (hr / 10 * maxH) - 20;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        ctx.fillStyle  = '#8bac0f';
+        ctx.font       = '10px monospace';
+        ctx.textAlign  = 'right';
+        ctx.fillText(`${hr}h`, W - 4, y - 2);
+    }
+
+    const barW = Math.floor(W / 7) - 8;
+
+    nights.forEach((night, i) => {
+        if (!night.valid || night.onset === 0) return;
+        const x       = i * (barW + 8) + 4;
+        const barH    = (night.duration / 600) * maxH; // 600 min = 10h = full height
+        const y       = H - barH - 20;
+        const q       = night.quality;
+        const color   = q >= 80 ? '#9bbc0f' : q >= 60 ? '#8bac0f' : q >= 40 ? '#306230' : '#0f380f';
+
+        ctx.fillStyle   = color;
+        ctx.fillRect(x, y, barW, barH);
+        ctx.strokeStyle = '#9bbc0f';
+        ctx.lineWidth   = 1;
+        ctx.strokeRect(x, y, barW, barH);
+
+        ctx.fillStyle = '#9bbc0f';
+        ctx.font      = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${night.durationHours}h`, x + barW / 2, y - 4);
+
+        const d      = new Date(night.onset * 1000);
+        const day    = ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()];
+        ctx.fillText(day, x + barW / 2, H - 4);
+    });
+}
+
+function renderNights(nights) {
+    const grid = document.getElementById('nightsGrid');
+    grid.innerHTML = '';
+    nights.forEach((night, i) => {
+        const card = document.createElement('div');
+        card.className = 'night-card' + (night.valid ? '' : ' invalid');
+        if (night.valid && night.onset > 0) {
+            const date     = new Date(night.onset  * 1000);
+            const dateStr  = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const onsetT   = date.toTimeString().substr(0, 5);
+            const offsetT  = new Date(night.offset * 1000).toTimeString().substr(0, 5);
+            card.innerHTML = `
+                <div class="date">Night ${i + 1}: ${dateStr}</div>
+                <div class="metrics">
+                    ${onsetT} -&gt; ${offsetT} &middot; ${night.durationHours}h<br>
+                    EFF: ${night.efficiency}% &middot; WASO: ${night.waso}m &middot; AWK: ${night.awakenings}<br>
+                    LIGHT: ${night.light} &middot; QUAL: ${night.quality}
+                </div>
+                <div class="quality-bar" style="--quality: ${night.quality}%"></div>`;
+        } else {
+            card.innerHTML = `
+                <div class="date">Night ${i + 1}: NO DATA</div>
+                <div class="metrics">Invalid or missing</div>`;
+        }
+        grid.appendChild(card);
+    });
+}
+
+function exportCSV() {
+    if (!currentNights || !currentCS) return;
+    const csv  = decoder.exportCSV(currentNights, currentCS);
+    const name = `fesk_export_${new Date().toISOString().split('T')[0]}.csv`;
+    decoder.downloadFile(csv, name, 'text/csv');
+    showRxStatus('✓ CSV exported', 'success');
+}
+
+function exportJSON() {
+    if (!currentNights || !currentCS) return;
+    const json = decoder.exportJSON(currentNights, currentCS);
+    const name = `fesk_export_${new Date().toISOString().split('T')[0]}.json`;
+    decoder.downloadFile(json, name, 'application/json');
+    showRxStatus('✓ JSON exported', 'success');
+}
+
+async function viewHistory() {
+    const history = await decoder.getAllData();
+    const latest  = history.length > 0 ? new Date(history[history.length - 1].timestamp).toLocaleString() : 'none';
+    alert(`${history.length} record(s) in IndexedDB\n\nMost recent: ${latest}`);
+}
+
+function clearData() {
+    document.getElementById('hexInput').value = '';
+    currentNights = null;
+    currentCS     = null;
+    document.getElementById('csDashboard').style.display    = 'none';
+    document.getElementById('chartContainer').style.display  = 'none';
+    document.getElementById('nightsContainer').style.display = 'none';
+    document.getElementById('exportSection').style.display   = 'none';
+    document.getElementById('rx-status').style.display       = 'none';
+}
+
+function loadTestData() {
+    document.getElementById('hexInput').value = generateTestHex();
+    showRxStatus('✓ Test data loaded (7 sample nights)', 'success');
+}
+
+function generateTestHex() {
+    const now    = Math.floor(Date.now() / 1000);
+    const nights = [];
+    for (let i = 6; i >= 0; i--) {
+        const dayAgo   = now - i * 86400;
+        const onset    = dayAgo - (dayAgo % 86400) + 23 * 3600;
+        const duration = 420 + Math.floor(Math.random() * 60);
+        const offset   = onset + duration * 60;
+        const eff      = 85  + Math.floor(Math.random() * 10);
+        const waso     = 10  + Math.floor(Math.random() * 20);
+        const awk      = Math.floor(Math.random() * 3);
+        const light    = 100 + Math.floor(Math.random() * 100);
+        const bytes    = new Uint8Array(41);
+        const view     = new DataView(bytes.buffer);
+        view.setUint32(0,  onset,    true);
+        view.setUint32(4,  offset,   true);
+        view.setUint16(8,  duration, true);
+        view.setUint8 (10, eff);
+        view.setUint16(11, waso,     true);
+        view.setUint8 (13, awk);
+        view.setUint8 (14, light);
+        view.setUint8 (15, 1); // valid flag
+        nights.push(bytes);
+    }
+    const all = new Uint8Array(287);
+    nights.forEach((n, i) => all.set(n, i * 41));
+    return Array.from(all).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function showRxStatus(message, type = 'success') {
+    const el  = document.getElementById('rx-status');
+    el.className     = `status-msg ${type}`;
+    el.textContent   = message;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+// Keyboard shortcuts (active only in RX view)
+document.addEventListener('keydown', e => {
+    if (!document.getElementById('view-rx').classList.contains('active')) return;
+    if (e.key === 'd' || e.key === 'D') { e.preventDefault(); decodeData(); }
+    else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); clearData(); }
+    else if (e.key === 'e' || e.key === 'E') { e.preventDefault(); if (currentNights) exportCSV(); }
+    else if (e.key === 'Escape') clearData();
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+navigate(location.hash || '#home');
+console.log('UNIFIED COMMS v1.0 - Sensor Watch FESK');
+console.log('TX: Manchester optical @ 10bps | RX: 7-night circadian decoder');
+</script>
+</body>
+</html>
