@@ -2,412 +2,391 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="UnifiedComms">
     <meta name="application-name" content="UnifiedComms">
-    <meta name="theme-color" content="#0f380f">
-    <meta name="description" content="Sensor Watch FESK Optical Communications - TX/RX unified companion app">
-    <title>UNIFIED COMMS · FESK</title>
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="description" content="Sensor Watch optical data link - TX/RX unified companion app">
+    <title>UNIFIED COMMS</title>
     <style>
-        /* ═══════════════════════════════════════════════════════
-           DESIGN SYSTEM · GameBoy DMG palette + dlorp accents
-           8px grid · Courier New monospace · ASCII borders
-           ═══════════════════════════════════════════════════════ */
         :root {
-            --gb-dark:       #0f380f;
-            --gb-mid-dark:   #306230;
-            --gb-mid-light:  #8bac0f;
-            --gb-light:      #9bbc0f;
-            --acc-orange:    #FB8B24;
-            --acc-yellow:    #F4E409;
-            --acc-turquoise: #50D8D7;
-            --acc-blue:      #3B60E4;
-            --font-mono: 'Courier New', 'Consolas', 'Monaco', monospace;
+            --color-bg: #0a0a0a;
+            --color-surface: #141414;
+            --color-border: #2a2a2a;
+            --color-gray: #636764;
+            --color-orange: #FB8B24;
+            --color-yellow: #F4E409;
+            --color-teal: #50D8D7;
+            --color-blue: #3B60E4;
+            --color-text: #e8e8e8;
+            --color-dim: #888;
+            --space-1: 8px;
+            --space-2: 16px;
+            --space-3: 24px;
+            --space-4: 32px;
+            --radius: 10px;
+            --font-mono: 'Courier New', Consolas, Monaco, monospace;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         html, body {
-            height: 100%;
-            background: var(--gb-dark);
-            color: var(--gb-light);
+            width: 100%;
+            min-height: 100%;
+            background: radial-gradient(circle at top right, #1c1c1c 0%, var(--color-bg) 45%);
+            color: var(--color-text);
             font-family: var(--font-mono);
-            font-size: 11px;
             line-height: 1.4;
             overflow-x: hidden;
-            -webkit-font-smoothing: none;
-            -moz-osx-font-smoothing: grayscale;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* ─── VIEW SYSTEM ──────────────────────────────────── */
+        body { font-size: 14px; }
+
         .view { display: none; }
+        .view.active { display: block; }
 
-        #view-home.active {
-            display: flex;
-            flex-direction: column;
+        .screen {
+            min-height: 100dvh;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+        }
+
+        .top-strip {
+            height: 56px;
+            display: grid;
+            grid-template-columns: 88px 1fr 88px;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 16px;
-            animation: gbFadeIn 0.2s ease;
+            border-bottom: 1px solid var(--color-border);
+            background: rgba(20, 20, 20, 0.94);
+            backdrop-filter: blur(6px);
+            padding: 0 var(--space-1);
         }
 
-        #view-tx.active {
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            inset: 0;
-            z-index: 200;
-            background: #000;
-            animation: gbFadeIn 0.15s ease;
+        .top-strip h1,
+        .top-strip h2 {
+            text-align: center;
+            font-size: 14px;
+            letter-spacing: 1px;
+            white-space: nowrap;
         }
 
-        #view-rx.active {
-            display: block;
-            min-height: 100vh;
-            animation: gbFadeIn 0.2s ease;
+        .top-strip .mode-tx { color: var(--color-orange); }
+        .top-strip .mode-rx { color: var(--color-teal); }
+
+        .back-btn {
+            min-height: 48px;
+            min-width: 48px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-text);
+            background: #111;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            padding: 0 var(--space-1);
+            text-align: left;
+            cursor: pointer;
         }
 
-        @keyframes gbFadeIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
+        .spacer { width: 48px; height: 48px; }
+
+        .content-scroll {
+            overflow-y: auto;
+            padding: var(--space-2);
+            padding-bottom: var(--space-3);
         }
 
-        /* ─── SHARED COMPONENTS ────────────────────────────── */
-        .container { max-width: 100vw; padding: 8px; }
+        .bottom-bar {
+            border-top: 1px solid var(--color-border);
+            background: rgba(14, 14, 14, 0.98);
+            padding: var(--space-1) var(--space-2) calc(env(safe-area-inset-bottom, 16px) + 8px);
+        }
 
         .frame {
-            border: 2px solid var(--gb-mid-light);
-            background: var(--gb-dark);
-            padding: 8px;
-            margin-bottom: 8px;
-            position: relative;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--space-2);
+            margin-bottom: var(--space-2);
         }
-        .frame::before {
-            content: attr(data-title);
-            position: absolute;
-            top: -8px;
-            left: 8px;
-            background: var(--gb-dark);
-            padding: 0 4px;
-            color: var(--gb-mid-light);
-            font-weight: bold;
-            font-size: 9px;
+
+        .frame-title {
+            color: var(--color-dim);
+            font-size: 12px;
             letter-spacing: 1px;
+            margin-bottom: var(--space-1);
+            text-transform: uppercase;
         }
 
         button {
-            padding: 8px 12px;
-            background: var(--gb-mid-dark);
-            color: var(--gb-light);
-            border: 2px solid var(--gb-mid-light);
+            min-height: 48px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
             font-family: var(--font-mono);
-            font-size: 10px;
+            font-size: 14px;
+            font-weight: 700;
             cursor: pointer;
-            font-weight: bold;
-            transition: background 0.1s, color 0.1s;
-            -webkit-user-select: none;
-            user-select: none;
+            background: #161616;
+            color: var(--color-text);
+            padding: 0 var(--space-2);
         }
-        button:hover, button:focus { background: var(--gb-mid-light); color: var(--gb-dark); outline: none; }
-        button:active { transform: translate(1px, 1px); }
-        button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
 
-        .btn-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-        .btn-row button { flex: 1; min-width: 80px; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .back-btn {
-            padding: 6px 10px;
-            background: var(--gb-mid-dark);
-            color: var(--gb-mid-light);
-            border: 1px solid var(--gb-mid-dark);
-            font-family: var(--font-mono);
-            font-size: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            letter-spacing: 1px;
-            transition: color 0.1s, border-color 0.1s;
-            white-space: nowrap;
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-1);
         }
-        .back-btn:hover { color: var(--gb-light); border-color: var(--gb-mid-light); }
+
+        .btn-secondary {
+            background: #111;
+            color: var(--color-dim);
+            border-color: var(--color-border);
+        }
 
         .status-msg {
-            padding: 8px;
-            margin-bottom: 8px;
-            font-size: 10px;
-            border-left: 4px solid var(--gb-mid-light);
-            background: var(--gb-mid-dark);
+            padding: var(--space-1);
+            margin-bottom: var(--space-2);
+            font-size: 13px;
+            border: 1px solid var(--color-border);
+            border-left: 4px solid var(--color-blue);
+            border-radius: 8px;
+            background: #111;
         }
-        .status-msg.error  { border-color: #ff4444; color: #ff8888; }
-        .status-msg.success { border-color: var(--gb-light); }
+        .status-msg.error { border-left-color: #d44545; color: #ff9d9d; }
+        .status-msg.success { border-left-color: var(--color-teal); }
 
-        /* ═══════════════════════════════════════════════════════
-           HOME VIEW
-           ═══════════════════════════════════════════════════════ */
-        .home-wrap {
+        /* HOME */
+        #view-home.active { display: block; }
+
+        .home-screen {
+            min-height: 100dvh;
+            display: grid;
+            grid-template-rows: 1fr auto;
+        }
+
+        .home-main {
+            padding: var(--space-3) var(--space-2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: var(--space-2);
+            max-width: 840px;
             width: 100%;
-            max-width: 360px;
-            text-align: center;
+            margin: 0 auto;
         }
 
-        .home-panel {
-            border: 2px solid var(--gb-mid-light);
-            background: var(--gb-dark);
-            padding: 24px 16px 16px;
-            position: relative;
-        }
-        .home-panel-title {
-            position: absolute;
-            top: -9px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--gb-dark);
-            padding: 0 8px;
-            color: var(--gb-light);
-            font-weight: bold;
-            font-size: 11px;
-            letter-spacing: 2px;
-            white-space: nowrap;
-        }
-
-        .home-watch-art {
-            font-size: 9px;
-            line-height: 1.35;
-            color: var(--gb-mid-light);
-            margin-bottom: 16px;
-            display: block;
+        .home-header {
             text-align: center;
+            margin-bottom: var(--space-1);
         }
 
         .home-title {
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 5px;
-            color: var(--gb-light);
-            text-shadow: 2px 2px 0 var(--gb-mid-dark);
-            margin-bottom: 2px;
+            font-size: 34px;
+            letter-spacing: 2px;
+            color: var(--color-text);
         }
 
         .home-subtitle {
-            font-size: 9px;
-            color: var(--gb-mid-light);
-            letter-spacing: 1px;
-            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--color-gray);
+            margin-top: var(--space-1);
         }
 
-        .home-divider {
-            font-size: 9px;
-            color: var(--gb-mid-dark);
-            margin: 8px 0 16px;
-            letter-spacing: 2px;
+        .home-watch-art {
+            color: var(--color-dim);
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.2;
+            padding: var(--space-2);
+            border: 1px dashed var(--color-border);
+            border-radius: 8px;
+            background: #111;
         }
 
         .mode-cards {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-            margin-bottom: 16px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-2);
         }
 
         .mode-card {
-            flex: 1;
-            border: 2px solid var(--gb-mid-dark);
-            padding: 16px 8px 12px;
-            cursor: pointer;
-            text-align: center;
-            background: var(--gb-mid-dark);
-            transition: background 0.1s, border-color 0.1s;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        .mode-card:hover, .mode-card:focus {
-            border-color: var(--gb-light);
-            background: var(--gb-mid-light);
-            outline: none;
-        }
-        .mode-card:hover .mc-icon,
-        .mode-card:hover .mc-badge,
-        .mode-card:hover .mc-label,
-        .mode-card:hover .mc-name,
-        .mode-card:hover .mc-desc { color: var(--gb-dark); }
-        .mode-card:active { transform: translate(1px, 1px); }
-
-        .mc-icon  { font-size: 20px; color: var(--gb-light); display: block; margin-bottom: 4px; }
-        .mc-badge { font-size: 8px; color: var(--acc-orange); letter-spacing: 2px; display: block; margin-bottom: 2px; }
-        .mode-card.rx .mc-badge { color: var(--acc-turquoise); }
-        .mc-label { font-size: 20px; font-weight: bold; color: var(--gb-light); display: block; letter-spacing: 3px; }
-        .mc-name  { font-size: 8px; color: var(--gb-mid-light); display: block; letter-spacing: 2px; margin-bottom: 8px; }
-        .mc-desc  {
-            font-size: 9px; color: var(--gb-mid-light); display: block;
-            border-top: 1px solid var(--gb-dark);
-            padding-top: 8px; line-height: 1.4;
-        }
-
-        .home-footer {
-            font-size: 8px;
-            color: var(--gb-mid-dark);
-            line-height: 1.8;
-        }
-        .home-footer .hl { color: var(--gb-mid-light); }
-
-        /* ═══════════════════════════════════════════════════════
-           TX VIEW
-           ═══════════════════════════════════════════════════════ */
-        .tx-topbar {
-            display: flex;
+            min-height: 120px;
+            border: 2px solid var(--color-border);
+            background: linear-gradient(160deg, #141414 0%, #101010 100%);
+            border-radius: 12px;
+            padding: var(--space-2);
+            display: grid;
+            grid-template-columns: auto 1fr;
             align-items: center;
-            padding: 8px;
-            gap: 8px;
-            background: var(--gb-dark);
-            border-bottom: 2px solid var(--gb-mid-dark);
-            flex-shrink: 0;
+            gap: var(--space-2);
+            cursor: pointer;
         }
-        .tx-topbar h2 {
-            flex: 1;
+
+        .mode-card:focus { outline: 2px solid var(--color-blue); outline-offset: 2px; }
+        .mode-card.tx { border-color: #7d4b1f; }
+        .mode-card.rx { border-color: #2f7574; }
+
+        .mode-glyph {
+            width: 56px;
+            height: 56px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-size: 28px;
+        }
+
+        .mode-card.tx .mode-glyph { color: var(--color-orange); }
+        .mode-card.rx .mode-glyph { color: var(--color-teal); }
+
+        .mode-name {
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .mode-desc {
+            margin-top: 2px;
+            font-size: 13px;
+            color: var(--color-gray);
+        }
+
+        .home-bottom {
             text-align: center;
+            padding: var(--space-1) var(--space-2) calc(env(safe-area-inset-bottom, 16px) + 8px);
+            color: var(--color-dim);
+            border-top: 1px solid var(--color-border);
+            background: rgba(14, 14, 14, 0.96);
             font-size: 12px;
-            letter-spacing: 3px;
-            color: var(--gb-light);
         }
-        .tx-spacer { width: 60px; flex-shrink: 0; }
+
+        /* TX */
+        #view-tx.active { display: block; }
 
         #tx-flash-area {
-            flex: 1;
-            background: var(--gb-dark);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 8px;
-            transition: background 0s;
-        }
-        .tx-flash-label {
-            font-size: 10px;
-            letter-spacing: 4px;
-            color: var(--gb-mid-dark);
-        }
-        .tx-flash-icon {
-            font-size: 32px;
-            color: var(--gb-mid-dark);
-        }
-
-        .tx-controls {
-            padding: 16px;
-            background: var(--gb-dark);
-            border-top: 2px solid var(--gb-mid-dark);
-            flex-shrink: 0;
-        }
-
-        .tx-status {
+            background: #000;
+            margin: var(--space-2);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
             text-align: center;
-            padding: 8px;
-            font-size: 11px;
-            color: var(--gb-light);
-            background: var(--gb-mid-dark);
-            border: 1px solid var(--gb-mid-light);
-            margin-bottom: 8px;
-            min-height: 34px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            letter-spacing: 1px;
+            padding: var(--space-2);
+        }
+
+        .tx-flash-icon {
+            font-size: 44px;
+            color: var(--color-gray);
+            line-height: 1;
+            margin-bottom: var(--space-1);
+        }
+
+        .tx-flash-label {
+            font-size: 20px;
+            letter-spacing: 2px;
+            color: var(--color-text);
+            margin-bottom: 4px;
         }
 
         .tx-hint {
-            text-align: center;
-            font-size: 9px;
-            color: var(--gb-mid-light);
-            margin-bottom: 12px;
-            letter-spacing: 1px;
+            font-size: 12px;
+            color: var(--color-dim);
+            text-transform: lowercase;
+        }
+
+        .tx-actions {
+            display: grid;
+            gap: var(--space-1);
         }
 
         #sendTimeBtn {
             width: 100%;
-            padding: 14px;
-            font-size: 12px;
-            letter-spacing: 2px;
-            background: var(--gb-mid-dark);
-            border-color: var(--acc-orange);
-            color: var(--acc-orange);
+            background: linear-gradient(180deg, #ff9f3f 0%, var(--color-orange) 100%);
+            color: #201000;
+            border-color: #fca74d;
         }
-        #sendTimeBtn:hover { background: var(--acc-orange); color: var(--gb-dark); }
 
         #cancelBtn {
             width: 100%;
-            padding: 10px;
-            background: var(--gb-mid-dark);
-            border-color: #ff4444;
-            color: #ff8888;
-            margin-top: 8px;
             display: none;
+            background: #8f2f2f;
+            border-color: #bf4e4e;
+            color: #ffe7e7;
         }
-        #cancelBtn:hover { background: #ff4444; color: #fff; }
 
-        /* ═══════════════════════════════════════════════════════
-           RX VIEW
-           ═══════════════════════════════════════════════════════ */
-        .rx-header {
-            display: flex;
-            align-items: center;
-            padding: 8px;
-            border-bottom: 2px solid var(--gb-mid-dark);
-            gap: 8px;
-            background: var(--gb-dark);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        .rx-header h1 {
-            flex: 1;
+        #tx-status {
             text-align: center;
-            font-size: 13px;
-            letter-spacing: 2px;
-            color: var(--gb-light);
+            font-size: 12px;
+            color: var(--color-dim);
+            min-height: 18px;
         }
-        .rx-header .rx-spacer { width: 60px; }
+
+        /* RX */
+        #view-rx.active { display: block; }
 
         textarea {
             width: 100%;
-            height: 80px;
-            background: var(--gb-mid-dark);
-            color: var(--gb-light);
-            border: 1px solid var(--gb-mid-light);
-            padding: 8px;
-            font-family: var(--font-mono);
-            font-size: 10px;
+            min-height: 132px;
             resize: vertical;
-            -webkit-user-select: text;
-            user-select: text;
+            border-radius: 8px;
+            border: 2px solid #2f7574;
+            background: #101010;
+            color: var(--color-text);
+            padding: var(--space-1);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.45;
         }
-        textarea::placeholder { color: var(--gb-mid-light); opacity: 0.7; }
+
+        textarea::placeholder { color: var(--color-gray); }
 
         .cs-dashboard {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 8px;
-            margin-bottom: 8px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-1);
         }
+
         .cs-metric {
-            background: var(--gb-mid-dark);
-            border: 1px solid var(--gb-mid-light);
-            padding: 8px;
+            border: 1px solid var(--color-border);
+            background: #101010;
+            border-radius: 8px;
+            padding: var(--space-1);
             text-align: center;
         }
-        .cs-metric .label { font-size: 9px; color: var(--gb-mid-light); margin-bottom: 4px; }
-        .cs-metric .value { font-size: 20px; font-weight: bold; color: var(--gb-light); }
-        .cs-metric.main { grid-column: 1 / -1; }
-        .cs-metric.main .value { font-size: 32px; }
+
+        .cs-metric.main {
+            grid-column: 1 / -1;
+            border-color: #6a6328;
+            background: linear-gradient(180deg, #171400 0%, #121212 100%);
+        }
+
+        .cs-metric .label {
+            color: var(--color-gray);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .cs-metric .value {
+            font-size: 26px;
+            color: var(--color-text);
+            line-height: 1.1;
+        }
+
+        .cs-metric.main .value {
+            font-size: 48px;
+            color: var(--color-yellow);
+        }
 
         .chart-container {
-            background: var(--gb-mid-dark);
-            border: 2px solid var(--gb-mid-light);
-            padding: 8px;
-            margin-bottom: 8px;
             overflow-x: auto;
+            padding: var(--space-1);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            background: #0f0f0f;
         }
 
         canvas {
@@ -418,215 +397,270 @@
             image-rendering: crisp-edges;
         }
 
-        .nights-grid { display: grid; gap: 4px; }
+        .nights-grid {
+            display: grid;
+            gap: var(--space-1);
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
 
         .night-card {
-            background: var(--gb-mid-dark);
-            border: 1px solid var(--gb-mid-light);
-            padding: 8px;
-            cursor: pointer;
-            transition: background 0.1s, color 0.1s;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            background: #101010;
+            padding: var(--space-1);
         }
-        .night-card:hover { background: var(--gb-mid-light); color: var(--gb-dark); border-color: var(--gb-light); }
-        .night-card.invalid { opacity: 0.3; cursor: default; }
-        .night-card .date { font-weight: bold; margin-bottom: 4px; font-size: 11px; }
-        .night-card .metrics { font-size: 9px; line-height: 1.6; }
+
+        .night-card.invalid { opacity: 0.5; }
+
+        .night-card .date {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--color-text);
+        }
+
+        .night-card .metrics {
+            font-size: 12px;
+            color: var(--color-gray);
+            line-height: 1.35;
+        }
+
         .night-card .quality-bar {
-            height: 4px;
-            background: var(--gb-dark);
-            margin-top: 4px;
-            position: relative;
+            height: 6px;
+            border-radius: 999px;
+            background: #1c1c1c;
+            margin-top: 6px;
             overflow: hidden;
         }
+
         .night-card .quality-bar::after {
             content: '';
-            position: absolute;
-            left: 0; top: 0; height: 100%;
-            background: var(--gb-light);
+            display: block;
             width: var(--quality);
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-teal) 0%, var(--color-yellow) 100%);
+        }
+
+        .rx-export-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-1);
+        }
+
+        .rx-export-row button {
+            background: #121212;
+            border-color: #2d458d;
+            color: var(--color-blue);
         }
 
         .shortcuts {
-            font-size: 8px;
-            color: var(--gb-mid-light);
+            margin-top: var(--space-2);
+            color: var(--color-dim);
+            font-size: 11px;
             text-align: center;
-            padding: 8px;
-            border-top: 1px solid var(--gb-mid-dark);
         }
 
-        /* ─── RESPONSIVE ───────────────────────────────────── */
-        @media (min-width: 640px) {
-            body { font-size: 12px; }
-            .home-title { font-size: 28px; }
-            .cs-metric .value { font-size: 24px; }
-            .cs-metric.main .value { font-size: 40px; }
-            .container { max-width: 640px; margin: 0 auto; }
+        .rx-bottom-actions {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: var(--space-1);
+            margin-bottom: var(--space-1);
+        }
+
+        #decodeBtn {
+            background: linear-gradient(180deg, #5ce7e6 0%, var(--color-teal) 100%);
+            color: #052323;
+            border-color: #79edeb;
+            width: 100%;
+        }
+
+        #clearBtn {
+            min-width: 96px;
+            background: #111;
+            color: var(--color-dim);
+        }
+
+        #testBtn {
+            width: 100%;
+            background: #111;
+            color: var(--color-teal);
+            border-color: #2f6666;
+            font-size: 12px;
+        }
+
+        @media (min-width: 760px) {
+            body { font-size: 15px; }
+            .home-main { padding-top: 56px; }
+            .mode-cards { grid-template-columns: 1fr 1fr; }
+            .screen,
+            .home-screen { max-width: 900px; margin: 0 auto; border-left: 1px solid #1c1c1c; border-right: 1px solid #1c1c1c; }
+            .nights-grid { max-height: 360px; }
+            .cs-dashboard { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .cs-metric.main { grid-column: span 3; }
         }
     </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     HOME VIEW  #home
-     ═══════════════════════════════════════════════════════════ -->
 <div id="view-home" class="view">
-    <div class="home-wrap">
-        <div class="home-panel">
-            <div class="home-panel-title">◆ UNIFIED COMMS ◆</div>
+    <div class="home-screen">
+        <div class="home-main">
+            <div class="home-header">
+                <div class="home-title">UNIFIED COMMS</div>
+                <div class="home-subtitle">Sensor Watch optical data link</div>
+            </div>
 
             <pre class="home-watch-art">
-  .-----------.
-  |   00:00   |
-  |  SENSOR   |
-  |  _WATCH_  |
-  |___________|
-  |[o] [o] [o]|
-  '-----------'</pre>
-
-            <div class="home-title">UNIFIED COMMS</div>
-            <div class="home-subtitle">SENSOR WATCH · FESK OPTICAL COMMS</div>
-            <div class="home-divider">─────────────────────────────</div>
+ .------.
+ |00:00 |
+ | WATCH|
+ |------|
+ | o  o |
+ '------'</pre>
 
             <div class="mode-cards">
-                <div class="mode-card" id="homeCardTX" onclick="navigate('#tx')" tabindex="0" role="button" aria-label="TX Transmit mode">
-                    <span class="mc-icon">▸</span>
-                    <span class="mc-badge">OPTICAL</span>
-                    <span class="mc-label">TX</span>
-                    <span class="mc-name">TRANSMIT</span>
-                    <span class="mc-desc">Optical time sync to watch</span>
+                <div class="mode-card tx" id="homeCardTX" onclick="navigate('#tx')" tabindex="0" role="button" aria-label="TX Transmit mode">
+                    <div class="mode-glyph">&gt;</div>
+                    <div>
+                        <div class="mode-name">TRANSMIT</div>
+                        <div class="mode-desc">Optical time sync</div>
+                    </div>
                 </div>
+
                 <div class="mode-card rx" id="homeCardRX" onclick="navigate('#rx')" tabindex="0" role="button" aria-label="RX Receive mode">
-                    <span class="mc-icon">◆</span>
-                    <span class="mc-badge">SLEEP</span>
-                    <span class="mc-label">RX</span>
-                    <span class="mc-name">RECEIVE</span>
-                    <span class="mc-desc">Decode sleep data from FESK</span>
+                    <div class="mode-glyph">◆</div>
+                    <div>
+                        <div class="mode-name">RECEIVE</div>
+                        <div class="mode-desc">Decode sleep data</div>
+                    </div>
                 </div>
             </div>
-
-            <div class="home-footer">
-                ─────────────────────────────────<br>
-                <span class="hl">FESK v1.0 · 10bps Manchester encoding</span><br>
-                second-movement · sensor watch project
-            </div>
         </div>
+
+        <div class="home-bottom">v1.0</div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     TX VIEW  #tx
-     ═══════════════════════════════════════════════════════════ -->
 <div id="view-tx" class="view">
-    <div class="tx-topbar">
-        <button class="back-btn" onclick="navigate('#home')" aria-label="Back to home">&lt; HOME</button>
-        <h2>▸ OPTICAL TX ▸</h2>
-        <div class="tx-spacer"></div>
-    </div>
+    <div class="screen">
+        <div class="top-strip">
+            <button class="back-btn" onclick="navigate('#home')" aria-label="Back to home">&lt; BACK</button>
+            <h2 class="mode-tx">TX MODE</h2>
+            <div class="spacer"></div>
+        </div>
 
-    <div id="tx-flash-area">
-        <div class="tx-flash-icon">▸</div>
-        <div class="tx-flash-label">STANDBY</div>
-    </div>
+        <div id="tx-flash-area">
+            <div>
+                <div class="tx-flash-icon">&gt;</div>
+                <div class="tx-flash-label">STANDBY</div>
+                <div class="tx-hint">hold screen 2-6in from watch</div>
+            </div>
+        </div>
 
-    <div class="tx-controls">
-        <div id="tx-status" class="tx-status">Ready to transmit</div>
-        <div class="tx-hint">Hold screen 2-6 inches from watch sensor</div>
-        <button id="sendTimeBtn" onclick="sendTimeSync()">▸ SEND TIME SYNC</button>
-        <button id="cancelBtn" onclick="cancelTransmission()">✗ CANCEL TRANSMISSION</button>
+        <div class="bottom-bar">
+            <div class="tx-actions">
+                <button id="sendTimeBtn" onclick="sendTimeSync()">SEND TIME SYNC</button>
+                <button id="cancelBtn" onclick="cancelTransmission()">CANCEL</button>
+                <div id="tx-status" class="tx-status">Ready to transmit</div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     RX VIEW  #rx
-     ═══════════════════════════════════════════════════════════ -->
 <div id="view-rx" class="view">
-    <div class="rx-header">
-        <button class="back-btn" onclick="navigate('#home')" aria-label="Back to home">&lt; HOME</button>
-        <h1>◆ FESK DECODER ◆</h1>
-        <div class="rx-spacer"></div>
-    </div>
-
-    <div class="container">
-        <!-- Hex Input -->
-        <div class="frame" data-title="HEX INPUT">
-            <textarea id="hexInput" placeholder="Paste 574 hex characters (287 bytes x 7 nights)&#10;Example: A1B2C3D4..."></textarea>
-            <div class="btn-row">
-                <button id="decodeBtn" onclick="decodeData()">▸ DECODE</button>
-                <button id="clearBtn" onclick="clearData()">✗ CLEAR</button>
-                <button id="testBtn" onclick="loadTestData()">◆ TEST DATA</button>
-            </div>
+    <div class="screen">
+        <div class="top-strip">
+            <button class="back-btn" onclick="navigate('#home')" aria-label="Back to home">&lt; BACK</button>
+            <h1 class="mode-rx">RX MODE</h1>
+            <div class="spacer"></div>
         </div>
 
-        <!-- Status -->
-        <div id="rx-status" style="display:none"></div>
+        <div class="content-scroll">
+            <div class="frame">
+                <div class="frame-title">HEX INPUT</div>
+                <textarea id="hexInput" placeholder="Paste 574 hex characters (287 bytes x 7 nights)\nExample: A1B2C3D4..."></textarea>
+            </div>
 
-        <!-- Circadian Score Dashboard -->
-        <div id="csDashboard" style="display:none">
-            <div class="frame" data-title="CIRCADIAN SCORE">
-                <div class="cs-dashboard">
-                    <div class="cs-metric main">
-                        <div class="label">OVERALL CS</div>
-                        <div class="value" id="csValue">--</div>
-                    </div>
-                    <div class="cs-metric">
-                        <div class="label">SRI</div>
-                        <div class="value" id="sriValue">--</div>
-                    </div>
-                    <div class="cs-metric">
-                        <div class="label">DUR</div>
-                        <div class="value" id="durValue">--</div>
-                    </div>
-                    <div class="cs-metric">
-                        <div class="label">EFF</div>
-                        <div class="value" id="effValue">--</div>
-                    </div>
-                    <div class="cs-metric">
-                        <div class="label">CMP</div>
-                        <div class="value" id="cmpValue">--</div>
-                    </div>
-                    <div class="cs-metric">
-                        <div class="label">LGT</div>
-                        <div class="value" id="lgtValue">--</div>
+            <div id="rx-status" style="display:none"></div>
+
+            <div id="csDashboard" style="display:none">
+                <div class="frame">
+                    <div class="frame-title">CIRCADIAN SCORE</div>
+                    <div class="cs-dashboard">
+                        <div class="cs-metric main">
+                            <div class="label">OVERALL CS</div>
+                            <div class="value" id="csValue">--</div>
+                        </div>
+                        <div class="cs-metric">
+                            <div class="label">SRI</div>
+                            <div class="value" id="sriValue">--</div>
+                        </div>
+                        <div class="cs-metric">
+                            <div class="label">DUR</div>
+                            <div class="value" id="durValue">--</div>
+                        </div>
+                        <div class="cs-metric">
+                            <div class="label">EFF</div>
+                            <div class="value" id="effValue">--</div>
+                        </div>
+                        <div class="cs-metric">
+                            <div class="label">CMP</div>
+                            <div class="value" id="cmpValue">--</div>
+                        </div>
+                        <div class="cs-metric">
+                            <div class="label">LGT</div>
+                            <div class="value" id="lgtValue">--</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 7-Day Chart -->
-        <div id="chartContainer" style="display:none">
-            <div class="frame chart-container" data-title="7-DAY SLEEP TIMELINE">
-                <canvas id="sleepChart" width="640" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Night Details -->
-        <div id="nightsContainer" style="display:none">
-            <div class="frame" data-title="NIGHT DETAILS">
-                <div class="nights-grid" id="nightsGrid"></div>
-            </div>
-        </div>
-
-        <!-- Export -->
-        <div id="exportSection" style="display:none">
-            <div class="frame" data-title="EXPORT">
-                <div class="btn-row">
-                    <button onclick="exportCSV()">↓ CSV</button>
-                    <button onclick="exportJSON()">↓ JSON</button>
-                    <button onclick="viewHistory()">⌂ HISTORY</button>
+            <div id="chartContainer" style="display:none">
+                <div class="frame">
+                    <div class="frame-title">7-DAY SLEEP TIMELINE</div>
+                    <div class="chart-container">
+                        <canvas id="sleepChart" width="640" height="200"></canvas>
+                    </div>
                 </div>
             </div>
+
+            <div id="nightsContainer" style="display:none">
+                <div class="frame">
+                    <div class="frame-title">NIGHT DETAILS</div>
+                    <div class="nights-grid" id="nightsGrid"></div>
+                </div>
+            </div>
+
+            <div id="exportSection" style="display:none">
+                <div class="frame">
+                    <div class="frame-title">EXPORT</div>
+                    <div class="rx-export-row">
+                        <button onclick="exportCSV()">EXPORT CSV</button>
+                        <button onclick="exportJSON()">EXPORT JSON</button>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <button class="btn-secondary" style="width:100%;" onclick="viewHistory()">VIEW HISTORY</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="shortcuts">[D]ECODE - [C]LEAR - [E]XPORT - ESC=RESET</div>
         </div>
 
-        <div class="shortcuts">
-            [D]ECODE &middot; [C]LEAR &middot; [E]XPORT &middot; ESC=RESET
+        <div class="bottom-bar">
+            <div class="rx-bottom-actions">
+                <button id="decodeBtn" onclick="decodeData()">DECODE</button>
+                <button id="clearBtn" onclick="clearData()">CLEAR</button>
+            </div>
+            <button id="testBtn" onclick="loadTestData()">TEST DATA</button>
         </div>
     </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════════════════
-   FESKDecoder  (inlined from decoder.js)
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* FESKDecoder (inlined from decoder.js) */
 class FESKDecoder {
     constructor() {
         this.db = null;
@@ -768,9 +802,7 @@ class FESKDecoder {
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   NAVIGATION
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* NAVIGATION */
 const VIEWS = ['home', 'tx', 'rx'];
 
 function navigate(hash) {
@@ -803,11 +835,10 @@ document.getElementById('homeCardRX').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('#rx'); }
 });
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TX LOGIC  (from optical-tx.html)
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* TX LOGIC (from optical-tx.html) */
 let transmitting = false;
 let wakeLock     = null;
+let txCountdownTimer = null;
 
 const txFlashArea  = document.getElementById('tx-flash-area');
 const txStatusEl   = document.getElementById('tx-status');
@@ -876,8 +907,8 @@ async function sendTimeSync() {
 
     document.getElementById('sendTimeBtn').style.display = 'none';
     document.getElementById('cancelBtn').style.display   = 'block';
-    txFlashLabel.textContent = 'TX';
-    txFlashIcon.textContent  = '▸';
+    txFlashLabel.textContent = 'TRANSMITTING...';
+    txFlashIcon.textContent  = '>';
 
     await requestWakeLock();
 
@@ -899,27 +930,35 @@ async function sendTimeSync() {
 
     const totalBytes       = packet.length + 1; // +1 for SYNC
     const estimatedSeconds = Math.ceil(totalBytes * 0.8);
-    txStatusEl.textContent = `Transmitting ${totalBytes} bytes (~${estimatedSeconds}s)...`;
+    let remainingSeconds = estimatedSeconds;
+    txStatusEl.textContent = `Transmitting ${totalBytes} bytes (${remainingSeconds}s remaining)`;
+    if (txCountdownTimer) clearInterval(txCountdownTimer);
+    txCountdownTimer = setInterval(() => {
+        if (!transmitting) return;
+        remainingSeconds = Math.max(0, remainingSeconds - 1);
+        txStatusEl.textContent = `Transmitting ${totalBytes} bytes (${remainingSeconds}s remaining)`;
+    }, 1000);
 
     try {
         await flashPacket(packet);
         if (transmitting) {
-            txFlashArea.style.background = 'var(--gb-dark)';
+            txFlashArea.style.background = 'var(--color-bg)';
             txFlashLabel.textContent = 'DONE';
-            txFlashIcon.textContent  = '✓';
-            txStatusEl.textContent   = 'Transmission complete!';
+            txFlashIcon.textContent  = '◆';
+            txStatusEl.textContent   = 'Transmission complete';
             await sleep(2000);
             txStatusEl.textContent   = 'Ready to transmit';
             txFlashLabel.textContent = 'STANDBY';
-            txFlashIcon.textContent  = '▸';
+            txFlashIcon.textContent  = '>';
         }
     } catch (err) {
         txStatusEl.textContent = 'Error: ' + err.message;
     } finally {
         transmitting = false;
+        if (txCountdownTimer) { clearInterval(txCountdownTimer); txCountdownTimer = null; }
         document.getElementById('sendTimeBtn').style.display = 'block';
         document.getElementById('cancelBtn').style.display   = 'none';
-        txFlashArea.style.background = 'var(--gb-dark)';
+        txFlashArea.style.background = 'var(--color-bg)';
         if (wakeLock) { await wakeLock.release(); wakeLock = null; }
     }
 }
@@ -927,10 +966,11 @@ async function sendTimeSync() {
 function cancelTransmission() {
     if (!transmitting && document.getElementById('cancelBtn').style.display === 'none') return;
     transmitting = false;
-    txFlashArea.style.background  = 'var(--gb-dark)';
+    txFlashArea.style.background  = 'var(--color-bg)';
     txFlashLabel.textContent      = 'STANDBY';
-    txFlashIcon.textContent       = '▸';
+    txFlashIcon.textContent       = '>';
     txStatusEl.textContent        = 'Cancelled';
+    if (txCountdownTimer) { clearInterval(txCountdownTimer); txCountdownTimer = null; }
     document.getElementById('sendTimeBtn').style.display = 'block';
     document.getElementById('cancelBtn').style.display   = 'none';
     setTimeout(() => { txStatusEl.textContent = 'Ready to transmit'; }, 2000);
@@ -941,9 +981,7 @@ document.addEventListener('visibilitychange', () => {
     if (!document.hidden && transmitting) requestWakeLock();
 });
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   RX LOGIC  (from fesk-decoder.html)
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* RX LOGIC (from fesk-decoder.html) */
 const decoder = new FESKDecoder();
 let currentNights = null;
 let currentCS     = null;
@@ -962,13 +1000,13 @@ async function decodeData() {
         renderChart(nights);
         renderNights(nights);
         const validCount = nights.filter(n => n.valid).length;
-        showRxStatus(`✓ Decoded ${validCount}/7 valid nights`, 'success');
+        showRxStatus(`[OK] Decoded ${validCount}/7 valid nights`, 'success');
         document.getElementById('csDashboard').style.display    = 'block';
         document.getElementById('chartContainer').style.display  = 'block';
         document.getElementById('nightsContainer').style.display = 'block';
         document.getElementById('exportSection').style.display   = 'block';
     } catch (err) {
-        showRxStatus(`✗ Error: ${err.message}`, 'error');
+        showRxStatus(`[ERR] ${err.message}`, 'error');
         console.error(err);
     }
 }
@@ -987,18 +1025,18 @@ function renderChart(nights) {
     const ctx    = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
 
-    ctx.fillStyle = '#306230';
+    ctx.fillStyle = '#111111';
     ctx.fillRect(0, 0, W, H);
 
     const maxH = H - 40;
 
     // Grid lines every 2 hours
-    ctx.strokeStyle = '#0f380f';
+    ctx.strokeStyle = '#2a2a2a';
     ctx.lineWidth   = 1;
     for (let hr = 2; hr <= 10; hr += 2) {
         const y = H - (hr / 10 * maxH) - 20;
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-        ctx.fillStyle  = '#8bac0f';
+        ctx.fillStyle  = '#888888';
         ctx.font       = '10px monospace';
         ctx.textAlign  = 'right';
         ctx.fillText(`${hr}h`, W - 4, y - 2);
@@ -1012,15 +1050,15 @@ function renderChart(nights) {
         const barH    = (night.duration / 600) * maxH; // 600 min = 10h = full height
         const y       = H - barH - 20;
         const q       = night.quality;
-        const color   = q >= 80 ? '#9bbc0f' : q >= 60 ? '#8bac0f' : q >= 40 ? '#306230' : '#0f380f';
+        const color   = q >= 80 ? '#F4E409' : q >= 60 ? '#50D8D7' : q >= 40 ? '#3B60E4' : '#636764';
 
         ctx.fillStyle   = color;
         ctx.fillRect(x, y, barW, barH);
-        ctx.strokeStyle = '#9bbc0f';
+        ctx.strokeStyle = '#2a2a2a';
         ctx.lineWidth   = 1;
         ctx.strokeRect(x, y, barW, barH);
 
-        ctx.fillStyle = '#9bbc0f';
+        ctx.fillStyle = '#e8e8e8';
         ctx.font      = '10px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(`${night.durationHours}h`, x + barW / 2, y - 4);
@@ -1045,9 +1083,9 @@ function renderNights(nights) {
             card.innerHTML = `
                 <div class="date">Night ${i + 1}: ${dateStr}</div>
                 <div class="metrics">
-                    ${onsetT} -&gt; ${offsetT} &middot; ${night.durationHours}h<br>
-                    EFF: ${night.efficiency}% &middot; WASO: ${night.waso}m &middot; AWK: ${night.awakenings}<br>
-                    LIGHT: ${night.light} &middot; QUAL: ${night.quality}
+                    ${onsetT} -&gt; ${offsetT} - ${night.durationHours}h<br>
+                    EFF: ${night.efficiency}% - WASO: ${night.waso}m - AWK: ${night.awakenings}<br>
+                    LIGHT: ${night.light} - QUAL: ${night.quality}
                 </div>
                 <div class="quality-bar" style="--quality: ${night.quality}%"></div>`;
         } else {
@@ -1064,7 +1102,7 @@ function exportCSV() {
     const csv  = decoder.exportCSV(currentNights, currentCS);
     const name = `fesk_export_${new Date().toISOString().split('T')[0]}.csv`;
     decoder.downloadFile(csv, name, 'text/csv');
-    showRxStatus('✓ CSV exported', 'success');
+    showRxStatus('[OK] CSV exported', 'success');
 }
 
 function exportJSON() {
@@ -1072,7 +1110,7 @@ function exportJSON() {
     const json = decoder.exportJSON(currentNights, currentCS);
     const name = `fesk_export_${new Date().toISOString().split('T')[0]}.json`;
     decoder.downloadFile(json, name, 'application/json');
-    showRxStatus('✓ JSON exported', 'success');
+    showRxStatus('[OK] JSON exported', 'success');
 }
 
 async function viewHistory() {
@@ -1094,7 +1132,7 @@ function clearData() {
 
 function loadTestData() {
     document.getElementById('hexInput').value = generateTestHex();
-    showRxStatus('✓ Test data loaded (7 sample nights)', 'success');
+    showRxStatus('[OK] Test data loaded (7 sample nights)', 'success');
 }
 
 function generateTestHex() {
@@ -1143,9 +1181,7 @@ document.addEventListener('keydown', e => {
     else if (e.key === 'Escape') clearData();
 });
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   INIT
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* INIT */
 navigate(location.hash || '#home');
 console.log('UNIFIED COMMS v1.0 - Sensor Watch FESK');
 console.log('TX: Manchester optical @ 10bps | RX: 7-night circadian decoder');
