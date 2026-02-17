@@ -60,9 +60,9 @@ static void _sleep_tracker_display_duration(sleep_tracker_state_t *state) {
     uint8_t minutes = state->total_sleep_minutes % 60;
     
     if (hours > 0) {
-        sprintf(buf, "%dh%02d  ", hours, minutes);
+        snprintf(buf, sizeof(buf), "%dh%02d  ", hours, minutes);
     } else {
-        sprintf(buf, "%d  ", minutes);
+        snprintf(buf, sizeof(buf), "%d  ", minutes);
         watch_display_text(WATCH_POSITION_TOP_RIGHT, "min");
     }
     
@@ -72,20 +72,20 @@ static void _sleep_tracker_display_duration(sleep_tracker_state_t *state) {
 static void _sleep_tracker_display_efficiency(sleep_tracker_state_t *state) {
     uint16_t efficiency = sleep_tracker_calculate_efficiency(state);
     char buf[7];
-    sprintf(buf, "%d%% ", efficiency);
+    snprintf(buf, sizeof(buf), "%d%% ", efficiency);
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
 
 static void _sleep_tracker_display_waso(sleep_tracker_state_t *state) {
     char buf[7];
-    sprintf(buf, "%d  ", state->total_wake_minutes);
+    snprintf(buf, sizeof(buf), "%d  ", state->total_wake_minutes);
     watch_display_text(WATCH_POSITION_TOP_RIGHT, "min");
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
 
 static void _sleep_tracker_display_awakenings(sleep_tracker_state_t *state) {
     char buf[7];
-    sprintf(buf, "%d  ", state->num_awakenings);
+    snprintf(buf, sizeof(buf), "%d  ", state->num_awakenings);
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
 
