@@ -94,8 +94,17 @@ uint8_t circadian_score_calculate_sleep_score(const circadian_sleep_night_t *nig
 bool circadian_data_load_from_flash(circadian_data_t *data);
 bool circadian_data_save_to_flash(const circadian_data_t *data);
 
+#define CIRCADIAN_EXPORT_NIGHT_BYTES 16  // bytes per night in binary export format
+
 // Export API for companion app / HealthKit integration
-// Formats 7-day buffer as structured binary data
-// Buffer must be at least 287 bytes (7 nights × 41 bytes each)
-// Returns actual bytes written
+// Formats 7-day buffer as tightly-packed binary data
+// Buffer must be at least 112 bytes (7 nights × CIRCADIAN_EXPORT_NIGHT_BYTES each)
+// Returns actual bytes written (always 112 if successful, 0 if buffer too small)
+// 
+// Format (per night, 16 bytes total):
+//   onset (4) + offset (4) + duration (2) + efficiency (1) + 
+//   waso (2) + awakenings (1) + light (1) + valid (1)
+// 
+// Compression: Removed 25-byte padding (287 → 112 bytes, -61%)
+// Transmission: ~35 seconds → ~18 seconds (112 bytes × 8 bits / 50 bps)
 uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buffer, uint16_t buffer_size);

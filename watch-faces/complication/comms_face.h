@@ -54,7 +54,8 @@
  * - MODE button: Next face (when not transmitting)
  * - Display: "TX" + progress (segments show % complete)
  *
- * Transmits 287 bytes of circadian data via buzzer chirps (~35 seconds)
+ * Transmits 112 bytes of circadian data via buzzer chirps (~18 seconds)
+ * Compressed from 287 bytes (-61% reduction) by removing padding
  * Companion app (phone mic) receives and decodes FESK packets
  */
 

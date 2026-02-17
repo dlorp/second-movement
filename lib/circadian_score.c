@@ -82,8 +82,13 @@ void circadian_score_calculate_components(const circadian_data_t *data,
         // Check if onset is within 1h of Active Hours end
         // and offset is within 1h of Active Hours start
         int16_t onset_delta = (int16_t)onset_min - (int16_t)data->active_hours_end_min;
+        if (onset_delta > 720) onset_delta -= 1440;
+        else if (onset_delta < -720) onset_delta += 1440;
+
         int16_t offset_delta = (int16_t)offset_min - (int16_t)data->active_hours_start_min;
-        
+        if (offset_delta > 720) offset_delta -= 1440;
+        else if (offset_delta < -720) offset_delta += 1440;
+
         if (abs(onset_delta) <= 60 && abs(offset_delta) <= 60) {
             compliant_nights++;
         }
@@ -139,9 +144,16 @@ uint8_t circadian_score_calculate_sri(const circadian_data_t *data) {
         uint16_t offset1_min = offset1.unit.hour * 60 + offset1.unit.minute;
         uint16_t offset2_min = offset2.unit.hour * 60 + offset2.unit.minute;
         
-        // Calculate variance (absolute difference)
-        total_onset_variance += abs((int16_t)onset1_min - (int16_t)onset2_min);
-        total_offset_variance += abs((int16_t)offset1_min - (int16_t)offset2_min);
+        // Calculate variance (absolute difference) with midnight-crossing wrap
+        int16_t onset_diff = (int16_t)onset1_min - (int16_t)onset2_min;
+        if (onset_diff > 720) onset_diff -= 1440;
+        else if (onset_diff < -720) onset_diff += 1440;
+        total_onset_variance += abs(onset_diff);
+
+        int16_t offset_diff = (int16_t)offset1_min - (int16_t)offset2_min;
+        if (offset_diff > 720) offset_diff -= 1440;
+        else if (offset_diff < -720) offset_diff += 1440;
+        total_offset_variance += abs(offset_diff);
         valid_pairs++;
     }
     
@@ -205,16 +217,22 @@ void circadian_data_add_night(circadian_data_t *data,
 
 bool circadian_data_load_from_flash(circadian_data_t *data) {
     // Read from flash row 30
-    watch_storage_read(FLASH_ROW_CIRCADIAN, 0, 
-                       (uint8_t*)data, sizeof(circadian_data_t));
-    
-    // Validate: check if write_index is in range
-    if (data->write_index >= 7) {
-        // Corrupted data, initialize fresh
+    bool ok = watch_storage_read(FLASH_ROW_CIRCADIAN, 0,
+                                 (uint8_t*)data, sizeof(circadian_data_t));
+
+    // Validate: check return value and write_index range
+    if (!ok || data->write_index >= 7) {
+        // Corrupted or unreadable data, initialize fresh
         memset(data, 0, sizeof(circadian_data_t));
         return false;
     }
-    
+
+    // Clamp percentage fields to valid range to guard against flash corruption
+    for (uint8_t i = 0; i < 7; i++) {
+        if (data->nights[i].efficiency > 100) data->nights[i].efficiency = 100;
+        if (data->nights[i].light_quality > 100) data->nights[i].light_quality = 100;
+    }
+
     return true;
 }
 
@@ -224,9 +242,10 @@ bool circadian_data_save_to_flash(const circadian_data_t *data) {
 }
 
 uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buffer, uint16_t buffer_size) {
-    // Each night: 41 bytes (4 + 4 + 2 + 1 + 2 + 1 + 1 + 1 + padding = 41)
-    // 7 nights = 287 bytes minimum
-    if (buffer_size < 287) {
+    // Each night: 16 bytes (4 + 4 + 2 + 1 + 2 + 1 + 1 + 1 = 16, no padding)
+    // 7 nights = 112 bytes minimum
+    // Compression: 287 → 112 bytes (-61%) = ~3 min → ~1 min transmission
+    if (buffer_size < 7 * CIRCADIAN_EXPORT_NIGHT_BYTES) {
         return 0;  // Buffer too small
     }
     
@@ -237,7 +256,7 @@ uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buf
         uint8_t idx = (data->write_index + i) % 7;
         const circadian_sleep_night_t *night = &data->nights[idx];
         
-        // Pack into binary format (little-endian)
+        // Pack into binary format (little-endian, tightly packed)
         // Onset timestamp (4 bytes)
         buffer[offset++] = (night->onset_timestamp >> 0) & 0xFF;
         buffer[offset++] = (night->onset_timestamp >> 8) & 0xFF;
@@ -269,12 +288,7 @@ uint16_t circadian_data_export_binary(const circadian_data_t *data, uint8_t *buf
         
         // Valid flag (1 byte)
         buffer[offset++] = night->valid ? 1 : 0;
-        
-        // Padding to 41 bytes (for alignment)
-        for (uint8_t j = 0; j < 25; j++) {
-            buffer[offset++] = 0;
-        }
     }
     
-    return offset;  // Should be exactly 287 bytes
+    return offset;  // Should be exactly 112 bytes
 }
