@@ -17,7 +17,6 @@
 .idea/
 .vs
 .vscode
-docs/
 *.kicad_sch-bak
 *-backups/
 *.bak
