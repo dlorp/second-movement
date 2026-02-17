@@ -1709,8 +1709,9 @@ static void set_bin_orientation(sleep_night_t *night, uint8_t bin, uint8_t orien
 }
 
 // Encode date as 16-bit value: ((year-2024) << 9) | (month << 5) | day
+// dt.unit.year is offset from 2020 (0=2020, 4=2024, 63=2083), NOT an absolute year.
 static uint16_t encode_date(watch_date_time_t dt) {
-    uint16_t year_offset = (dt.unit.year > 2024) ? (dt.unit.year - 2024) : 0;
+    uint16_t year_offset = (dt.unit.year > 4) ? (dt.unit.year - 4) : 0;
     return (year_offset << 9) | (dt.unit.month << 5) | dt.unit.day;
 }
 
