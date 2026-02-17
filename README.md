@@ -78,12 +78,52 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 - Accelerometer motion patterns indicate light vs deep sleep phases
 - Alarm triggers during light sleep within configured window for gentler wake
 
+### FESK Optical Communications
+**What it is:** Optical TX/RX for transferring data between Sensor Watch units using the LED and light sensor. Uses FESK (Frequency-Encoded Shift Keying) for robust encoding.
+
+**TX (comms_face):**
+- Encodes and transmits data via buzzer-driven LED modulation
+- Configurable FESK session with countdown, bell indicator, error callbacks
+- Compressed binary format: static BSS buffers (export 287 bytes, hex 575 bytes)
+- Error codes with elapsed time tracking
+
+**RX (comms_rx + comms_face):**
+- Manchester-decoded optical RX via light sensor ADC
+- Calibration: 64 samples, 640-tick sync timeout
+- RX state machine with error reporting and elapsed time display
+
+**FESK demo (fesk_demo_lite_face):**
+- Minimal face: ALARM button starts a test transmission via fesk_session API
+
+**Hardware note:** Full TX/RX requires Sensor Watch Green or Blue (light sensor + LED on same board). Sensor Watch Red (Lite) has no I2C bus; accelerometer-dependent paths are guarded with `#ifdef I2C_SERCOM`.
+
+### macOS Build (Homebrew)
+The ARM toolchain is available via Homebrew:
+```
+brew install osx-cross/arm/arm-gcc-bin@13
+echo 'export PATH="/usr/local/opt/arm-gcc-bin@13/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+make BOARD=sensorwatch_blue DISPLAY=classic
+```
+
 **Face navigation:**
 1. Wyoscan
 2. Clock
-3. **Sleep Tracker** (live + review with SL score)
-4. **Circadian Score** (7-day CS + drill-down)
-5. World Clock, Sunrise/Sunset, etc.
+3. **Sleep Tracker** (live tracking + SL score on wake)
+4. **Circadian Score** (7-day CS with TI/DU/EF/AH/LI subscores, historical night drill-down)
+5. **Comms** (optical TX/RX via FESK encoding)
+6. World Clock
+7. Sunrise/Sunset
+8. Moon Phase
+9. Fast Stopwatch
+10. Countdown
+11. Alarm
+12. Temperature Display
+13. Voltage
+14. Settings (Active Hours, motion wake, smart alarm config)
+15. Set Time
+
+Long-press Mode from face 1 to jump to secondary faces (Temperature, Voltage, Settings, Set Time).
 
 ---
 
