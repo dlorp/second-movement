@@ -2,275 +2,668 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FESK Decoder">
-    <title>Sensor Watch FESK Decoder</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#0f380f">
+    <title>FESK DECODER</title>
     <style>
+        /* GameBoy DMG palette + demoscene precision */
+        :root {
+            --gb-dark: #0f380f;
+            --gb-mid-dark: #306230;
+            --gb-mid-light: #8bac0f;
+            --gb-light: #9bbc0f;
+            --font-mono: 'Courier New', 'Consolas', 'Monaco', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Courier New', monospace;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #1a1a1a;
-            color: #00ff00;
+            background: var(--gb-dark);
+            color: var(--gb-light);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.4;
+            overflow-x: hidden;
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
         }
-        h1 {
-            text-align: center;
-            color: #00cc00;
-            text-shadow: 0 0 10px #00ff00;
+
+        /* Container grid - 8px precision */
+        .container {
+            max-width: 100vw;
+            padding: 8px;
         }
-        .status {
-            padding: 20px;
-            margin: 20px 0;
-            background: #000;
-            border: 2px solid #00cc00;
-            border-radius: 5px;
+
+        /* ASCII border frame */
+        .frame {
+            border: 2px solid var(--gb-mid-light);
+            background: var(--gb-dark);
+            padding: 8px;
+            margin-bottom: 8px;
+            position: relative;
         }
-        button {
-            background: #00cc00;
-            color: #000;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
+
+        .frame::before {
+            content: '┌' attr(data-title) '┐';
+            position: absolute;
+            top: -1px;
+            left: 8px;
+            background: var(--gb-dark);
+            padding: 0 4px;
+            color: var(--gb-light);
             font-weight: bold;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 16px 8px 8px;
+            border-bottom: 2px solid var(--gb-mid-dark);
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            letter-spacing: 2px;
+            color: var(--gb-light);
+            text-shadow: 2px 2px 0 var(--gb-mid-dark);
+        }
+
+        .header .subtitle {
+            font-size: 9px;
+            color: var(--gb-mid-light);
+            margin-top: 4px;
+        }
+
+        /* Input section */
+        .input-section {
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            background: var(--gb-mid-dark);
+            color: var(--gb-light);
+            border: 1px solid var(--gb-mid-light);
+            padding: 8px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            resize: vertical;
+        }
+
+        textarea::placeholder {
+            color: var(--gb-mid-light);
+            opacity: 0.7;
+        }
+
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px 12px;
+            background: var(--gb-mid-dark);
+            color: var(--gb-light);
+            border: 2px solid var(--gb-mid-light);
+            font-family: var(--font-mono);
+            font-size: 10px;
             cursor: pointer;
-            margin: 10px;
-            border-radius: 5px;
-            -webkit-tap-highlight-color: rgba(0, 255, 0, 0.3);
-            touch-action: manipulation;
+            transition: all 0.1s;
+            font-weight: bold;
         }
+
         button:hover {
-            background: #00ff00;
+            background: var(--gb-mid-light);
+            color: var(--gb-dark);
         }
+
+        button:active {
+            transform: translate(1px, 1px);
+        }
+
         button:disabled {
-            background: #333;
-            color: #666;
+            opacity: 0.3;
             cursor: not-allowed;
         }
-        #log {
-            background: #000;
-            padding: 15px;
-            height: 300px;
-            overflow-y: scroll;
-            border: 2px solid #00cc00;
-            margin-top: 20px;
-            font-family: 'Courier New', monospace;
+
+        /* Circadian Score dashboard */
+        .cs-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 8px;
         }
-        .packet {
-            margin: 5px 0;
-            padding: 5px;
-            background: #111;
+
+        .cs-metric {
+            background: var(--gb-mid-dark);
+            border: 1px solid var(--gb-mid-light);
+            padding: 8px;
+            text-align: center;
         }
-        .error {
-            color: #ff0000;
+
+        .cs-metric .label {
+            font-size: 9px;
+            color: var(--gb-mid-light);
+            margin-bottom: 4px;
         }
-        .success {
-            color: #00ff00;
+
+        .cs-metric .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--gb-light);
+            text-shadow: 1px 1px 0 var(--gb-dark);
         }
-        .data {
-            color: #ffaa00;
+
+        .cs-metric.main {
+            grid-column: 1 / -1;
+        }
+
+        .cs-metric.main .value {
+            font-size: 32px;
+        }
+
+        /* Bar chart visualization */
+        .chart-container {
+            background: var(--gb-mid-dark);
+            border: 2px solid var(--gb-mid-light);
+            padding: 8px;
+            margin-bottom: 8px;
+            overflow-x: auto;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* Night detail grid */
+        .nights-grid {
+            display: grid;
+            gap: 4px;
+        }
+
+        .night-card {
+            background: var(--gb-mid-dark);
+            border: 1px solid var(--gb-mid-light);
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .night-card:hover {
+            background: var(--gb-mid-light);
+            color: var(--gb-dark);
+            border-color: var(--gb-light);
+        }
+
+        .night-card.invalid {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .night-card .date {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .night-card .metrics {
+            font-size: 9px;
+            line-height: 1.6;
+        }
+
+        .night-card .quality-bar {
+            height: 4px;
+            background: var(--gb-dark);
+            margin-top: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .night-card .quality-bar::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--gb-light);
+            width: var(--quality);
+        }
+
+        /* Status messages */
+        .status {
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            border-left: 4px solid var(--gb-mid-light);
+            background: var(--gb-mid-dark);
+        }
+
+        .status.error {
+            border-color: #ff0000;
+            color: #ff6b6b;
+        }
+
+        .status.success {
+            border-color: var(--gb-light);
+        }
+
+        /* Audio section */
+        .audio-section {
+            display: none; /* Hidden by default, enable if needed */
+        }
+
+        /* Responsive breakpoints */
+        @media (min-width: 640px) {
+            body { font-size: 12px; }
+            .header h1 { font-size: 20px; }
+            .cs-metric .value { font-size: 24px; }
+            .cs-metric.main .value { font-size: 40px; }
+        }
+
+        /* PWA loading indicator */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Keyboard shortcuts hint */
+        .shortcuts {
+            font-size: 8px;
+            color: var(--gb-mid-light);
+            text-align: center;
+            padding: 8px;
+            border-top: 1px solid var(--gb-mid-dark);
         }
     </style>
 </head>
 <body>
-    <h1>🔊 SENSOR WATCH FESK DECODER</h1>
-    
-    <div class="status">
-        <p><strong>Status:</strong> <span id="status">Ready</span></p>
-        <p><strong>Packets Received:</strong> <span id="packet-count">0</span></p>
-        <p><strong>Bytes Decoded:</strong> <span id="byte-count">0</span></p>
-        <p><strong>CRC Errors:</strong> <span id="crc-errors">0</span></p>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>◆ FESK DECODER ◆</h1>
+            <div class="subtitle">Frequency Encoded Sleep Kit · Sensor Watch</div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="frame input-section" data-title="HEX INPUT">
+            <textarea id="hexInput" placeholder="Paste 574 hex characters (287 bytes × 7 nights)&#10;Example: A1B2C3D4..."></textarea>
+            <div class="btn-row">
+                <button id="decodeBtn" onclick="decodeData()">▸ DECODE</button>
+                <button id="clearBtn" onclick="clearData()">✗ CLEAR</button>
+                <button id="testBtn" onclick="loadTestData()">⚡ TEST DATA</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div id="status" style="display:none"></div>
+
+        <!-- Circadian Score Dashboard -->
+        <div id="csDashboard" style="display:none">
+            <div class="frame" data-title="CIRCADIAN SCORE">
+                <div class="cs-dashboard">
+                    <div class="cs-metric main">
+                        <div class="label">OVERALL CS</div>
+                        <div class="value" id="csValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">SRI</div>
+                        <div class="value" id="sriValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">DUR</div>
+                        <div class="value" id="durValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">EFF</div>
+                        <div class="value" id="effValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">CMP</div>
+                        <div class="value" id="cmpValue">--</div>
+                    </div>
+                    <div class="cs-metric">
+                        <div class="label">LGT</div>
+                        <div class="value" id="lgtValue">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7-Day Chart -->
+        <div id="chartContainer" style="display:none">
+            <div class="frame chart-container" data-title="7-DAY SLEEP TIMELINE">
+                <canvas id="sleepChart" width="640" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Night Details -->
+        <div id="nightsContainer" style="display:none">
+            <div class="frame" data-title="NIGHT DETAILS">
+                <div class="nights-grid" id="nightsGrid"></div>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div id="exportSection" style="display:none">
+            <div class="frame" data-title="EXPORT">
+                <div class="btn-row">
+                    <button onclick="exportCSV()">↓ CSV</button>
+                    <button onclick="exportJSON()">↓ JSON</button>
+                    <button onclick="viewHistory()">⌂ HISTORY</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard Shortcuts -->
+        <div class="shortcuts">
+            [D]ECODE · [C]LEAR · [E]XPORT · ESC=RESET
+        </div>
     </div>
-    
-    <div style="text-align: center;">
-        <button id="start-btn" onclick="startListening()">START LISTENING</button>
-        <button id="stop-btn" onclick="stopListening()" disabled>STOP</button>
-        <button onclick="clearLog()">CLEAR LOG</button>
-    </div>
-    
-    <div id="log"></div>
-    
+
+    <!-- FESK Decoder Logic -->
+    <script src="decoder.js"></script>
     <script>
-        let audioContext = null;
-        let analyser = null;
-        let microphone = null;
-        let isListening = false;
-        let packetCount = 0;
-        let byteCount = 0;
-        let crcErrors = 0;
-        
-        const PACKET_SYNC = 0xA5;
-        
-        // CRC8 implementation (CRC-8/MAXIM)
-        function crc8(data) {
-            let crc = 0;
-            for (let i = 0; i < data.length; i++) {
-                crc ^= data[i];
-                for (let j = 0; j < 8; j++) {
-                    if (crc & 0x01) {
-                        crc = (crc >> 1) ^ 0x8C;
-                    } else {
-                        crc >>= 1;
-                    }
-                }
-            }
-            return crc & 0xFF;
-        }
-        
-        function log(message, className = '') {
-            const logDiv = document.getElementById('log');
-            const entry = document.createElement('div');
-            entry.className = `packet ${className}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            logDiv.appendChild(entry);
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-        
-        function clearLog() {
-            document.getElementById('log').innerHTML = '';
-            packetCount = 0;
-            byteCount = 0;
-            crcErrors = 0;
-            updateStatus();
-        }
-        
-        function updateStatus() {
-            document.getElementById('packet-count').textContent = packetCount;
-            document.getElementById('byte-count').textContent = byteCount;
-            document.getElementById('crc-errors').textContent = crcErrors;
-        }
-        
-        async function startListening() {
+        // Global state
+        let decoder = new FESKDecoder();
+        let currentNights = null;
+        let currentCS = null;
+
+        // Decode hex input
+        async function decodeData() {
+            const hex = document.getElementById('hexInput').value;
+            
             try {
-                document.getElementById('status').textContent = 'Requesting microphone...';
+                showStatus('Decoding binary data...', 'success');
                 
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const bytes = decoder.hexToBytes(hex);
+                const nights = decoder.parseNights(bytes);
+                const cs = decoder.calculateCircadianScore(nights);
                 
-                audioContext = new AudioContext();
-                analyser = audioContext.createAnalyser();
-                microphone = audioContext.createMediaStreamSource(stream);
+                currentNights = nights;
+                currentCS = cs;
                 
-                analyser.fftSize = 2048;
-                microphone.connect(analyser);
+                // Store in IndexedDB
+                await decoder.storeData(nights, cs);
                 
-                isListening = true;
-                document.getElementById('start-btn').disabled = true;
-                document.getElementById('stop-btn').disabled = false;
-                document.getElementById('status').textContent = 'Listening...';
+                // Render visualizations
+                renderDashboard(cs);
+                renderChart(nights);
+                renderNights(nights);
                 
-                log('Microphone active - Hold watch buzzer near phone', 'success');
-                log('Ready to receive FESK packets', 'success');
+                showStatus(`✓ Decoded ${nights.filter(n => n.valid).length}/7 valid nights`, 'success');
                 
-                // Start simple tone detection (placeholder - full FSK decoder is complex)
-                // This is a minimal proof-of-concept
-                processAudio();
+                // Show all sections
+                document.getElementById('csDashboard').style.display = 'block';
+                document.getElementById('chartContainer').style.display = 'block';
+                document.getElementById('nightsContainer').style.display = 'block';
+                document.getElementById('exportSection').style.display = 'block';
                 
-            } catch (err) {
-                log('Microphone access denied: ' + err.message, 'error');
-                document.getElementById('status').textContent = 'Error';
+            } catch (error) {
+                showStatus(`✗ Error: ${error.message}`, 'error');
+                console.error(error);
             }
         }
-        
-        function stopListening() {
-            isListening = false;
-            
-            if (microphone) {
-                microphone.disconnect();
-                microphone = null;
-            }
-            
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
-            }
-            
-            document.getElementById('start-btn').disabled = false;
-            document.getElementById('stop-btn').disabled = true;
-            document.getElementById('status').textContent = 'Stopped';
-            
-            log('Listening stopped', 'success');
+
+        // Render Circadian Score dashboard
+        function renderDashboard(cs) {
+            document.getElementById('csValue').textContent = cs.cs;
+            document.getElementById('sriValue').textContent = cs.sri;
+            document.getElementById('durValue').textContent = cs.duration;
+            document.getElementById('effValue').textContent = cs.efficiency;
+            document.getElementById('cmpValue').textContent = cs.compliance;
+            document.getElementById('lgtValue').textContent = cs.light;
         }
-        
-        function processAudio() {
-            if (!isListening || !analyser) return;
+
+        // Render 7-day sleep chart
+        function renderChart(nights) {
+            const canvas = document.getElementById('sleepChart');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
             
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
+            // Clear canvas
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--gb-mid-dark');
+            ctx.fillRect(0, 0, w, h);
             
-            analyser.getByteFrequencyData(dataArray);
+            const barWidth = Math.floor(w / 7) - 8;
+            const maxHeight = h - 40;
             
-            // TODO: Implement full chirpy FSK decoder
-            // For now, this is a placeholder that detects audio presence
+            nights.forEach((night, i) => {
+                if (!night.valid || night.onset === 0) return;
+                
+                const x = i * (barWidth + 8) + 4;
+                const barHeight = (night.duration / 600) * maxHeight; // Max 10h = full height
+                const y = h - barHeight - 20;
+                
+                // Quality-based color
+                const quality = night.quality;
+                const color = quality >= 80 ? '#9bbc0f' :
+                             quality >= 60 ? '#8bac0f' :
+                             quality >= 40 ? '#306230' : '#0f380f';
+                
+                // Bar
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, barWidth, barHeight);
+                
+                // Border
+                ctx.strokeStyle = '#9bbc0f';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, barWidth, barHeight);
+                
+                // Duration label
+                ctx.fillStyle = '#9bbc0f';
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${night.durationHours}h`, x + barWidth / 2, y - 4);
+                
+                // Day label
+                const date = new Date(night.onset * 1000);
+                const dayLabel = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][date.getDay()];
+                ctx.fillText(dayLabel, x + barWidth / 2, h - 4);
+            });
             
-            // Check for strong signal in chirpy frequency range (~1-8 kHz)
-            const sampleRate = audioContext.sampleRate;
-            const binWidth = sampleRate / (analyser.fftSize);
-            const startBin = Math.floor(1000 / binWidth);  // 1 kHz
-            const endBin = Math.floor(8000 / binWidth);    // 8 kHz
+            // Grid lines (every 2 hours)
+            ctx.strokeStyle = '#306230';
+            ctx.lineWidth = 1;
+            for (let h = 2; h <= 10; h += 2) {
+                const y = canvas.height - (h / 10 * maxHeight) - 20;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+                
+                // Hour label
+                ctx.fillStyle = '#8bac0f';
+                ctx.font = '8px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${h}h`, w - 4, y - 2);
+            }
+        }
+
+        // Render night detail cards
+        function renderNights(nights) {
+            const grid = document.getElementById('nightsGrid');
+            grid.innerHTML = '';
             
-            let maxAmplitude = 0;
-            for (let i = startBin; i < endBin; i++) {
-                if (dataArray[i] > maxAmplitude) {
-                    maxAmplitude = dataArray[i];
+            nights.forEach((night, i) => {
+                const card = document.createElement('div');
+                card.className = 'night-card' + (night.valid ? '' : ' invalid');
+                
+                if (night.valid && night.onset > 0) {
+                    const date = new Date(night.onset * 1000);
+                    const dateStr = date.toLocaleDateString('en-US', { 
+                        weekday: 'short', month: 'short', day: 'numeric' 
+                    });
+                    const onsetTime = date.toTimeString().substr(0, 5);
+                    const offsetTime = new Date(night.offset * 1000).toTimeString().substr(0, 5);
+                    
+                    card.innerHTML = `
+                        <div class="date">Night ${i + 1}: ${dateStr}</div>
+                        <div class="metrics">
+                            ${onsetTime} → ${offsetTime} · ${night.durationHours}h<br>
+                            EFF: ${night.efficiency}% · WASO: ${night.waso}m · AWK: ${night.awakenings}<br>
+                            LIGHT: ${night.light} · QUAL: ${night.quality}
+                        </div>
+                        <div class="quality-bar" style="--quality: ${night.quality}%"></div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="date">Night ${i + 1}: NO DATA</div>
+                        <div class="metrics">Invalid or missing</div>
+                    `;
                 }
-            }
-            
-            // Simple signal presence indicator
-            if (maxAmplitude > 150) {
-                // Audio detected in chirpy range
-                // Real decoder would extract tone sequence and decode bytes
-                log(`Signal detected (amplitude: ${maxAmplitude})`, 'data');
-            }
-            
-            requestAnimationFrame(processAudio);
+                
+                grid.appendChild(card);
+            });
         }
-        
-        // Display instructions on load
-        window.onload = () => {
-            log('=== SENSOR WATCH FESK DECODER ===', 'success');
-            log('', '');
+
+        // Export functions
+        function exportCSV() {
+            if (!currentNights || !currentCS) return;
+            const csv = decoder.exportCSV(currentNights, currentCS);
+            const filename = `fesk_export_${new Date().toISOString().split('T')[0]}.csv`;
+            decoder.downloadFile(csv, filename, 'text/csv');
+            showStatus('✓ CSV exported', 'success');
+        }
+
+        function exportJSON() {
+            if (!currentNights || !currentCS) return;
+            const json = decoder.exportJSON(currentNights, currentCS);
+            const filename = `fesk_export_${new Date().toISOString().split('T')[0]}.json`;
+            decoder.downloadFile(json, filename, 'application/json');
+            showStatus('✓ JSON exported', 'success');
+        }
+
+        async function viewHistory() {
+            const history = await decoder.getAllData();
+            alert(`${history.length} records stored in IndexedDB\n\nMost recent: ${history.length > 0 ? new Date(history[history.length - 1].timestamp).toLocaleString() : 'none'}`);
+        }
+
+        // Clear data
+        function clearData() {
+            document.getElementById('hexInput').value = '';
+            currentNights = null;
+            currentCS = null;
             
-            // Detect iOS
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            if (isIOS) {
-                log('📱 IPHONE/IPAD DETECTED', 'success');
-                log('', '');
-                log('SETUP (first time only):', 'success');
-                log('1. Tap Share button (bottom center)', '');
-                log('2. Scroll down, tap "Add to Home Screen"', '');
-                log('3. Name it "Watch Sync", tap Add', '');
-                log('4. Open from home screen (not Safari)', '');
-                log('', '');
-                log('WHY: Safari on iOS requires this for full-screen', 'data');
-                log('and reliable microphone access.', 'data');
-                log('', '');
+            document.getElementById('csDashboard').style.display = 'none';
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('nightsContainer').style.display = 'none';
+            document.getElementById('exportSection').style.display = 'none';
+            document.getElementById('status').style.display = 'none';
+        }
+
+        // Load test data (sample 7 nights)
+        function loadTestData() {
+            // Generate valid test data: 7 nights with realistic sleep metrics
+            const testData = generateTestHex();
+            document.getElementById('hexInput').value = testData;
+            showStatus('✓ Test data loaded (7 sample nights)', 'success');
+        }
+
+        function generateTestHex() {
+            // Sample data: 7 nights of sleep
+            // Each night: onset(4) + offset(4) + duration(2) + efficiency(1) + WASO(2) + awakenings(1) + light(1) + valid(1) + padding(25)
+            
+            const now = Math.floor(Date.now() / 1000);
+            const nights = [];
+            
+            for (let i = 6; i >= 0; i--) {
+                const dayAgo = now - (i * 86400);
+                const onset = dayAgo - (dayAgo % 86400) + (23 * 3600); // 11 PM
+                const duration = 420 + Math.floor(Math.random() * 60); // 7-8 hours
+                const offset = onset + (duration * 60);
+                const efficiency = 85 + Math.floor(Math.random() * 10);
+                const waso = 10 + Math.floor(Math.random() * 20);
+                const awakenings = Math.floor(Math.random() * 3);
+                const light = 100 + Math.floor(Math.random() * 100);
+                
+                const bytes = new Uint8Array(41);
+                const view = new DataView(bytes.buffer);
+                
+                view.setUint32(0, onset, true);
+                view.setUint32(4, offset, true);
+                view.setUint16(8, duration, true);
+                view.setUint8(10, efficiency);
+                view.setUint16(11, waso, true);
+                view.setUint8(13, awakenings);
+                view.setUint8(14, light);
+                view.setUint8(15, 1); // valid
+                
+                nights.push(bytes);
             }
             
-            log('INSTRUCTIONS:', 'success');
-            log('1. Tap START LISTENING to enable microphone', '');
-            log('   (iOS will ask permission first time)', '');
-            log('2. On watch: Navigate to Comms face (CO)', '');
-            log('3. Press ALARM button to start transmission', '');
-            log('4. Hold watch buzzer 2-3 inches from phone mic', '');
-            if (isIOS) {
-                log('   (iPhone: bottom edge or back, depending on model)', '');
+            // Concatenate all nights and convert to hex
+            const allBytes = new Uint8Array(287);
+            nights.forEach((night, i) => {
+                allBytes.set(night, i * 41);
+            });
+            
+            return Array.from(allBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Status helper
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'd' || e.key === 'D') {
+                e.preventDefault();
+                decodeData();
+            } else if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                clearData();
+            } else if (e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+                if (currentNights) exportCSV();
+            } else if (e.key === 'Escape') {
+                clearData();
             }
-            log('5. Watch display shows TX progress (0-100%)', '');
-            log('6. Transmission takes ~35 seconds for full export', '');
-            log('', '');
-            log('NOTE: This is a Phase 1 proof-of-concept decoder.', 'data');
-            log('Full FESK decoding requires signal processing library.', 'data');
-            log('Currently detects signal presence only.', 'data');
-            log('', '');
-            log('DATA FORMAT:', 'data');
-            log('- Watch transmits 287 bytes as 574 hex chars (0-9A-F)', 'data');
-            log('- FESK 4-FSK protocol by Eirik S. Morland', 'data');
-            log('- Built-in CRC8 for error detection', 'data');
-            log('', '');
-            log('Ready to start...', 'success');
-        };
+        });
+
+        // PWA: Service Worker registration (optional)
+        if ('serviceWorker' in navigator) {
+            // Uncomment to enable PWA caching:
+            // navigator.serviceWorker.register('sw.js');
+        }
+
+        // Initialize
+        console.log('FESK DECODER v1.0 - Sensor Watch Companion');
+        console.log('GameBoy DMG palette loaded. Ready for hex input.');
     </script>
 </body>
 </html>
