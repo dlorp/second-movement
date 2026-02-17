@@ -28,7 +28,7 @@
 #include "sleep_tracker_face.h"
 
 // Cole-Kripke algorithm weights (empirically validated from 1992 paper)
-// 11-minute sliding window: [t-5, t-4, t-3, t-2, t-1, t, t+1, t+2, t+3, t+4]
+// 11-minute sliding window: [t-5, t-4, t-3, t-2, t-1, t, t+1, t+2, t+3, t+4, t+5]
 static const int16_t COLE_KRIPKE_WEIGHTS[COLE_KRIPKE_WINDOW_SIZE] = {
     404,   // t-5
     598,   // t-4
@@ -39,7 +39,8 @@ static const int16_t COLE_KRIPKE_WEIGHTS[COLE_KRIPKE_WINDOW_SIZE] = {
     326,   // t+1
     441,   // t+2
     404,   // t+3
-    598    // t+4
+    598,   // t+4
+    0      // t+5
 };
 
 // Default light threshold modifiers (can be tuned during validation)
@@ -365,8 +366,7 @@ bool sleep_tracker_face_loop(movement_event_t event, void *context) {
             break;
         
         default:
-            movement_default_loop_handler(event);
-            break;
+            return movement_default_loop_handler(event);
     }
     
     return true;
