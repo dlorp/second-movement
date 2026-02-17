@@ -92,6 +92,7 @@ typedef struct {
     uint16_t rx_timeout;          // Ticks since last transition
     bool last_state;              // Previous light state (for edge detection)
     bool synced;                  // Have we found sync pattern?
+    uint8_t decode_phase;         // 0-3: tick counter within current bit (RECEIVING state)
 } optical_rx_state_t;
 
 typedef struct {
