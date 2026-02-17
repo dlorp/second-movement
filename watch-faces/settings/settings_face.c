@@ -26,6 +26,30 @@
 #include "settings_face.h"
 #include "watch.h"
 
+// Bug 3 fix: defer backup register write out of button-press / advance context.
+// advance() callbacks have no state parameter, so we use module-level statics.
+// The write is flushed on the next EVENT_TICK and when the face resigns.
+static movement_active_hours_t s_active_hours;   // in-progress (uncommitted) copy
+static bool s_active_hours_valid = false;         // true once s_active_hours is loaded
+static bool s_active_hours_dirty = false;         // true when write is pending
+
+// Return the current pending active hours, loading from backup on first call.
+static movement_active_hours_t _get_pending_active_hours(void) {
+    if (!s_active_hours_valid) {
+        s_active_hours = movement_get_active_hours();
+        s_active_hours_valid = true;
+    }
+    return s_active_hours;
+}
+
+// Flush pending write if dirty (called from loop handler and resign).
+static void _flush_active_hours(void) {
+    if (s_active_hours_dirty) {
+        movement_set_active_hours(s_active_hours);
+        s_active_hours_dirty = false;
+    }
+}
+
 static void clock_setting_display(uint8_t subsecond) {
     watch_display_text_with_fallback(WATCH_POSITION_TOP, "CLOCK", "CL");
     if (subsecond % 2) {
@@ -273,6 +297,70 @@ static void blue_led_setting_advance(void) {
     movement_set_backlight_color(color);
 }
 
+static void active_hours_enabled_setting_display(uint8_t subsecond) {
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "ActHr", "AH");
+    watch_display_text(WATCH_POSITION_BOTTOM, "enable");
+    if (subsecond % 2) {
+        movement_active_hours_t settings = _get_pending_active_hours();
+        if (settings.bit.enabled) {
+            watch_display_text(WATCH_POSITION_TOP_RIGHT, " Y");
+        } else {
+            watch_display_text(WATCH_POSITION_TOP_RIGHT, " N");
+        }
+    }
+}
+
+static void active_hours_enabled_setting_advance(void) {
+    // Modify the pending copy and mark dirty; write deferred to loop/resign.
+    s_active_hours = _get_pending_active_hours();
+    s_active_hours.bit.enabled = !s_active_hours.bit.enabled;
+    s_active_hours_dirty = true;
+}
+
+static void active_hours_start_setting_display(uint8_t subsecond) {
+    char buf[8];
+    movement_active_hours_t settings = _get_pending_active_hours();
+    
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "ActHr", "AH");
+    if (subsecond % 2) {
+        // Convert quarter-hours to HH:MM format
+        uint8_t hour = settings.bit.start_quarter_hours / 4;
+        uint8_t minute = (settings.bit.start_quarter_hours % 4) * 15;
+        sprintf(buf, "St%2d%02d", hour, minute);
+        watch_display_text(WATCH_POSITION_BOTTOM, buf);
+    }
+}
+
+static void active_hours_start_setting_advance(void) {
+    // Modify the pending copy and mark dirty; write deferred to loop/resign.
+    s_active_hours = _get_pending_active_hours();
+    // Increment by 1 quarter-hour (15 minutes), wrap at 96 (24 hours)
+    s_active_hours.bit.start_quarter_hours = (s_active_hours.bit.start_quarter_hours + 1) % 96;
+    s_active_hours_dirty = true;
+}
+
+static void active_hours_end_setting_display(uint8_t subsecond) {
+    char buf[8];
+    movement_active_hours_t settings = _get_pending_active_hours();
+    
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "ActHr", "AH");
+    if (subsecond % 2) {
+        // Convert quarter-hours to HH:MM format
+        uint8_t hour = settings.bit.end_quarter_hours / 4;
+        uint8_t minute = (settings.bit.end_quarter_hours % 4) * 15;
+        sprintf(buf, "En%2d%02d", hour, minute);
+        watch_display_text(WATCH_POSITION_BOTTOM, buf);
+    }
+}
+
+static void active_hours_end_setting_advance(void) {
+    // Modify the pending copy and mark dirty; write deferred to loop/resign.
+    s_active_hours = _get_pending_active_hours();
+    // Increment by 1 quarter-hour (15 minutes), wrap at 96 (24 hours)
+    s_active_hours.bit.end_quarter_hours = (s_active_hours.bit.end_quarter_hours + 1) % 96;
+    s_active_hours_dirty = true;
+}
+
 static void  git_hash_setting_display(uint8_t subsecond) {
     (void) subsecond;
     char buf[8];
@@ -288,12 +376,15 @@ static void git_hash_setting_advance(void) {
 
 void settings_face_setup(uint8_t watch_face_index, void ** context_ptr) {
     (void) watch_face_index;
+    // Reset active-hours deferred-write state on each setup.
+    s_active_hours_valid = false;
+    s_active_hours_dirty = false;
     if (*context_ptr == NULL) {
         *context_ptr = malloc(sizeof(settings_state_t));
         settings_state_t *state = (settings_state_t *)*context_ptr;
         int8_t current_setting = 0;
 
-        state->num_settings = 7; // baseline, without LED settings
+        state->num_settings = 10; // baseline: 7 original + 3 active hours settings
 #ifdef BUILD_GIT_HASH
         state->num_settings++;
 #endif
@@ -357,6 +448,15 @@ void settings_face_setup(uint8_t watch_face_index, void ** context_ptr) {
         (void)blue_led_setting_advance;
 #endif
     state->led_color_end = current_setting;
+        state->settings_screens[current_setting].display = active_hours_enabled_setting_display;
+        state->settings_screens[current_setting].advance = active_hours_enabled_setting_advance;
+        current_setting++;
+        state->settings_screens[current_setting].display = active_hours_start_setting_display;
+        state->settings_screens[current_setting].advance = active_hours_start_setting_advance;
+        current_setting++;
+        state->settings_screens[current_setting].display = active_hours_end_setting_display;
+        state->settings_screens[current_setting].advance = active_hours_end_setting_advance;
+        current_setting++;
 #ifdef BUILD_GIT_HASH
         state->settings_screens[current_setting].display = git_hash_setting_display;
         state->settings_screens[current_setting].advance = git_hash_setting_advance;
@@ -380,6 +480,8 @@ bool settings_face_loop(movement_event_t event, void *context) {
             // fall through
         case EVENT_TICK:
         case EVENT_ACTIVATE:
+            // Flush any pending active-hours write (deferred from advance callbacks).
+            _flush_active_hours();
             watch_clear_display();
             state->settings_screens[state->current_page].display(event.subsecond);
             break;
@@ -412,6 +514,10 @@ bool settings_face_loop(movement_event_t event, void *context) {
 
 void settings_face_resign(void *context) {
     (void) context;
+    // Flush any pending active-hours write before leaving the face.
+    _flush_active_hours();
+    // Invalidate the local cache so it is reloaded fresh next time.
+    s_active_hours_valid = false;
     movement_force_led_off();
     movement_store_settings();
 }

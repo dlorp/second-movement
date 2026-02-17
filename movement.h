@@ -101,6 +101,19 @@ typedef union {
     uint32_t reg;
 } movement_location_t;
 
+// movement_active_hours_t stores user-configurable active hours (awake window).
+// Sleep window is the inverse (when motion wake is suppressed).
+// Stored in BKUP[2] register.
+typedef union {
+    struct {
+        uint8_t start_quarter_hours : 7;  // 0-95 (0=00:00, 95=23:45, 15-min increments)
+        uint8_t end_quarter_hours : 7;    // 0-95 (0=00:00, 95=23:45, 15-min increments)
+        bool enabled : 1;                  // active hours enabled/disabled
+        uint32_t reserved : 17;            // reserved for future use
+    } bit;
+    uint32_t reg;
+} movement_active_hours_t;
+
 // movement_reserved_t is a placeholder for future use of the BKUP[3] register.
 typedef union {
     struct {
@@ -403,6 +416,10 @@ bool movement_set_accelerometer_background_rate(lis2dw_data_rate_t new_rate);
 // gets and sets the accelerometer motion threshold
 uint8_t movement_get_accelerometer_motion_threshold(void);
 bool movement_set_accelerometer_motion_threshold(uint8_t new_threshold);
+
+// gets and sets the active hours configuration (stored in BKUP[2])
+movement_active_hours_t movement_get_active_hours(void);
+void movement_set_active_hours(movement_active_hours_t settings);
 
 // If the board has a temperature sensor, this function will give you the temperature in degrees celsius.
 // If the board has multiple temperature sensors, it will use the most accurate one available.
