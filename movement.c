@@ -96,6 +96,7 @@ typedef struct {
     volatile uint8_t pending_sequence_priority;
     volatile bool schedule_next_comp;
     volatile bool has_pending_accelerometer;
+    volatile bool accelerometer_woke;  // set in ISR; I2C reads deferred to app_loop
 
     // button tracking for long press
     movement_button_t mode_button;
@@ -278,6 +279,9 @@ static void _movement_renew_top_of_minute_alarm(void) {
     watch_rtc_register_comp_callback_no_schedule(cb_minute_alarm_fired, movement_volatile_state.minute_counter, MINUTE_TIMEOUT);
     movement_volatile_state.schedule_next_comp = true;
 }
+
+// Forward declaration — defined after app_loop (depends on sleep helpers below).
+static void _movement_handle_accelerometer_wake(void);
 
 static uint32_t _movement_get_accelerometer_events() {
     uint32_t accelerometer_events = 0;
@@ -950,6 +954,7 @@ void app_init(void) {
     movement_volatile_state.exit_sleep_mode = false;
     movement_volatile_state.has_pending_sequence = false;
     movement_volatile_state.has_pending_accelerometer = false;
+    movement_volatile_state.accelerometer_woke = false;
     movement_volatile_state.is_sleeping = false;
 
     movement_volatile_state.is_buzzing = false;
@@ -1273,6 +1278,12 @@ bool app_loop(void) {
         pending_events |= _movement_get_accelerometer_events();
     }
 
+    // Deferred accelerometer wake handler: do I2C reads now that we're outside the ISR.
+    if (movement_volatile_state.accelerometer_woke) {
+        movement_volatile_state.accelerometer_woke = false;
+        _movement_handle_accelerometer_wake();
+    }
+
     // handle any button up/down events that occurred, e.g. schedule longpress timeouts, reset inactivity, etc.
     _movement_handle_button_presses(pending_events);
 
@@ -1543,16 +1554,84 @@ void cb_accelerometer_event(void) {
     movement_volatile_state.has_pending_accelerometer = true;
 }
 
-void cb_accelerometer_wake(void) {
-    // Check if this was actually a tap event
-    lis2dw_interrupt_source_t int_src = lis2dw_get_interrupt_source();
+// Active Hours Sleep Mode Support (Stream 1: Core Logic)
+// This feature prevents wrist motion from waking the display during sleep hours
+// while still allowing tap-to-wake and button wake to function normally.
+
+// Check if current time is outside active hours window.
+// Active hours are currently hardcoded as 04:00-23:00.
+// Returns true if outside this window (i.e., in sleep window 23:00-04:00).
+// Note: This will be made configurable in Stream 2 via BKUP[2] register.
+static bool is_sleep_window(void) {
+    watch_date_time_t now = watch_rtc_get_date_time();
+    uint8_t hour = now.unit.hour;
     
+    // Sleep window is 23:00 (23) through 03:59 (3)
+    // Active hours are 04:00 (4) through 22:59 (22)
+    return (hour >= 23 || hour < 4);
+}
+
+// Check if wearer is confirmed to be asleep.
+// Returns true only if BOTH conditions are met:
+// 1. Current time is in sleep window (outside active hours)
+// 2. Accelerometer reports stationary/sleep state
+// This prevents false positives from just lying still during the day.
+static bool is_confirmed_asleep(void) {
+    // First check: must be in sleep window
+    if (!is_sleep_window()) {
+        return false;
+    }
+    
+    // Second check: accelerometer must confirm stationary state
+    // Only check if we have an accelerometer
+    if (!movement_state.has_lis2dw) {
+        // No accelerometer: fall back to time-only check
+        return true;
+    }
+    
+    // Read accelerometer sleep state from wakeup source register.
+    // INT2 is configured to report sleep state changes.
+    // NOTE: LIS2DW_WAKEUP_SRC_SLEEP_STATE is set BEFORE a wakeup event fires,
+    // so at the time we read this register the bit is already 0 (cleared by
+    // the wake transition).  A value of 0 therefore means the device just woke
+    // from sleep — i.e. the wearer was stationary / asleep.
+    lis2dw_wakeup_source_t wakeup_src = lis2dw_get_wakeup_source();
+    bool is_stationary = (wakeup_src & LIS2DW_WAKEUP_SRC_SLEEP_STATE) == 0;  // inverted: 0 == was sleeping
+
+    return is_stationary;
+}
+
+// Deferred handler for accelerometer wake events.
+// Must NOT be called from an ISR — it performs blocking I2C reads.
+// Called by app_loop on the next tick after accelerometer_woke is set.
+static void _movement_handle_accelerometer_wake(void) {
+    // Check interrupt source via I2C (safe here — we are in the main loop).
+    lis2dw_interrupt_source_t int_src = lis2dw_get_interrupt_source();
+
     if (int_src & (LIS2DW_INTERRUPT_SRC_DOUBLE_TAP | LIS2DW_INTERRUPT_SRC_SINGLE_TAP)) {
         // This was a tap - set pending accelerometer flag for event processing
         movement_volatile_state.has_pending_accelerometer = true;
     }
-    
-    // Always wake and reset inactivity (even if just motion)
+
+    // Active Hours Sleep Mode: Suppress motion wake during confirmed sleep.
+    // This prevents wrist rolls from waking the display at night while still
+    // allowing tap-to-wake (INT1/A3) and button wake to function normally.
+    // Motion wake only suppressed when BOTH time window and accelerometer agree.
+    if (is_confirmed_asleep()) {
+        // We're in confirmed sleep — only process tap events, ignore motion.
+        // If this was a tap, the flag is already set above and will be processed.
+        // Motion events are simply discarded during sleep hours.
+        return;
+    }
+
+    // Not in sleep mode: normal behavior — wake on any motion.
     movement_volatile_state.pending_events |= 1 << EVENT_ACCELEROMETER_WAKE;
     _movement_reset_inactivity_countdown();
+}
+
+void cb_accelerometer_wake(void) {
+    // ISR — keep this minimal.  No I2C reads allowed inside an interrupt handler.
+    // Set a flag; the real work is deferred to _movement_handle_accelerometer_wake()
+    // which is called from app_loop on the next tick.
+    movement_volatile_state.accelerometer_woke = true;
 }
