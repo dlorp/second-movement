@@ -97,20 +97,27 @@ static const char *_moon_name(uint8_t phase) {
 // Compute phrase from current inputs
 // ─────────────────────────────────────────────────────────────────
 static void _compute_oracle(oracle_face_state_t *state) {
-    // Word A: moon phase locks you in the correct 8-word chapter.
-    // doy % 8 cycles through all 8 words in that chapter, changing daily.
-    // When moon phase ticks over (~3.7 days), you jump to a new chapter.
-    // This is what "archetype-seeded" means: always in your moon's zone.
-    state->word_a_idx = state->moon_phase * 8 + (state->day_of_year % 8);
+    watch_date_time_t now = movement_get_local_date_time();
+    uint8_t year = now.unit.year;  // 0-63 (relative to 2020), enough for salt
 
-    // Word B: circadian tier locks you in the correct 11-word zone.
-    // (doy * 3) % 11: gcd(3, 11) = 1 → visits all 11 words in shuffled order
-    // before cycling (order: 0,3,6,9,1,4,7,10,2,5,8). Feels less sequential
-    // than stepping by 1 but stays zone-anchored as the tier demands.
-    // circadian_score / 20 gives 5 clean equal zones: 0-19, 20-39, 40-59, 60-79, 80-99
+    // Word A: moon phase chapter (8 words), doy + year-salt cycles daily.
+    // year % 8 shifts the starting word each calendar year — same date next
+    // year reads a different word (no annual repeat). After 8 years the salt
+    // repeats, but moon phase varies year-to-year (lunar ≠ solar), so
+    // practical same-word repeats on the same date are extremely rare.
+    uint8_t inner_a = (state->day_of_year + year % 8) % 8;
+    state->word_a_idx = state->moon_phase * 8 + inner_a;
+
+    // Word B: circadian tier zone (11 words), shuffled order, annual reset.
+    // gcd(3, 11) = 1 → visits all 11 zone words before cycling.
+    // year % 11 shifts the zone position annually — different energy word
+    // each year on the same day even at the same circadian tier.
+    // LCM(8, 11) = 88 years before both salts simultaneously repeat.
+    // circadian_score / 20: clean equal zones: 0-19, 20-39, 40-59, 60-79, 80-99
     uint8_t tier = state->circadian_score / 20;
     if (tier > 4) tier = 4;
-    state->word_b_idx = tier * 11 + ((state->day_of_year * 3) % 11);
+    uint8_t inner_b = ((state->day_of_year * 3) + year % 11) % 11;
+    state->word_b_idx = tier * 11 + inner_b;
 }
 
 // ─────────────────────────────────────────────────────────────────
