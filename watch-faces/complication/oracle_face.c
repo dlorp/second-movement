@@ -24,28 +24,21 @@
 // ─────────────────────────────────────────────────────────────────
 static const char *words_a[64] = {
     // Chapter 0: New moon — void, seed, quiet inward pull
-    // ODD: some new moons are just strange. That's valid.
-    "VOID ", "BROOD", "HUSH ", "ODD  ", "SEED ", "DEEP ", "DRAW ", "STILL",
+    "VOID", "BROOD", "HUSH", "ODD", "SEED", "DEEP", "DRAW", "STILL",
     // Chapter 1: Waxing crescent — first stir, seeking
-    // FLIP: sometimes the beginning is a coin toss
-    "STIR ", "LEAN ", "SEEK ", "REACH", "RISE ", "TEND ", "SPARK", "FLIP ",
+    "STIR", "LEAN", "SEEK", "REACH", "RISE", "TEND", "SPARK", "FLIP",
     // Chapter 2: First quarter — momentum, cutting, building
-    // SNAP: decisive. make the call.
-    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "SNAP ", "CLIMB",
+    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "SNAP", "CLIMB",
     // Chapter 3: Waxing gibbous — swelling, heavy, near the peak
-    // WILD: things get strange as the full approaches
-    "SWELL", "FILL ", "CREST", "GROW ", "PULL ", "HEAVY", "WILD ", "TENSE",
+    "SWELL", "FILL", "CREST", "GROW", "PULL", "HEAVY", "WILD", "TENSE",
     // Chapter 4: Full moon — peak, flood, nothing hidden
-    // LUCK: full moon luck is real or it isn't, you decide
-    "TIDE ", "PEAK ", "FLOOD", "LUCK ", "SURGE", "BURN ", "SHINE", "BLAZE",
+    "TIDE", "PEAK", "FLOOD", "LUCK", "SURGE", "BURN", "SHINE", "BLAZE",
     // Chapter 5: Waning gibbous — after the peak, giving back
-    "EASE ", "POUR ", "SPILL", "FLOW ", "GIVE ", "DRAIN", "YIELD", "SHED ",
+    "EASE", "POUR", "SPILL", "FLOW", "GIVE", "DRAIN", "YIELD", "SHED",
     // Chapter 6: Last quarter — the turn, releasing what's done
-    // SPIN: the last quarter can feel like losing your footing
-    "TURN ", "FALL ", "DRIFT", "PASS ", "BREAK", "SPIN ", "SLIDE", "SHIFT",
+    "TURN", "FALL", "DRIFT", "PASS", "BREAK", "SPIN", "SLIDE", "SHIFT",
     // Chapter 7: Waning crescent — thinning, the final dark
-    // LIMB: sometimes you end the cycle out on a limb
-    "THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "LIMB ", "DARK ", "EMPTY",
+    "THIN", "FADE", "SINK", "WANE", "BARE", "LIMB", "DARK", "EMPTY",
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -58,19 +51,16 @@ static const char *words_a[64] = {
 // ─────────────────────────────────────────────────────────────────
 static const char *words_b[55] = {
     // Zone 0 (0-10): depleted — rest is the work, not the failure
-    // MAYBE: when depleted, maybe is a complete answer
-    "SLEEP", "REST ", "IDLE ", "FLOAT", "MAYBE", "WAIT ", "STILL", "QUIET", "PAUSE", "HOLD ", "YIELD",
+    "SLEEP", "REST", "IDLE", "FLOAT", "MAYBE", "WAIT", "STILL", "QUIET", "PAUSE", "HOLD", "YIELD",
     // Zone 1 (11-21): low — soft tending, gentle enough
-    "DRIFT", "TEND ", "MEND ", "NURSE", "SLOW ", "SOFT ", "CALM ", "EASE ", "LIGHT", "WALK ", "TREAD",
+    "DRIFT", "TEND", "MEND", "NURSE", "SLOW", "SOFT", "CALM", "EASE", "LIGHT", "WALK", "TREAD",
     // Zone 2 (22-32): average — carrying it, steady
-    // RISK: average energy is exactly when you should take one
-    "STAY ", "LEAN ", "RISK ", "MOVE ", "SEEK ", "STEP ", "PACE ", "WORK ", "PRESS", "CARRY", "GRIND",
+    "STAY", "LEAN", "RISK", "MOVE", "SEEK", "STEP", "PACE", "WORK", "PRESS", "CARRY", "GRIND",
     // Zone 3 (33-43): good — intentional, building
-    // DARE: good energy is when you earn the right to dare something
-    "PUSH ", "DARE ", "DRIVE", "SHAPE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD ", "FORGE",
+    "PUSH", "DARE", "DRIVE", "SHAPE", "MAKE", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD", "FORGE",
     // Zone 4 (44-54): sharp — peak capacity, don't waste it
-    // LEAP: sharp day is the leap day
-    "CARVE", "SURGE", "SEAR ", "SPARK", "HUNT ", "BURN ", "LEAP ", "BOLD ", "SHARP", "BLAZE", "FLY  ",
+    // GO and NOW: the oracle doesn't always need five letters
+    "GO", "SURGE", "SEAR", "SPARK", "HUNT", "BURN", "LEAP", "NOW", "SHARP", "BLAZE", "FLY",
 };
 
 // ─────────────────────────────────────────────────────────────────
