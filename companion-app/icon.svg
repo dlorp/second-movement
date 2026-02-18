@@ -1,105 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="UnifiedComms Sensor Watch mission patch icon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <clipPath id="patchClip">
-      <circle cx="256" cy="256" r="248" />
-    </clipPath>
-
-    <path id="topTextArc" d="M 64 256 A 192 192 0 0 1 448 256" />
-    <path id="bottomTextArc" d="M 448 256 A 192 192 0 0 1 64 256" />
-
-    <clipPath id="globeClip">
-      <ellipse cx="256" cy="326" rx="142" ry="102" />
-    </clipPath>
-
-    <filter id="signalGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="1.6" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+    <clipPath id="gclip2"><circle cx="220" cy="260" r="155"/></clipPath>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="sg" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
-
-  <g clip-path="url(#patchClip)">
-    <circle cx="256" cy="256" r="248" fill="#0B0900" />
-
-    <circle cx="256" cy="256" r="210" fill="none" stroke="#CC8800" stroke-width="2.2" />
-    <circle cx="256" cy="256" r="184" fill="none" stroke="#7A5200" stroke-width="1.8" />
-
-    <text fill="#CC8800" font-family="'Courier New', monospace" font-size="24" letter-spacing="3" font-weight="700" text-anchor="middle">
-      <textPath href="#topTextArc" startOffset="50%">UNIFIED COMMS</textPath>
-    </text>
-
-    <text fill="#CC8800" font-family="'Courier New', monospace" font-size="17" letter-spacing="2.2" font-weight="700" text-anchor="middle">
-      <textPath href="#bottomTextArc" startOffset="50%">SENSOR WATCH DATA LINK</textPath>
-    </text>
-
-    <text x="72" y="264" fill="#CC8800" font-family="'Courier New', monospace" font-size="18" text-anchor="middle">◆</text>
-    <text x="440" y="264" fill="#CC8800" font-family="'Courier New', monospace" font-size="18" text-anchor="middle">◆</text>
-
-    <g stroke="#3D2900" stroke-width="2" fill="none" stroke-dasharray="6 7" opacity="0.95">
-      <ellipse cx="256" cy="256" rx="152" ry="102" transform="rotate(-26 256 256)" />
-      <ellipse cx="256" cy="256" rx="168" ry="82" transform="rotate(22 256 256)" />
-      <ellipse cx="256" cy="258" rx="128" ry="148" transform="rotate(8 256 258)" />
-    </g>
-
-    <circle cx="102" cy="138" r="2.3" fill="#3D2900" />
-    <circle cx="410" cy="102" r="1.9" fill="#3D2900" />
-    <circle cx="362" cy="176" r="1.6" fill="#3D2900" />
-    <circle cx="306" cy="90" r="2.1" fill="#3D2900" />
-    <circle cx="146" cy="188" r="1.7" fill="#3D2900" />
-    <circle cx="430" cy="220" r="2.4" fill="#3D2900" />
-
-    <g>
-      <ellipse cx="256" cy="326" rx="142" ry="102" fill="none" stroke="#7A5200" stroke-width="2" />
-
-      <g clip-path="url(#globeClip)">
-        <path d="M171 282 L190 268 L209 272 L217 286 L214 304 L199 315 L180 313 L166 297 Z" fill="#7A5200" opacity="0.58" />
-        <path d="M224 334 L241 322 L263 325 L273 342 L267 362 L244 372 L226 360 Z" fill="#7A5200" opacity="0.58" />
-
-        <path d="M278 284 L305 273 L334 279 L354 295 L347 312 L323 320 L299 316 L283 301 Z" fill="#7A5200" opacity="0.58" />
-        <path d="M312 326 L333 323 L345 333 L343 348 L327 357 L312 349 L306 336 Z" fill="#7A5200" opacity="0.58" />
-
-        <path d="M360 354 L377 349 L388 358 L383 369 L369 372 L357 364 Z" fill="#7A5200" opacity="0.58" />
-
-        <g stroke="#3D2900" stroke-width="1.4" fill="none" opacity="0.95">
-          <line x1="114" y1="326" x2="398" y2="326" />
-          <line x1="124" y1="292" x2="388" y2="292" />
-          <line x1="124" y1="360" x2="388" y2="360" />
-
-          <line x1="256" y1="224" x2="256" y2="428" />
-          <line x1="204" y1="230" x2="204" y2="422" />
-          <line x1="308" y1="230" x2="308" y2="422" />
-        </g>
-      </g>
-
-      <circle cx="256" cy="326" r="4.2" fill="#FFD060" />
-      <circle cx="256" cy="326" r="9" fill="none" stroke="#3D2900" stroke-width="1" stroke-dasharray="2 4" opacity="0.9"/>
-    </g>
-
-    <g transform="translate(358 136) rotate(18)">
-      <rect x="-12" y="-9" width="24" height="18" rx="2" fill="#CC8800" stroke="#FFD060" stroke-width="1.6" />
-
-      <rect x="-49" y="-14" width="31" height="28" fill="#7A5200" stroke="#CC8800" stroke-width="1.3" />
-      <rect x="18" y="-14" width="31" height="28" fill="#7A5200" stroke="#CC8800" stroke-width="1.3" />
-
-      <g stroke="#3D2900" stroke-width="1">
-        <line x1="-49" y1="-5" x2="-18" y2="-5" />
-        <line x1="-49" y1="4" x2="-18" y2="4" />
-        <line x1="-39" y1="-14" x2="-39" y2="14" />
-        <line x1="-29" y1="-14" x2="-29" y2="14" />
-
-        <line x1="18" y1="-5" x2="49" y2="-5" />
-        <line x1="18" y1="4" x2="49" y2="4" />
-        <line x1="28" y1="-14" x2="28" y2="14" />
-        <line x1="38" y1="-14" x2="38" y2="14" />
-      </g>
-
-      <line x1="4" y1="7" x2="17" y2="20" stroke="#FFD060" stroke-width="1.4" />
-      <circle cx="20" cy="23" r="4" fill="none" stroke="#FFD060" stroke-width="1.4" />
-      <circle cx="20" cy="23" r="1.4" fill="#FFD060" />
-    </g>
-
-    <line x1="378" y1="159" x2="300" y2="299" stroke="#FFD060" stroke-width="2.1" stroke-dasharray="3 4" stroke-linecap="round" opacity="0.95" filter="url(#signalGlow)" />
+  <rect width="512" height="512" fill="#0B0900"/>
+  <path d="M 16 40 L 16 16 L 40 16" fill="none" stroke="#3D2900" stroke-width="1.5"/>
+  <path d="M 472 40 L 472 16 L 496 16" fill="none" stroke="#3D2900" stroke-width="1.5"/>
+  <path d="M 16 472 L 16 496 L 40 496" fill="none" stroke="#3D2900" stroke-width="1.5"/>
+  <path d="M 472 472 L 472 496 L 496 496" fill="none" stroke="#3D2900" stroke-width="1.5"/>
+  <text x="256" y="38" fill="#CC8800" font-family="'Courier New', monospace" font-size="20" font-weight="700" text-anchor="middle" letter-spacing="6">UNIFIED COMMS</text>
+  <line x1="24" y1="48" x2="488" y2="48" stroke="#3D2900" stroke-width="1"/>
+  <circle cx="340" cy="80" r="1.3" fill="#3D2900" opacity="0.8"/>
+  <circle cx="400" cy="110" r="1.0" fill="#3D2900" opacity="0.6"/>
+  <circle cx="460" cy="90" r="1.5" fill="#3D2900" opacity="0.5"/>
+  <defs><clipPath id="gclip"><circle cx="220" cy="260" r="155"/></clipPath></defs>
+<circle cx="220" cy="260" r="155" fill="#0C0A04"/>
+<g clip-path="url(#gclip)">
+<path d="M118.3,143.0 L88.7,177.9 L81.5,192.1 L80.6,201.9 L80.0,207.0 L90.3,219.9 L95.0,233.1 L104.5,235.8 L93.9,222.5 L95.7,209.5 L109.9,201.9 L112.4,194.5 L112.2,187.2 L115.7,182.5 L103.8,184.9 L99.4,182.5 L91.8,192.1 L86.8,201.9 L126.0,173.3 L129.8,168.9 L133.6,164.6 L143.3,158.3 L154.5,152.3 L178.7,146.6 L179.7,137.9 L176.5,128.6 L176.7,125.8 L180.1,120.7 L181.1,116.3 L178.2,114.3 L167.8,114.3 L162.2,116.3 L118.3,143.0 Z" fill="#3D2900" opacity="0.92" stroke="#3D2900" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M196.9,109.6 L200.6,111.0 L202.1,112.6 L198.2,116.3 L193.4,118.4 L208.6,119.5 L213.9,116.3 L225.0,112.6 L226.5,109.6 L225.6,107.4 L220.0,106.2 L215.1,106.2 L207.4,107.4 L196.9,109.6 Z" fill="#3D2900" opacity="0.82" stroke="#3D2900" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M118.6,227.8 L136.9,233.1 L143.3,238.4 L162.2,246.5 L167.0,254.6 L167.0,260.0 L198.5,268.1 L206.5,273.5 L206.6,281.6 L201.4,286.9 L196.6,300.1 L194.7,313.0 L187.9,320.6 L177.7,332.8 L174.1,337.5 L171.3,344.4 L164.5,355.4 L155.6,363.7 L157.1,369.6 L159.0,375.2 L161.2,382.1 L165.3,387.0 L160.0,383.8 L150.8,378.7 L145.3,369.6 L138.3,355.4 L131.9,337.5 L126.4,313.0 L112.3,300.1 L105.9,281.6 L101.7,273.5 L101.3,260.0 L104.8,257.3 L107.1,246.5 L107.7,238.4 L119.9,233.1 L118.6,227.8 Z" fill="#3D2900" opacity="0.9" stroke="#3D2900" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M264.9,168.9 L263.8,164.6 L261.8,152.3 L274.1,152.3 L281.7,154.3 L288.6,152.3 L287.1,152.3 L299.8,158.3 L306.4,164.6 L307.5,166.7 L307.9,164.6 L308.2,160.4 L309.6,158.3 L298.8,152.3 L294.7,150.4 L301.5,152.3 L304.2,154.3 L308.2,156.3 L313.6,160.4 L316.2,164.6 L324.0,168.9 L318.4,160.4 L320.3,158.3 L317.7,156.3 L315.5,156.3 L315.8,158.3 L310.2,152.3 L307.1,148.5 L303.9,144.8 L297.1,144.8 L294.0,141.3 L286.3,137.9 L287.7,134.6 L293.7,134.6 L288.3,130.0 L283.5,125.8 L263.3,121.9 L267.1,128.6 L281.8,133.0 L276.1,134.6 L274.7,137.9 L273.1,139.5 L272.8,141.3 L267.3,139.5 L262.1,141.3 L263.8,144.8 L261.8,152.3 L260.6,154.3 L263.8,158.3 L263.8,164.6 L264.9,168.9 Z" fill="#3D2900" opacity="0.87" stroke="#3D2900" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M271.6,171.1 L278.1,166.7 L287.4,166.7 L296.2,166.7 L299.6,166.7 L307.0,175.6 L321.8,180.2 L328.8,180.2 L337.3,180.2 L339.6,182.5 L344.1,189.6 L348.3,197.0 L352.3,201.9 L356.7,212.1 L362.4,219.9 L365.7,227.8 L369.8,230.4 L370.3,230.4 L370.1,238.4 L367.1,249.2 L367.3,254.6 L366.6,260.0 L365.1,273.5 L363.4,286.9 L357.8,300.1 L353.1,313.0 L347.3,325.5 L344.1,327.9 L337.4,337.5 L330.2,344.4 L325.3,348.9 L320.1,348.9 L315.8,348.9 L315.5,346.7 L314.0,346.7 L316.6,337.5 L318.5,327.9 L319.8,318.1 L318.6,307.9 L320.2,300.1 L324.1,286.9 L323.3,273.5 L317.5,260.0 L311.1,260.0 L304.2,249.2 L304.1,246.5 L294.9,246.5 L285.3,246.5 L277.8,246.5 L272.8,246.5 L270.1,241.1 L264.8,235.8 L259.4,230.4 L254.0,225.1 L253.5,217.3 L252.6,204.5 L260.4,189.6 L266.4,184.9 L267.6,180.2 L268.7,175.6 L271.6,171.1 Z" fill="#3D2900" opacity="0.9" stroke="#3D2900" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M338.5,182.5 L352.3,201.9 L362.4,219.9 L365.7,227.8 L370.1,238.4 L371.4,227.8 L363.7,201.9 L361.5,197.0 L359.0,192.1 L351.3,182.5 L344.2,168.9 L341.5,164.6 L333.1,166.7 L338.5,182.5 Z" fill="#3D2900" opacity="0.82" stroke="#3D2900" stroke-width="0.5" stroke-linejoin="round"/>
+<ellipse cx="220" cy="143.8" rx="102.5" ry="36.9" fill="none" stroke="#3D2900" stroke-width="0.8"/>
+<ellipse cx="220" cy="190.2" rx="138.4" ry="49.8" fill="none" stroke="#7A5200" stroke-width="1.3"/>
+<ellipse cx="220" cy="236.8" rx="153.2" ry="55.2" fill="none" stroke="#7A5200" stroke-width="1.3"/>
+<ellipse cx="220" cy="260.0" rx="155.0" ry="55.8" fill="none" stroke="#CC8800" stroke-width="2.2"/>
+<ellipse cx="220" cy="283.2" rx="153.2" ry="55.2" fill="none" stroke="#7A5200" stroke-width="1.3"/>
+<ellipse cx="220" cy="329.8" rx="138.4" ry="49.8" fill="none" stroke="#7A5200" stroke-width="1.3"/>
+<ellipse cx="220" cy="376.2" rx="102.5" ry="36.9" fill="none" stroke="#3D2900" stroke-width="0.8"/>
+<ellipse cx="220" cy="260" rx="155.0" ry="155" fill="none" stroke="#CC8800" stroke-width="1.8" opacity="0.85"/>
+<ellipse cx="220" cy="260" rx="127.0" ry="155" fill="none" stroke="#7A5200" stroke-width="1.1" opacity="0.85"/>
+<ellipse cx="220" cy="260" rx="53.0" ry="155" fill="none" stroke="#3D2900" stroke-width="0.7" opacity="0.85"/>
+</g>
+<circle cx="220" cy="260" r="155" fill="none" stroke="#CC8800" stroke-width="2.5"/>
+  <g clip-path="url(#gclip2)" opacity="0.88"><circle cx="335.5" cy="156.6" r="16" fill="none" stroke="#FFB000" stroke-width="2.4" opacity="0.85"/>
+<circle cx="335.5" cy="156.6" r="30" fill="none" stroke="#FFB000" stroke-width="2.0" opacity="0.70"/>
+<circle cx="335.5" cy="156.6" r="46" fill="none" stroke="#FFB000" stroke-width="1.6" opacity="0.55"/>
+<circle cx="335.5" cy="156.6" r="62" fill="none" stroke="#FFB000" stroke-width="1.3" opacity="0.40"/></g>
+  <circle cx="20" cy="260" r="5" fill="#CC8800"/>
+  <path d="M20.0,260 V248.0 H34.6 V272.0 H49.3 V248.0 H63.9 V248.0 H78.6 V272.0 H93.2 V248.0 H107.9 V272.0 H122.5 V272.0 H137.1 V248.0 H151.8 V272.0 H166.4 V248.0 H181.1 V248.0 H195.7 V272.0 H210.4 V272.0 H225.0 V248.0 H239.6 V272.0 H254.3 V248.0 H268.9 V248.0 H283.6 V272.0 H298.2 V248.0 H312.9 V272.0 H327.5 V272.0 H342.1 V248.0 H356.8 V272.0 H371.4 V248.0 H386.1 V248.0 H400.7 V272.0 H415.4 V248.0 H430.0 V260" fill="none" stroke="#CC8800" stroke-width="2.4" stroke-linejoin="miter"/>
+  <circle cx="430" cy="260" r="5" fill="#CC8800"/>
+  <line x1="430" y1="260" x2="468" y2="260" stroke="#CC8800" stroke-width="2" stroke-dasharray="4 4"/>
+  <circle cx="468" cy="260" r="4" fill="#CC8800"/>
+  <path d="M 468 242 A 18 18 0 0 1 468 278" fill="none" stroke="#CC8800" stroke-width="2.8" opacity="0.92" stroke-linecap="round"/>
+<path d="M 468 228 A 32 32 0 0 1 468 292" fill="none" stroke="#CC8800" stroke-width="2.3" opacity="0.70" stroke-linecap="round"/>
+<path d="M 468 214 A 46 46 0 0 1 468 306" fill="none" stroke="#CC8800" stroke-width="1.9" opacity="0.48" stroke-linecap="round"/>
+  <text x="468" y="200" fill="#CC8800" font-family="'Courier New', monospace" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="3">RX</text>
+  <line x1="422" y1="84" x2="335.5" y2="156.6" stroke="#FFD060" stroke-width="2.4" stroke-dasharray="7 6" stroke-linecap="round" filter="url(#glow)"/>
+  <circle cx="335.5" cy="156.6" r="6" fill="#FFD060" filter="url(#glow)"/>
+  <circle cx="335.5" cy="156.6" r="3" fill="#FFD060"/>
+  <g transform="translate(430 72) rotate(-32)" filter="url(#sg)">
+    <rect x="-16" y="-10" width="32" height="20" rx="3" fill="#CC8800" stroke="#FFD060" stroke-width="2.2"/>
+    <rect x="-60" y="-15" width="38" height="30" fill="#7A5200" stroke="#CC8800" stroke-width="1.5"/>
+    <line x1="-60" y1="-5" x2="-22" y2="-5" stroke="#3D2900" stroke-width="1.3"/>
+    <line x1="-60" y1="5" x2="-22" y2="5" stroke="#3D2900" stroke-width="1.3"/>
+    <line x1="-47" y1="-15" x2="-47" y2="15" stroke="#3D2900" stroke-width="1.3"/>
+    <line x1="-35" y1="-15" x2="-35" y2="15" stroke="#3D2900" stroke-width="1.3"/>
+    <rect x="22" y="-15" width="38" height="30" fill="#7A5200" stroke="#CC8800" stroke-width="1.5"/>
+    <line x1="22" y1="-5" x2="60" y2="-5" stroke="#3D2900" stroke-width="1.3"/>
+    <line x1="22" y1="5" x2="60" y2="5" stroke="#3D2900" stroke-width="1.3"/>
+    <line x1="35" y1="-15" x2="35" y2="15" stroke="#3D2900" stroke-width="1.3"/>
+    <line x1="47" y1="-15" x2="47" y2="15" stroke="#3D2900" stroke-width="1.3"/>
+    <line x1="-4" y1="10" x2="-14" y2="24" stroke="#FFD060" stroke-width="2"/>
+    <path d="M -23 24 Q -14 32 -4 24" fill="none" stroke="#FFD060" stroke-width="2"/>
   </g>
+  <line x1="24" y1="464" x2="488" y2="464" stroke="#3D2900" stroke-width="1"/>
+  <text x="256" y="488" fill="#7A5200" font-family="'Courier New', monospace" font-size="13" text-anchor="middle" letter-spacing="4">SENSOR WATCH</text>
 </svg>
