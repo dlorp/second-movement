@@ -4,30 +4,35 @@
  *
  * ORACLE FACE
  *
- * A daily 2-word phrase derived from natural cycles and personal biorhythm.
- * Meant to be checked at the start of active hours as a "sense" for the day.
+ * A daily 2-word phrase. What the moon is doing. What you bring to it.
  *
- * Natural inputs:
- *   - Moon phase (0-7): Governs Word B pool (the force, what's moving)
- *   - Day length (hours): From lat/lon via sunriset — seasonal bias
- *   - Day of year (1-365): Drift/variance within each state
- *   - Circadian score (0-100): Governs Word A tier (the quality, the tone)
+ * Word A — Moon phase (the cosmic position):
+ *   8 phase pools, 4 words each. Day-of-year drifts the selection so
+ *   the reading is different each day even within the same phase.
+ *     New:    SEED / VOID / PULL / STILL
+ *     WxC:    RISE / PATH / REACH / LEAN
+ *     1Q:     BUILD / PUSH / FORGE / PRESS
+ *     WxG:    SWELL / FILL / GROW / DRAW
+ *     Full:   TIDE / PEAK / BLOOM / FORCE
+ *     WnG:    EASE / POUR / FLOW / HOLD
+ *     LQ:     TURN / FALL / DRIFT / SHED
+ *     WnC:    THIN / FADE / HUSH / WANE
  *
- * Birth chart inputs (personal bias — set once, subtle forever):
- *   - Sun sign element (Fire/Earth/Air/Water): derived from birth month+day
- *     Modifies Word A selection within the circadian tier
- *   - Birth moon phase (0-7): derived from full birth date
- *     Shifts Word B selection within the moon phase pool
+ * Word B — Circadian score tier (personal, actionable energy):
+ *   5 tiers, 4 words each. Day-of-year drift here too.
+ *     0-20 depleted:  REST / HOLD / STILL / WAIT
+ *     21-40 low:      TEND / SLOW / KEEP / SOFT
+ *     41-60 average:  MOVE / SEEK / WORK / TEND
+ *     61-80 good:     DRIVE / SHAPE / BUILD / PUSH
+ *     81-100 sharp:   FORGE / SURGE / BOLD / LEAD
  *
- * Birthday:
- *   On user's birthday, face opens with " BDAY " message.
- *   ALARM cycles to the normal oracle phrase for the day.
+ * Birthday (compile-time):
+ *   Set ORACLE_BIRTH_MONTH and ORACLE_BIRTH_DAY in movement_config.h.
+ *   On your birthday the face opens on a BDAY view before the phrase.
  *
  * Display (ALARM cycles):
- *   [birthday] BDAY → Word A → Word B → Info
+ *   [birthday] BDAY → Word A → Word B → Info (moon + score)
  *   [normal]   Word A → Word B → Info
- *
- * LIGHT long press → birthday setup (birth year + month + day)
  */
 
 #pragma once
@@ -35,55 +40,22 @@
 #include "movement.h"
 
 typedef enum {
-    ORACLE_VIEW_BDAY  = 0,    // Birthday message (only on birthday)
-    ORACLE_VIEW_WORD_A,       // First word (quality, element-biased)
-    ORACLE_VIEW_WORD_B,       // Second word (force, birth-moon-biased)
+    ORACLE_VIEW_BDAY   = 0,   // Birthday message (birthday only)
+    ORACLE_VIEW_WORD_A,       // Moon phase word
+    ORACLE_VIEW_WORD_B,       // Circadian energy word
     ORACLE_VIEW_INFO,         // Moon name + CS score
     ORACLE_VIEW_COUNT
 } oracle_view_t;
 
-typedef enum {
-    ORACLE_SETTINGS_IDLE = 0,   // Normal mode
-    ORACLE_SETTINGS_YEAR,       // Setting birth year
-    ORACLE_SETTINGS_MONTH,      // Setting birth month
-    ORACLE_SETTINGS_DAY,        // Setting birth day
-} oracle_settings_mode_t;
-
-typedef enum {
-    ELEMENT_FIRE  = 0,  // Aries, Leo, Sagittarius  — bold, vivid, forward
-    ELEMENT_EARTH = 1,  // Taurus, Virgo, Capricorn  — grounded, still, deep
-    ELEMENT_AIR   = 2,  // Gemini, Libra, Aquarius   — clear, swift, light
-    ELEMENT_WATER = 3,  // Cancer, Scorpio, Pisces   — quiet, calm, deep
-} zodiac_element_t;
-
-// Birth chart data packed into BKUP[3] lower 16 bits
-// bits [0:3]  = birth month (1-12)                    4 bits
-// bits [4:8]  = birth day (1-31)                      5 bits
-// bits [9:15] = birth year offset from 1960 (0-127)   7 bits (covers 1960-2087)
-typedef union {
-    struct {
-        uint16_t month    : 4;  // 1-12
-        uint16_t day      : 5;  // 1-31
-        uint16_t year_off : 7;  // year - 1960
-    } bit;
-    uint16_t reg;
-} oracle_birthdate_t;
-
 typedef struct {
-    oracle_view_t view;               // Current display view
-    oracle_settings_mode_t settings;  // Settings mode
-    uint8_t moon_phase;               // Today's moon phase 0-7
-    uint8_t birth_moon_phase;         // Moon phase on birth date
-    zodiac_element_t sun_element;     // Fire/Earth/Air/Water from sun sign
-    uint16_t day_length_min;          // Day length in minutes (lat/lon via sunriset)
-    uint8_t day_of_year;              // 1-255 (truncated for drift math)
-    uint8_t circadian_score;          // 0-100 from circadian_score library
-    uint8_t word_a_idx;               // Selected word A index
-    uint8_t word_b_idx;               // Selected word B index
-    oracle_birthdate_t birthdate;     // Birth date packed for BKUP[3]
-    bool birthdate_set;               // True if birthdate has been configured
-    bool is_birthday_today;           // True on user's birthday
-    bool needs_update;                // Recompute on next activate
+    oracle_view_t view;       // Current display view
+    uint8_t moon_phase;       // 0-7 (0=new, 4=full)
+    uint8_t circadian_score;  // 0-100
+    uint8_t word_a_idx;       // Index into moon phase pool
+    uint8_t word_b_idx;       // Index into circadian tier
+    uint8_t day_of_year;      // 1-255, truncated (daily drift)
+    bool is_birthday_today;   // True on configured birthday
+    bool needs_update;        // Recompute on next activate
 } oracle_face_state_t;
 
 void oracle_face_setup(uint8_t watch_face_index, void **context_ptr);
