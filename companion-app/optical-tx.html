@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+    <title>Watch Optical TX</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        #flashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            transition: none;
+        }
+        
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+        }
+        
+        button {
+            font-size: 18px;
+            padding: 15px 30px;
+            margin: 5px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        button:active {
+            background: #0051D5;
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        #status {
+            margin-bottom: 15px;
+            font-size: 16px;
+            padding: 10px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 8px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="flashScreen"></div>
+    
+    <div id="controls">
+        <div id="status">Ready to transmit</div>
+        <button id="sendTimeBtn">Send Time Sync</button>
+        <button id="cancelBtn" class="hidden">Cancel</button>
+        <div style="margin-top:10px; font-size:12px; opacity:0.7;">
+            Hold phone screen 2-6 inches from watch
+        </div>
+    </div>
+
+    <script>
+        const flashScreen = document.getElementById('flashScreen');
+        const sendTimeBtn = document.getElementById('sendTimeBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const statusDiv = document.getElementById('status');
+        
+        let transmitting = false;
+        let wakeLock = null;
+
+        // Prevent screen sleep
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.log('Wake lock failed:', err);
+            }
+        }
+
+        // CRC-8/MAXIM checksum
+        function crc8(data) {
+            let crc = 0;
+            for (let byte of data) {
+                crc ^= byte;
+                for (let i = 0; i < 8; i++) {
+                    if (crc & 0x01) {
+                        crc = (crc >> 1) ^ 0x8C;  // Polynomial 0x31 reversed
+                    } else {
+                        crc >>= 1;
+                    }
+                }
+            }
+            return crc;
+        }
+
+        // Sleep helper
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Flash a single bit (Manchester encoded)
+        // 0 = HIGH→LOW (white→black)
+        // 1 = LOW→HIGH (black→white)
+        async function flashBit(bit) {
+            const halfBit = 31.25;  // 31.25ms per half-bit (62.5ms total = 16 bps)
+            
+            if (bit === 0) {
+                flashScreen.style.background = '#FFF';  // HIGH
+                await sleep(halfBit);
+                flashScreen.style.background = '#000';  // LOW
+                await sleep(halfBit);
+            } else {
+                flashScreen.style.background = '#000';  // LOW
+                await sleep(halfBit);
+                flashScreen.style.background = '#FFF';  // HIGH
+                await sleep(halfBit);
+            }
+        }
+
+        // Flash a single byte (MSB first)
+        async function flashByte(byte) {
+            for (let i = 7; i >= 0; i--) {
+                if (!transmitting) return;  // Check for cancellation
+                let bit = (byte >> i) & 0x01;
+                await flashBit(bit);
+            }
+        }
+
+        // Flash entire packet
+        async function flashPacket(data) {
+            // SYNC byte (0xAA = 10101010)
+            await flashByte(0xAA);
+            
+            // Data bytes
+            for (let byte of data) {
+                if (!transmitting) return;
+                await flashByte(byte);
+            }
+            
+            // Return to black
+            flashScreen.style.background = '#000';
+        }
+
+        // Send time sync packet
+        async function sendTimeSync() {
+            if (transmitting) return;
+            
+            transmitting = true;
+            sendTimeBtn.classList.add('hidden');
+            cancelBtn.classList.remove('hidden');
+            
+            await requestWakeLock();
+            
+            // Get current time
+            const now = Math.floor(Date.now() / 1000);  // Unix timestamp
+            const timezoneOffset = -new Date().getTimezoneOffset();  // Minutes from UTC
+            
+            // Build packet
+            const packet = [
+                0x06,  // LEN (6 bytes payload)
+                0x01,  // TYPE (time sync)
+                // Timestamp (4 bytes, little-endian)
+                (now >> 0) & 0xFF,
+                (now >> 8) & 0xFF,
+                (now >> 16) & 0xFF,
+                (now >> 24) & 0xFF,
+                // Timezone offset (2 bytes, little-endian, signed)
+                (timezoneOffset >> 0) & 0xFF,
+                (timezoneOffset >> 8) & 0xFF
+            ];
+            
+            // Calculate CRC8
+            const crcValue = crc8(packet);
+            packet.push(crcValue);
+            
+            // Update status
+            const totalBytes = packet.length + 1;  // +1 for SYNC
+            const estimatedSeconds = Math.ceil(totalBytes * 0.8);  // ~0.8s per byte @ 10bps
+            statusDiv.textContent = `Transmitting ${totalBytes} bytes (~${estimatedSeconds}s)...`;
+            
+            // Transmit
+            try {
+                await flashPacket(packet);
+                
+                if (transmitting) {
+                    statusDiv.textContent = 'Transmission complete!';
+                    await sleep(2000);
+                    statusDiv.textContent = 'Ready to transmit';
+                }
+            } catch (err) {
+                statusDiv.textContent = 'Error: ' + err.message;
+            }
+            
+            // Cleanup
+            transmitting = false;
+            sendTimeBtn.classList.remove('hidden');
+            cancelBtn.classList.add('hidden');
+            
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        // Cancel transmission
+        function cancelTransmission() {
+            transmitting = false;
+            flashScreen.style.background = '#000';
+            statusDiv.textContent = 'Cancelled';
+            sendTimeBtn.classList.remove('hidden');
+            cancelBtn.classList.add('hidden');
+            
+            setTimeout(() => {
+                statusDiv.textContent = 'Ready to transmit';
+            }, 2000);
+            
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        // Event listeners
+        sendTimeBtn.addEventListener('click', sendTimeSync);
+        cancelBtn.addEventListener('click', cancelTransmission);
+        
+        // Keep screen on when visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && transmitting) {
+                requestWakeLock();
+            }
+        });
+    </script>
+</body>
+</html>

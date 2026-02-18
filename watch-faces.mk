@@ -61,5 +61,6 @@ SRCS += \
   ./watch-faces/complication/circadian_score_face.c \
   ./watch-faces/complication/comms_face.c \
   ./watch-faces/complication/sleep_score_face.c \
+  ./watch-faces/complication/comms_rx.c \
   ./watch-faces/io/fesk_demo_lite_face.c \
 # New watch faces go above this line.
