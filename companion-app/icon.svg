@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="UnifiedComms Sensor Watch mission patch icon">
+  <defs>
+    <clipPath id="patchClip">
+      <circle cx="256" cy="256" r="248" />
+    </clipPath>
+
+    <path id="topTextArc" d="M 64 256 A 192 192 0 0 1 448 256" />
+    <path id="bottomTextArc" d="M 448 256 A 192 192 0 0 1 64 256" />
+
+    <clipPath id="globeClip">
+      <ellipse cx="256" cy="326" rx="142" ry="102" />
+    </clipPath>
+
+    <filter id="signalGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#patchClip)">
+    <circle cx="256" cy="256" r="248" fill="#0B0900" />
+
+    <circle cx="256" cy="256" r="210" fill="none" stroke="#CC8800" stroke-width="2.2" />
+    <circle cx="256" cy="256" r="184" fill="none" stroke="#7A5200" stroke-width="1.8" />
+
+    <text fill="#CC8800" font-family="'Courier New', monospace" font-size="24" letter-spacing="3" font-weight="700" text-anchor="middle">
+      <textPath href="#topTextArc" startOffset="50%">UNIFIED COMMS</textPath>
+    </text>
+
+    <text fill="#CC8800" font-family="'Courier New', monospace" font-size="17" letter-spacing="2.2" font-weight="700" text-anchor="middle">
+      <textPath href="#bottomTextArc" startOffset="50%">SENSOR WATCH DATA LINK</textPath>
+    </text>
+
+    <text x="72" y="264" fill="#CC8800" font-family="'Courier New', monospace" font-size="18" text-anchor="middle">◆</text>
+    <text x="440" y="264" fill="#CC8800" font-family="'Courier New', monospace" font-size="18" text-anchor="middle">◆</text>
+
+    <g stroke="#3D2900" stroke-width="2" fill="none" stroke-dasharray="6 7" opacity="0.95">
+      <ellipse cx="256" cy="256" rx="152" ry="102" transform="rotate(-26 256 256)" />
+      <ellipse cx="256" cy="256" rx="168" ry="82" transform="rotate(22 256 256)" />
+      <ellipse cx="256" cy="258" rx="128" ry="148" transform="rotate(8 256 258)" />
+    </g>
+
+    <circle cx="102" cy="138" r="2.3" fill="#3D2900" />
+    <circle cx="410" cy="102" r="1.9" fill="#3D2900" />
+    <circle cx="362" cy="176" r="1.6" fill="#3D2900" />
+    <circle cx="306" cy="90" r="2.1" fill="#3D2900" />
+    <circle cx="146" cy="188" r="1.7" fill="#3D2900" />
+    <circle cx="430" cy="220" r="2.4" fill="#3D2900" />
+
+    <g>
+      <ellipse cx="256" cy="326" rx="142" ry="102" fill="none" stroke="#7A5200" stroke-width="2" />
+
+      <g clip-path="url(#globeClip)">
+        <path d="M171 282 L190 268 L209 272 L217 286 L214 304 L199 315 L180 313 L166 297 Z" fill="#7A5200" opacity="0.58" />
+        <path d="M224 334 L241 322 L263 325 L273 342 L267 362 L244 372 L226 360 Z" fill="#7A5200" opacity="0.58" />
+
+        <path d="M278 284 L305 273 L334 279 L354 295 L347 312 L323 320 L299 316 L283 301 Z" fill="#7A5200" opacity="0.58" />
+        <path d="M312 326 L333 323 L345 333 L343 348 L327 357 L312 349 L306 336 Z" fill="#7A5200" opacity="0.58" />
+
+        <path d="M360 354 L377 349 L388 358 L383 369 L369 372 L357 364 Z" fill="#7A5200" opacity="0.58" />
+
+        <g stroke="#3D2900" stroke-width="1.4" fill="none" opacity="0.95">
+          <line x1="114" y1="326" x2="398" y2="326" />
+          <line x1="124" y1="292" x2="388" y2="292" />
+          <line x1="124" y1="360" x2="388" y2="360" />
+
+          <line x1="256" y1="224" x2="256" y2="428" />
+          <line x1="204" y1="230" x2="204" y2="422" />
+          <line x1="308" y1="230" x2="308" y2="422" />
+        </g>
+      </g>
+
+      <circle cx="256" cy="326" r="4.2" fill="#FFD060" />
+      <circle cx="256" cy="326" r="9" fill="none" stroke="#3D2900" stroke-width="1" stroke-dasharray="2 4" opacity="0.9"/>
+    </g>
+
+    <g transform="translate(358 136) rotate(18)">
+      <rect x="-12" y="-9" width="24" height="18" rx="2" fill="#CC8800" stroke="#FFD060" stroke-width="1.6" />
+
+      <rect x="-49" y="-14" width="31" height="28" fill="#7A5200" stroke="#CC8800" stroke-width="1.3" />
+      <rect x="18" y="-14" width="31" height="28" fill="#7A5200" stroke="#CC8800" stroke-width="1.3" />
+
+      <g stroke="#3D2900" stroke-width="1">
+        <line x1="-49" y1="-5" x2="-18" y2="-5" />
+        <line x1="-49" y1="4" x2="-18" y2="4" />
+        <line x1="-39" y1="-14" x2="-39" y2="14" />
+        <line x1="-29" y1="-14" x2="-29" y2="14" />
+
+        <line x1="18" y1="-5" x2="49" y2="-5" />
+        <line x1="18" y1="4" x2="49" y2="4" />
+        <line x1="28" y1="-14" x2="28" y2="14" />
+        <line x1="38" y1="-14" x2="38" y2="14" />
+      </g>
+
+      <line x1="4" y1="7" x2="17" y2="20" stroke="#FFD060" stroke-width="1.4" />
+      <circle cx="20" cy="23" r="4" fill="none" stroke="#FFD060" stroke-width="1.4" />
+      <circle cx="20" cy="23" r="1.4" fill="#FFD060" />
+    </g>
+
+    <line x1="378" y1="159" x2="300" y2="299" stroke="#FFD060" stroke-width="2.1" stroke-dasharray="3 4" stroke-linecap="round" opacity="0.95" filter="url(#signalGlow)" />
+  </g>
+</svg>
