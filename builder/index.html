@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; connect-src api.github.com github.com;">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -14,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js" integrity="sha384-/jkFGhPVLS9HIUzX09xB5W3coE5q1X5NXZA/PuOAdOaRxUPczlZmKzYEq9QcJnW0" crossorigin="anonymous"></script>
     <style>
         :root {
             --color-bg: #0B0900;
@@ -579,7 +580,7 @@
             letter-spacing: 0.04em;
         }
 
-        .token-note input[type=text] {
+        .token-note input[type=password] {
             width: 100%;
             margin-top: 6px;
             background: var(--color-bg-recessed);
@@ -592,7 +593,7 @@
             font-size: 11px;
         }
 
-        .token-note input[type=text]:focus { outline: none; border-color: var(--color-border-active); }
+        .token-note input[type=password]:focus { outline: none; border-color: var(--color-border-active); }
 
         /* ---- FOOTER PADDING ---- */
         .footer-pad {
@@ -855,7 +856,7 @@
         <div class="share-title">GITHUB ACCESS TOKEN</div>
         <div class="token-note">
             REQUIRED TO TRIGGER BUILDS. STORED IN SESSIONSTORAGE ONLY.
-            <input type="text" id="githubToken" placeholder="ghp_XXXXXXXXXXXXXXXXXXXX" autocomplete="off" spellcheck="false">
+            <input type="password" id="githubToken" placeholder="ghp_XXXXXXXXXXXXXXXXXXXX" autocomplete="off" spellcheck="false">
         </div>
     </div>
 
@@ -908,10 +909,7 @@
 // ============================================================
 // CONSTANTS
 // ============================================================
-const GITHUB_TOKEN = 'REPLACE_WITH_PAT';
 const REPO = 'dlorp/second-movement';
-const BOARD_MAP = { red: 'sensorwatch_red', green: 'sensorwatch_green',
-                    blue: 'sensorwatch_blue', pro: 'sensorwatch_pro' };
 const WORKFLOW_ID = 'custom-build.yml';
 const COOLDOWN_MS = 90 * 1000;
 const POLL_INTERVAL_MS = 5000;
@@ -927,6 +925,33 @@ const DISPLAYS = [
     { id: 'classic', name: 'CLASSIC' },
     { id: 'custom', name: 'CUSTOM' }
 ];
+
+const VALID_BOARDS = BOARDS.map(b => b.id);
+const VALID_DISPLAYS = DISPLAYS.map(d => d.id);
+const VALID_SIGNAL_TUNES = [
+    'SIGNAL_TUNE_DEFAULT',
+    'SIGNAL_TUNE_LONG_BEEP',
+    'SIGNAL_TUNE_DOUBLE_LONG',
+    'SIGNAL_TUNE_TRIPLE_BEEP',
+    'SIGNAL_TUNE_MELODY',
+    'SIGNAL_TUNE_NONE'
+];
+
+// ============================================================
+// HELPERS
+// ============================================================
+function escapeHTML(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getToken() {
+    return document.getElementById('githubToken').value.trim();
+}
 
 const PRESET_TEMPLATES = [
     {
@@ -965,10 +990,8 @@ const PRESET_TEMPLATES = [
             display: 'classic',
             activeFaces: [
                 'clock_face',
-                'sleep_tracker_face',
-                'smart_alarm_face',
+                'alarm_face',
                 '__secondary__',
-                'circadian_score_face',
                 'temperature_display_face',
                 'activity_logging_face',
                 'accelerometer_status_face',
@@ -992,301 +1015,6 @@ const PRESET_TEMPLATES = [
             activeFaces: [
                 'clock_face',
                 '__secondary__',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_focus',
-        name: 'Focus',
-        description: 'Productivity: clock, stopwatch, countdown, alarm, deadline, breathing',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'stopwatch_face',
-                'countdown_face',
-                'alarm_face',
-                'deadline_face',
-                '__secondary__',
-                'breathing_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: true,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_athlete',
-        name: 'The Athlete',
-        description: 'Fitness: stopwatch, HIIT intervals, countdown, tally counter, pulsometer',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'stopwatch_face',
-                'fast_stopwatch_face',
-                'interval_face',
-                'countdown_face',
-                '__secondary__',
-                'tally_face',
-                'pulsometer_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_backpacker',
-        name: 'The Backpacker',
-        description: 'Outdoors: sunrise, moon phase, temperature + logging, light',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'sunrise_sunset_face',
-                'moon_phase_face',
-                '__secondary__',
-                'temperature_display_face',
-                'temperature_logging_face',
-                'light_sensor_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_stargazer',
-        name: 'The Stargazer',
-        description: 'Space: Mars time, world clock, sunrise, moon phase',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'mars_time_face',
-                'world_clock_face',
-                'sunrise_sunset_face',
-                'moon_phase_face',
-                '__secondary__',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_deep_space',
-        name: 'Deep Space Now',
-        description: 'For DSN fans: Mars time, world clocks, mission day counter',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'mars_time_face',
-                'world_clock_face',
-                '__secondary__',
-                'days_since_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_alt_time',
-        name: 'alt.time',
-        description: 'Alternative timekeeping: beat time (Swatch), day counter',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'beats_face',
-                'days_since_face',
-                '__secondary__',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_gamer',
-        name: 'The Gamer',
-        description: 'Games: Wordle, Blackjack, Endless Runner, Simon, Lunar Lander, coin flip',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'wordle_face',
-                'blackjack_face',
-                'endless_runner_face',
-                'simon_face',
-                '__secondary__',
-                'lander_face',
-                'higher_lower_game_face',
-                'simple_coin_flip_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 15, ledGreen: 0, ledBlue: 0,
-            btnSound: true,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_sleep_lab',
-        name: 'The Sleep Lab',
-        description: 'Sleep health: tracker, circadian score, sleep score, smart alarm, breathing',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'sleep_tracker_face',
-                'smart_alarm_face',
-                '__secondary__',
-                'circadian_score_face',
-                'sleep_score_face',
-                'breathing_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 0, ledBlue: 15,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_security',
-        name: 'Security',
-        description: 'TOTP 2FA codes, clock, key age tracking',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'totp_lfs_face',
-                '__secondary__',
-                'days_since_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: true,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_vague',
-        name: 'Vague Vibes',
-        description: 'Fuzzy time, coin flips, tarot, Swatch beats — chaos watch',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'ish_face',
-                'close_enough_face',
-                'beats_face',
-                '__secondary__',
-                'simple_coin_flip_face',
-                'tarot_face',
-                'probability_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 15,
-            btnSound: false,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_parent',
-        name: 'The Parent',
-        description: 'Baby kicks tracker, countdown timers, interval, advanced alarm',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'baby_kicks_face',
-                'countdown_face',
-                'interval_face',
-                '__secondary__',
-                'advanced_alarm_face',
-                'tally_face',
-                'settings_face',
-                'set_time_face'
-            ],
-            clock24h: false,
-            ledRed: 0, ledGreen: 15, ledBlue: 0,
-            btnSound: true,
-            signalTune: 'SIGNAL_TUNE_DEFAULT'
-        }
-    },
-    {
-        id: 'preset_nerd',
-        name: 'The Nerd',
-        description: 'Periodic table, decimal time, Wareki, kitchen conversions, Mars time',
-        preset: true,
-        state: {
-            board: 'red',
-            display: 'classic',
-            activeFaces: [
-                'clock_face',
-                'periodic_table_face',
-                'ke_decimal_time_face',
-                'wareki_face',
-                '__secondary__',
-                'mars_time_face',
-                'kitchen_conversions_face',
                 'settings_face',
                 'set_time_face'
             ],
@@ -1413,11 +1141,20 @@ function renderTemplates() {
     PRESET_TEMPLATES.forEach(tmpl => {
         const row = document.createElement('div');
         row.className = 'template-row';
-        row.innerHTML =
-            '<span class="template-name">' + tmpl.name + '</span>' +
-            '<span class="template-desc">' + tmpl.description + '</span>' +
-            '<button class="template-load-btn" data-id="' + tmpl.id + '">[load]</button>';
-        row.querySelector('.template-load-btn').addEventListener('click', () => loadTemplate(tmpl.state));
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'template-name';
+        nameSpan.textContent = tmpl.name;
+        const descSpan = document.createElement('span');
+        descSpan.className = 'template-desc';
+        descSpan.textContent = tmpl.description;
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'template-load-btn';
+        loadBtn.textContent = '[load]';
+        loadBtn.setAttribute('data-id', tmpl.id);
+        loadBtn.addEventListener('click', () => loadTemplate(tmpl.state));
+        row.appendChild(nameSpan);
+        row.appendChild(descSpan);
+        row.appendChild(loadBtn);
         presetContainer.appendChild(row);
     });
 
@@ -1433,15 +1170,28 @@ function renderTemplates() {
             const row = document.createElement('div');
             row.className = 'template-row';
             const date = new Date(tmpl.createdAt).toLocaleDateString();
-            row.innerHTML =
-                '<span class="template-name">' + tmpl.name + '</span>' +
-                '<span class="template-desc">' + date + '</span>' +
-                '<button class="template-load-btn" data-id="' + tmpl.id + '">[load]</button>' +
-                '<button class="template-del-btn" data-id="' + tmpl.id + '">[del]</button>';
-            row.querySelector('.template-load-btn').addEventListener('click', () => loadTemplate(tmpl.state));
-            row.querySelector('.template-del-btn').addEventListener('click', () => {
-                if (confirm('Delete template "' + tmpl.name + '"?')) deleteUserTemplate(tmpl.id);
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'template-name';
+            nameSpan.textContent = tmpl.name;
+            const descSpan = document.createElement('span');
+            descSpan.className = 'template-desc';
+            descSpan.textContent = date;
+            const loadBtn = document.createElement('button');
+            loadBtn.className = 'template-load-btn';
+            loadBtn.textContent = '[load]';
+            loadBtn.setAttribute('data-id', tmpl.id);
+            loadBtn.addEventListener('click', () => loadTemplate(tmpl.state));
+            const delBtn = document.createElement('button');
+            delBtn.className = 'template-del-btn';
+            delBtn.textContent = '[del]';
+            delBtn.setAttribute('data-id', tmpl.id);
+            delBtn.addEventListener('click', () => {
+                if (confirm('Delete template "' + escapeHTML(tmpl.name) + '"?')) deleteUserTemplate(tmpl.id);
             });
+            row.appendChild(nameSpan);
+            row.appendChild(descSpan);
+            row.appendChild(loadBtn);
+            row.appendChild(delBtn);
             userContainer.appendChild(row);
         });
     }
@@ -1635,16 +1385,35 @@ function renderActiveFaces() {
 
         if (id === '__secondary__') {
             li.className = 'secondary-divider';
-            li.innerHTML = '<span class="face-handle">:::::</span><span>-- SECONDARY --</span>';
+            const handleSpan = document.createElement('span');
+            handleSpan.className = 'face-handle';
+            handleSpan.textContent = ':::::';
+            const secLabel = document.createElement('span');
+            secLabel.textContent = '-- SECONDARY --';
+            li.appendChild(handleSpan);
+            li.appendChild(secLabel);
         } else {
             const face = registry.faces.find(f => f.id === id);
             const name = face ? face.name.toUpperCase() : id.toUpperCase();
             li.className = 'face-item';
-            li.innerHTML =
-                '<span class="face-num">' + faceNum + '</span>' +
-                '<span class="face-handle">:::::</span>' +
-                '<span class="face-name">' + name + '</span>' +
-                '<button class="face-remove" aria-label="Remove ' + name + '" data-idx="' + idx + '">x</button>';
+            const numSpan = document.createElement('span');
+            numSpan.className = 'face-num';
+            numSpan.textContent = faceNum;
+            const handleSpan = document.createElement('span');
+            handleSpan.className = 'face-handle';
+            handleSpan.textContent = ':::::';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'face-name';
+            nameSpan.textContent = name;
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'face-remove';
+            removeBtn.setAttribute('aria-label', 'Remove ' + name);
+            removeBtn.setAttribute('data-idx', String(idx));
+            removeBtn.textContent = 'x';
+            li.appendChild(numSpan);
+            li.appendChild(handleSpan);
+            li.appendChild(nameSpan);
+            li.appendChild(removeBtn);
             faceNum++;
         }
 
@@ -1741,10 +1510,18 @@ function renderAvailFaces() {
             btn.className = 'avail-face-btn' + (alreadyAdded ? ' already-added' : '');
             btn.setAttribute('aria-label', (alreadyAdded ? 'Already added: ' : 'Add: ') + face.name);
             btn.setAttribute('disabled', alreadyAdded ? 'true' : 'false');
-            btn.innerHTML =
-                '<span class="avail-add-icon">' + (alreadyAdded ? '*' : '[+]') + '</span>' +
-                '<span class="avail-face-name">' + face.name.toUpperCase() + '</span>' +
-                '<span class="avail-face-desc">' + face.description.toUpperCase() + '</span>';
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'avail-add-icon';
+            iconSpan.textContent = alreadyAdded ? '*' : '[+]';
+            const faceNameSpan = document.createElement('span');
+            faceNameSpan.className = 'avail-face-name';
+            faceNameSpan.textContent = face.name.toUpperCase();
+            const faceDescSpan = document.createElement('span');
+            faceDescSpan.className = 'avail-face-desc';
+            faceDescSpan.textContent = face.description.toUpperCase();
+            btn.appendChild(iconSpan);
+            btn.appendChild(faceNameSpan);
+            btn.appendChild(faceDescSpan);
             if (!alreadyAdded) {
                 btn.onclick = () => addFace(face.id);
             }
@@ -1832,26 +1609,46 @@ function parseHash() {
 
     if (!params.faces) return null;
 
-    const faceIds = params.faces ? params.faces.split(',').filter(Boolean) : [];
+    // Validate board against allowlist
+    const board = VALID_BOARDS.includes(params.board) ? params.board : 'red';
+
+    // Validate display against allowlist
+    const display = VALID_DISPLAYS.includes(params.display) ? params.display : 'classic';
+
+    // Validate signal_tune against allowlist
+    const signalTune = VALID_SIGNAL_TUNES.includes(params.tune) ? params.tune : 'SIGNAL_TUNE_DEFAULT';
+
+    // Clamp LED values to valid integer range 0-15
+    const clampLed = (val, def) => {
+        const n = parseInt(val || String(def), 10);
+        return (Number.isFinite(n) && n >= 0 && n <= 15) ? n : def;
+    };
+
+    // Validate face IDs against loaded registry (registry is always set before parseHash is called)
+    const validFaceIds = new Set((registry ? registry.faces : []).map(f => f.id));
+    const rawFaceIds = params.faces.split(',').filter(Boolean);
+    const faceIds = rawFaceIds.filter(id => validFaceIds.has(id));
+
     const secondaryAt = params.secondary !== undefined ? parseInt(params.secondary, 10) : faceIds.length;
+    const clampedSecondary = (Number.isFinite(secondaryAt) && secondaryAt >= 0) ? secondaryAt : faceIds.length;
 
     const activeFaces = [];
     faceIds.forEach((id, i) => {
-        if (i === secondaryAt) activeFaces.push('__secondary__');
+        if (i === clampedSecondary) activeFaces.push('__secondary__');
         activeFaces.push(id);
     });
-    if (secondaryAt >= faceIds.length) activeFaces.push('__secondary__');
+    if (clampedSecondary >= faceIds.length) activeFaces.push('__secondary__');
 
     return {
-        board: params.board || 'red',
-        display: params.display || 'classic',
+        board,
+        display,
         activeFaces,
         clock24h: params['24h'] === 'true',
-        ledRed: parseInt(params.led_r || '0', 10),
-        ledGreen: parseInt(params.led_g || '15', 10),
-        ledBlue: parseInt(params.led_b || '0', 10),
+        ledRed: clampLed(params.led_r, 0),
+        ledGreen: clampLed(params.led_g, 15),
+        ledBlue: clampLed(params.led_b, 0),
         btnSound: params.btn === 'true',
-        signalTune: params.tune || 'SIGNAL_TUNE_DEFAULT'
+        signalTune
     };
 }
 
@@ -1863,8 +1660,8 @@ function genBuildId() {
 }
 
 async function triggerBuild() {
-    const token = document.getElementById('githubToken').value.trim() || GITHUB_TOKEN;
-    if (token === 'REPLACE_WITH_PAT') {
+    const token = getToken();
+    if (!token) {
         showStatus('[ERR] ENTER GITHUB PAT IN TOKEN FIELD ABOVE', 'error');
         return;
     }
@@ -1899,7 +1696,7 @@ async function triggerBuild() {
 
     const inputs = {
         faces: faces.join(','),
-        board: BOARD_MAP[state.board] || state.board,
+        board: state.board,
         display: state.display,
         secondary_index: String(secondaryIndex),
         clock_24h: String(state.clock24h),
@@ -1949,9 +1746,9 @@ async function pollBuild() {
     if (!buildId) return;
     clearTimeout(pollTimer);
 
-    const token = document.getElementById('githubToken').value.trim() || GITHUB_TOKEN;
+    const token = getToken();
     const headers = {
-        'Authorization': 'Bearer ' + token,
+        'Authorization': token ? 'Bearer ' + token : '',
         'Accept': 'application/vnd.github+json'
     };
 
@@ -1965,10 +1762,9 @@ async function pollBuild() {
 
         // find our run by build_id in name or by recency
         // The workflow should set run name to include build_id; otherwise match newest
-        // Workflow sets run-name = "custom-build[{buildId}] ..." so match is reliable
-        let run = runs.find(r => r.name && r.name.includes('custom-build[' + buildId + ']'));
-        // Fallback: scan display_title (older API field)
-        if (!run) run = runs.find(r => r.display_title && r.display_title.includes(buildId));
+        let run = runs.find(r => r.name && r.name.includes(buildId));
+        if (!run && runs.length > 0) run = runs[0];
+
         if (!run) {
             showStatus('WAITING FOR RUNNER... (BUILD ' + buildId + ')', '');
             pollTimer = setTimeout(pollBuild, POLL_INTERVAL_MS);
@@ -1987,9 +1783,7 @@ async function pollBuild() {
 
         if (status === 'completed') {
             if (conclusion === 'success') {
-                // Filename matches what custom-build.yml produces: {board}-{display}-{buildId}.uf2
-                const boardFull = (BOARD_MAP && BOARD_MAP[state.board]) || state.board;
-                const buildName = boardFull + '-' + state.display + '-' + buildId;
+                const buildName = 'second-movement-' + buildId;
                 const uf2Url = 'https://github.com/' + REPO + '/releases/download/custom-builds/' + buildName + '.uf2';
                 localStorage.setItem('sm_build_result_' + buildId, 'success:' + uf2Url);
                 showStatus('[OK] BUILD COMPLETE' + elapsed + ' - READY TO DOWNLOAD', 'success');
