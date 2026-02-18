@@ -81,7 +81,7 @@ static void _circadian_score_face_update_display(circadian_score_face_state_t *s
         }
     }
     
-    watch_display_string(buf, 0);
+    watch_display_text(WATCH_POSITION_FULL, buf);
 }
 
 void circadian_score_face_setup(uint8_t watch_face_index, void **context_ptr) {
