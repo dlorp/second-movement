@@ -11,16 +11,23 @@ on:
       - '.github/scripts/generate_face_registry.py'
       - '.github/scripts/settings_discovery.py'
 
-permissions:
-  contents: write
-
 jobs:
   sync-registry:
     name: Regenerate face registry and settings registry
     runs-on: ubuntu-latest
+    # contents:write is scoped to this job only (minimum required).
+    # This workflow is intentionally restricted to pushes on main (see 'on' trigger above).
+    # Do NOT add a pull_request trigger without removing the write token: a forked PR
+    # would gain write access to the base repository via GITHUB_TOKEN.
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
+        # Safe: trigger is main-only (no pull_request), so GITHUB_TOKEN write access
+        # cannot be exploited by a fork. github.head_ref is empty on push events;
+        # github.ref_name resolves to 'main'. The explicit token is required for the
+        # subsequent git push step in this same job.
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref || github.ref_name }}
