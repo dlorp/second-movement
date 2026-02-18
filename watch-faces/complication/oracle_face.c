@@ -24,24 +24,32 @@
 // ─────────────────────────────────────────────────────────────────
 static const char *words_a[64] = {
     // Chapter 0: New moon — void, seed, quiet inward pull
-    "VOID", "BROOD", "HUSH", "ODD", "SEED", "DEEP", "DRAW", "STILL",
+    // NULL: absence as data. GAP: the space before the signal.
+    "VOID", "BROOD", "HUSH", "NULL", "SEED", "DEEP", "GAP", "STILL",
     // Chapter 1: Waxing crescent — first stir, seeking
-    "STIR", "LEAN", "SEEK", "REACH", "RISE", "TEND", "SPARK", "FLIP",
+    // BLIP: first ping on the sensor. the emergence before the pattern.
+    "STIR", "LEAN", "SEEK", "REACH", "RISE", "TEND", "SPARK", "BLIP",
     // Chapter 2: First quarter — momentum, cutting, building
-    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CUT", "SNAP", "CLIMB",
+    // ETCH: building leaves marks — annotation texture, more precise than CUT
+    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "ETCH", "SNAP", "CLIMB",
     // Chapter 3: Waxing gibbous — swelling, heavy, near the peak
     // ACHE: the body knows something's building before the mind does
-    "SWELL", "FILL", "CREST", "GROW", "PULL", "HEAVY", "WILD", "ACHE",
+    // SCAR: growth that transforms the landscape. intensity with consequence.
+    "SWELL", "FILL", "CREST", "GROW", "PULL", "HEAVY", "SCAR", "ACHE",
     // Chapter 4: Full moon — peak, flood, nothing hidden
-    "TIDE", "PEAK", "FLOOD", "LUCK", "SURGE", "BURN", "SHINE", "BLAZE",
+    // GLOW: phosphorescent, atmospheric — the full moon doesn't just shine
+    "TIDE", "PEAK", "FLOOD", "LUCK", "SURGE", "BURN", "GLOW", "BLAZE",
     // Chapter 5: Waning gibbous — after the peak, giving back
     // DONE: the peak is over. definitive. sometimes funny.
-    "EASE", "POUR", "SPILL", "FLOW", "GIVE", "DONE", "YIELD", "SHED",
+    // SEEP: entropic dispersal — slower, more insidious than pour
+    "EASE", "SEEP", "SPILL", "FLOW", "GIVE", "DONE", "YIELD", "SHED",
     // Chapter 6: Last quarter — the turn, releasing what's done
-    "TURN", "FALL", "DRIFT", "PASS", "BREAK", "SPIN", "SLIDE", "SHIFT",
+    // BLUR: signal degradation as dissolution
+    "TURN", "FALL", "DRIFT", "PASS", "BREAK", "SPIN", "BLUR", "SHIFT",
     // Chapter 7: Waning crescent — thinning, the final dark
-    // HUSK: the shell after the seed is gone — organic, specific, not just empty
-    "THIN", "FADE", "SINK", "WANE", "BARE", "LIMB", "DARK", "HUSK",
+    // ECHO: what resonates after the source is gone. ghost signal.
+    // HUSK: the shell after the seed — organic, specific, not just empty
+    "THIN", "FADE", "ECHO", "WANE", "BARE", "LIMB", "DARK", "HUSK",
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -54,18 +62,22 @@ static const char *words_a[64] = {
 // ─────────────────────────────────────────────────────────────────
 static const char *words_b[55] = {
     // Zone 0 (0-10): depleted — rest is the work, not the failure
-    "SLEEP", "REST", "IDLE", "FLOAT", "MAYBE", "WAIT", "STILL", "QUIET", "PAUSE", "HOLD", "YIELD",
+    // HAZE: the depleted researcher moves through a world gone fuzzy
+    "SLEEP", "REST", "IDLE", "HAZE", "MAYBE", "WAIT", "STILL", "QUIET", "PAUSE", "HOLD", "YIELD",
     // Zone 1 (11-21): low — soft tending, gentle enough
+    // HUM: meditative continuity — low frequency but still running
     // LAY: lay low / lay it down / lay the groundwork — context does the work
-    "DRIFT", "TEND", "MEND", "NURSE", "SLOW", "SOFT", "CALM", "EASE", "LIGHT", "WALK", "LAY",
+    "DRIFT", "TEND", "MEND", "NURSE", "SLOW", "SOFT", "CALM", "EASE", "LIGHT", "HUM", "LAY",
     // Zone 2 (22-32): average — carrying it, steady
+    // SCAN: field observer presence active — awareness baseline
     // DIG: dig in, dig it, literally dig — earthy, committed
-    "STAY", "LEAN", "RISK", "MOVE", "SEEK", "STEP", "PACE", "WORK", "PRESS", "DIG", "GRIND",
+    "SCAN", "LEAN", "RISK", "MOVE", "SEEK", "STEP", "PACE", "WORK", "PRESS", "DIG", "GRIND",
     // Zone 3 (33-43): good — intentional, building
-    "PUSH", "DARE", "DRIVE", "SHAPE", "MAKE", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD", "FORGE",
+    // AXE: declarative cut-through — sharp personality in the good-energy zone
+    "PUSH", "DARE", "DRIVE", "SHAPE", "AXE", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD", "FORGE",
     // Zone 4 (44-54): sharp — peak capacity, don't waste it
-    // GO, NOW, HIT: the oracle doesn't always need five letters
-    "GO", "SURGE", "SEAR", "SPARK", "HUNT", "BURN", "LEAP", "NOW", "HIT", "BLAZE", "FLY",
+    // ZAP: electric punch. LOCK: signal acquired — peak perception as target acquisition.
+    "GO", "SURGE", "ZAP", "SPARK", "HUNT", "BURN", "LEAP", "NOW", "LOCK", "BLAZE", "FLY",
 };
 
 // ─────────────────────────────────────────────────────────────────
