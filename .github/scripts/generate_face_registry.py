@@ -21,6 +21,19 @@ import os
 import re
 import sys
 
+
+def safe_resolve(base_dir, path):
+    """
+    Resolve path relative to base_dir and verify it stays within base_dir.
+    Raises ValueError if the resolved path escapes the base directory.
+    This prevents path traversal attacks via crafted entries in watch-faces.mk.
+    """
+    resolved = os.path.realpath(os.path.join(base_dir, path))
+    base_real = os.path.realpath(base_dir)
+    if not resolved.startswith(base_real + os.sep):
+        raise ValueError(f"Path traversal detected: {path!r} resolves outside repo")
+    return resolved
+
 CATEGORIES = [
     {"id": "clock",        "name": "Clock"},
     {"id": "complication", "name": "Complication"},
@@ -106,12 +119,17 @@ def description_from_header(header_path):
     with open(header_path, "r", errors="replace") as f:
         content = f.read()
 
-    # Remove the MIT license block first (it always starts with /* MIT License)
+    # Remove the MIT license block first (it always starts with /* MIT License).
+    # Guard with a fast substring check before applying the DOTALL regex, which
+    # can backtrack quadratically on large malformed comment blocks (ReDoS).
     mit_pattern = re.compile(
         r"/\*\s*(?:SPDX-License-Identifier:[^\n]*)?\s*\n\s*\*\s*MIT License.*?\*/",
         re.DOTALL | re.IGNORECASE,
     )
-    stripped = mit_pattern.sub("", content, count=1)
+    if "MIT License" in content or "MIT license" in content:
+        stripped = mit_pattern.sub("", content, count=1)
+    else:
+        stripped = content
 
     # Look for a /* ... */ block that starts with a face name line
     # e.g. "/* CLOCK FACE\n * ...\n */"
@@ -232,13 +250,21 @@ def generate_registry(repo_root):
 
     for src in srcs:
         # src is like ./watch-faces/clock/clock_face.c
-        # Build absolute paths
+        # Build absolute paths, verifying each stays within the repo root.
         src_rel = src  # keep the ./ prefix for output
-        abs_src = os.path.join(repo_root, src.lstrip("./"))
+        try:
+            abs_src = safe_resolve(repo_root, src.lstrip("./"))
+        except ValueError as exc:
+            print(f"  [error] {src}: {exc}", file=sys.stderr)
+            continue
 
         # Derive header path
         header_rel = re.sub(r"\.c$", ".h", src_rel)
-        abs_header = os.path.join(repo_root, header_rel.lstrip("./"))
+        try:
+            abs_header = safe_resolve(repo_root, header_rel.lstrip("./"))
+        except ValueError as exc:
+            print(f"  [error] {header_rel}: {exc}", file=sys.stderr)
+            continue
 
         # Extract face id from header
         face_id = face_id_from_header(abs_header)
