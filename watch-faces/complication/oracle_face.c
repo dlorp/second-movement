@@ -63,17 +63,23 @@ static const char *words_b[55] = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Moon phase calculation (J2000-based, ±1 day accuracy)
+// Moon phase calculation — fixed-point, no floats, fits 32-bit math
+// Known new moon: 2000-01-06 18:14 UTC ≈ JDN 2451550
+// Synodic month: 29.53059 days → scaled ×100 = 2953
 // Returns 0-7 (0=new, 2=first quarter, 4=full, 6=last quarter)
 // ─────────────────────────────────────────────────────────────────
 static uint8_t _moon_phase(int year, int month, int day) {
     if (month < 3) { year--; month += 12; }
+    // Julian Day Number (integer approximation)
     long jdn = 365L * year + year / 4 - year / 100 + year / 400
                + (306 * (month + 1)) / 10 + day - 428;
-    long days_since = jdn - 2451549L;  // Known new moon: 2000-01-06
-    long cycle_pos = days_since % 30;
-    if (cycle_pos < 0) cycle_pos += 30;
-    return (uint8_t)((cycle_pos * 8) / 30);
+    // Days since known new moon (JDN 2451550), ×100 for fixed-point precision
+    long days_x100 = (jdn - 2451550L) * 100L;
+    // Position within synodic month (scaled ×100), handle negative (dates before 2000)
+    long cycle_x100 = days_x100 % 2953L;
+    if (cycle_x100 < 0) cycle_x100 += 2953L;
+    // Map 0-2952 → 0-7
+    return (uint8_t)((cycle_x100 * 8L) / 2953L);
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -91,18 +97,20 @@ static const char *_moon_name(uint8_t phase) {
 // Compute phrase from current inputs
 // ─────────────────────────────────────────────────────────────────
 static void _compute_oracle(oracle_face_state_t *state) {
-    // Word A: moon phase seeds the chapter (8 words each), doy advances daily
-    // Full list of 64 words cycles in 64 days, but phase shifts by 8 between
-    // each lunar visit, so the same word in the same phase repeats every
-    // 8 × moon_cycle ≈ 8 × 29.5 = 236 days — less than once per season
-    state->word_a_idx = (uint8_t)((state->moon_phase * 8 + state->day_of_year) % 64);
+    // Word A: moon phase locks you in the correct 8-word chapter.
+    // doy % 8 cycles through all 8 words in that chapter, changing daily.
+    // When moon phase ticks over (~3.7 days), you jump to a new chapter.
+    // This is what "archetype-seeded" means: always in your moon's zone.
+    state->word_a_idx = state->moon_phase * 8 + (state->day_of_year % 8);
 
-    // Word B: circadian tier seeds the zone (11 words each), doy*7 advances daily
-    // gcd(7, 55) = 1 → visits all 55 words before repeating (55-day full cycle)
-    // LCM(64, 55) = 3,520 days ≈ 9.6 years before same (A,B) pair repeats
-    uint8_t tier = state->circadian_score / 21;
+    // Word B: circadian tier locks you in the correct 11-word zone.
+    // (doy * 3) % 11: gcd(3, 11) = 1 → visits all 11 words in shuffled order
+    // before cycling (order: 0,3,6,9,1,4,7,10,2,5,8). Feels less sequential
+    // than stepping by 1 but stays zone-anchored as the tier demands.
+    // circadian_score / 20 gives 5 clean equal zones: 0-19, 20-39, 40-59, 60-79, 80-99
+    uint8_t tier = state->circadian_score / 20;
     if (tier > 4) tier = 4;
-    state->word_b_idx = (uint8_t)((tier * 11 + (uint16_t)state->day_of_year * 7) % 55);
+    state->word_b_idx = tier * 11 + ((state->day_of_year * 3) % 11);
 }
 
 // ─────────────────────────────────────────────────────────────────
