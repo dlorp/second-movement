@@ -17,18 +17,7 @@ jobs:
           mkdir -p _deploy
           cp -r companion-app/ _deploy/companion-app/
           cp -r builder/ _deploy/builder/
-          # Simple landing page
-          cat > _deploy/index.html << 'HTML'
-<!DOCTYPE html>
-<html>
-<head><title>second-movement</title>
-<meta http-equiv="refresh" content="0; url=companion-app/">
-</head>
-<body>
-<p><a href="companion-app/">Companion App</a> | <a href="builder/">Firmware Builder</a></p>
-</body>
-</html>
-HTML
+          printf '<!DOCTYPE html><html><head><title>second-movement</title><meta http-equiv="refresh" content="0; url=companion-app/"></head><body><p><a href="companion-app/">Companion App</a> | <a href="builder/">Firmware Builder</a></p></body></html>' > _deploy/index.html
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
