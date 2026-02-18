@@ -59,6 +59,18 @@ on:
         required: false
         default: "SIGNAL_TUNE_DEFAULT"
         type: string
+      active_hours_enabled:
+        description: 'Active hours enabled (first boot default)'
+        type: boolean
+        default: true
+      active_hours_start:
+        description: 'Active hours start, quarter-hours 0-95 (0=00:00, 16=04:00)'
+        type: string
+        default: '16'
+      active_hours_end:
+        description: 'Active hours end, quarter-hours 0-95 (92=23:00, 95=23:45)'
+        type: string
+        default: '92'
       build_id:
         description: "Unique build ID from the web UI"
         required: true
@@ -93,6 +105,9 @@ jobs:
           INPUT_LED_BLUE: ${{ github.event.inputs.led_blue }}
           INPUT_BUTTON_SOUND: ${{ github.event.inputs.button_sound }}
           INPUT_SIGNAL_TUNE: ${{ github.event.inputs.signal_tune }}
+          INPUT_ACTIVE_HOURS_ENABLED: ${{ inputs.active_hours_enabled }}
+          INPUT_ACTIVE_HOURS_START: ${{ inputs.active_hours_start }}
+          INPUT_ACTIVE_HOURS_END: ${{ inputs.active_hours_end }}
         run: |
           python3 .github/scripts/generate_config.py \
             --faces "$INPUT_FACES" \
@@ -103,6 +118,9 @@ jobs:
             --led-blue "$INPUT_LED_BLUE" \
             --button-sound "$INPUT_BUTTON_SOUND" \
             --signal-tune "$INPUT_SIGNAL_TUNE" \
+            --active-hours-enabled "$INPUT_ACTIVE_HOURS_ENABLED" \
+            --active-hours-start "$INPUT_ACTIVE_HOURS_START" \
+            --active-hours-end "$INPUT_ACTIVE_HOURS_END" \
             --output movement_config.h
 
       - name: Generate watch-faces.mk
