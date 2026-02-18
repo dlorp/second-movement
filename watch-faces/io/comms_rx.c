@@ -181,12 +181,17 @@ static void process_packet(comms_face_state_t *state) {
                     ((int16_t)state->rx_state.rx_buffer[6] << 0) |
                     ((int16_t)state->rx_state.rx_buffer[7] << 8);
 
-                uint32_t adjusted = timestamp + (int32_t)(tz_offset * 60);
+                // tz_offset is received from the sender but NOT applied here.
+                // watch_rtc_set_unix_time() expects a raw UTC Unix timestamp;
+                // the RTC hardware converts to local time internally.  Adding
+                // tz_offset here would cause double-correction (e.g. in AKST
+                // the watch would show 01:00 instead of 10:00).
+                (void)tz_offset;  // retained for future use / logging
 
                 // Validate hour and minute before committing to RTC.
                 // A Unix timestamp is always non-negative and fully determined, so
                 // an invalid hour/minute indicates corrupt data -- reject the write.
-                uint32_t time_of_day = adjusted % 86400UL;
+                uint32_t time_of_day = timestamp % 86400UL;
                 uint8_t  hour        = (uint8_t)(time_of_day / 3600U);
                 uint8_t  minute      = (uint8_t)((time_of_day % 3600U) / 60U);
 
@@ -195,7 +200,7 @@ static void process_packet(comms_face_state_t *state) {
                     break;
                 }
 
-                watch_rtc_set_unix_time(adjusted);
+                watch_rtc_set_unix_time(timestamp);  // pass raw UTC
                 state->mode = COMMS_MODE_RX_DONE;
             } else {
                 state->mode = COMMS_MODE_RX_ERROR;
