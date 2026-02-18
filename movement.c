@@ -192,7 +192,7 @@ static bool is_sleep_window(void);
 static bool is_confirmed_asleep(void);
 
 // Expose sleep tracker state for smart alarm integration
-struct sleep_tracker_state_t* movement_get_sleep_tracker_state(void) {
+struct sleep_tracker_state_s* movement_get_sleep_tracker_state(void) {
     return &global_sleep_tracker;
 }
 
