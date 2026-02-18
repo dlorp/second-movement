@@ -15,66 +15,52 @@
 #include "circadian_score.h"
 
 // ─────────────────────────────────────────────────────────────────
-// Word A: Moon phase families — the cosmic tone of the moment
-//
-// Moon phase seeds the archetype cluster (8 families × 12 words = 96).
-// day_of_year % 12 rolls through the family daily — a new word every day,
-// thematically related but never locked to just one word per phase.
+// Word A: 64-word flat list, ordered by lunar archetype
+// Moon phase seeds the starting chapter (8 words per chapter).
+// index = (moon_phase * 8 + day_of_year) % 64
+// → different word every single day, archetype-biased chapter
+// → two same-moon-phase visits are 29.5 days apart, so index advances
+//   by 29.5%64 ≈ 30 positions between visits → different words each time
 // ─────────────────────────────────────────────────────────────────
-static const char *words_a[8][12] = {
-    // New moon: inward, potential, the quiet pull before anything begins
-    {"SEED ", "VOID ", "DRAW ", "STILL", "BROOD", "HUSH ", "WAIT ",
-     "PULL ", "DEEP ", "EMPTY", "QUIET", "DARK "},
-    // Waxing crescent: first stir, something kindling
-    {"RISE ", "STIR ", "SPARK", "LEAN ", "SEEK ", "REACH", "TEND ",
-     "PUSH ", "BEGIN", "OPEN ", "LIGHT", "MOVE "},
-    // First quarter: momentum, deciding, cutting through
-    {"BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "CLIMB",
-     "HOLD ", "MAKE ", "FORM ", "BRACE", "GRIND"},
-    // Waxing gibbous: swelling, heavy with what's coming
-    {"SWELL", "FILL ", "CREST", "PULL ", "GROW ", "HEAVY", "NEAR ",
-     "ACHE ", "LOAD ", "RICH ", "FULL ", "TENSE"},
-    // Full moon: peak, flood, nothing hidden
-    {"TIDE ", "PEAK ", "FLOOD", "BLOOM", "SURGE", "BURN ", "SHINE",
-     "GLOW ", "BOLD ", "FORCE", "BLAZE", "OPEN "},
-    // Waning gibbous: after the peak, slowly giving back
-    {"EASE ", "POUR ", "SPILL", "FLOW ", "GIVE ", "DRAIN", "REST ",
-     "YIELD", "LOOSE", "SLOW ", "SHED ", "SPENT"},
-    // Last quarter: the turn, releasing what's done
-    {"TURN ", "FALL ", "DRIFT", "SHED ", "PASS ", "BREAK", "YIELD",
-     "LEAN ", "CLEAR", "SLIDE", "SHIFT", "LOOSE"},
-    // Waning crescent: thinning, the final dark, going quiet
-    {"THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "STILL", "SLEEP",
-     "HUSH ", "QUIET", "DARK ", "CLOSE", "EMPTY"},
+static const char *words_a[64] = {
+    // Chapter 0: New moon — void, seed, quiet inward pull
+    "VOID ", "BROOD", "HUSH ", "WAIT ", "SEED ", "DEEP ", "DRAW ", "STILL",
+    // Chapter 1: Waxing crescent — first stir, seeking
+    "STIR ", "LEAN ", "SEEK ", "REACH", "RISE ", "TEND ", "SPARK", "BEGIN",
+    // Chapter 2: First quarter — momentum, cutting, building
+    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "MAKE ", "CLIMB",
+    // Chapter 3: Waxing gibbous — swelling, heavy, near the peak
+    "SWELL", "FILL ", "CREST", "GROW ", "PULL ", "HEAVY", "ACHE ", "TENSE",
+    // Chapter 4: Full moon — peak, flood, nothing hidden
+    "TIDE ", "PEAK ", "FLOOD", "BLOOM", "SURGE", "BURN ", "SHINE", "BLAZE",
+    // Chapter 5: Waning gibbous — after the peak, giving back
+    "EASE ", "POUR ", "SPILL", "FLOW ", "GIVE ", "DRAIN", "YIELD", "SHED ",
+    // Chapter 6: Last quarter — the turn, releasing what's done
+    "TURN ", "FALL ", "DRIFT", "PASS ", "BREAK", "CLEAR", "SLIDE", "SHIFT",
+    // Chapter 7: Waning crescent — thinning, the final dark
+    "THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "SLEEP", "DARK ", "EMPTY",
 };
-#define WORDS_A_PER_PHASE 12
 
 // ─────────────────────────────────────────────────────────────────
-// Word B: Circadian score families — your energy, mood, what you can bring
-//
-// Circadian tier seeds the cluster (5 tiers × 12 words = 60).
-// (day_of_year / 3) % 12 drifts daily at a different rate than Word A —
-// the two words shift independently, keeping combos fresh.
-// Words are mood/action: not just nouns, not just verbs — the texture of the day.
+// Word B: 55-word flat list, ordered by energy/mood (depleted → sharp)
+// Circadian tier seeds the chapter offset (11 words per tier zone).
+// index = (circadian_tier * 11 + day_of_year * 7) % 55
+// → day*7 with gcd(7,55)=1 → visits all 55 words before repeating
+// → LCM(64 days, 55 days) = 3,520 days ≈ 9.6 years before same phrase
+// Words are mood/action: the texture of your capacity today
 // ─────────────────────────────────────────────────────────────────
-static const char *words_b[5][12] = {
-    // 0-20: depleted — rest is the work, not the failure
-    {"REST ", "HOLD ", "STILL", "WAIT ", "PAUSE", "YIELD", "QUIET", "DWELL",
-     "FLOAT", "LOW  ", "IDLE ", "SLEEP"},
-    // 21-40: low — soft, tending, gentle maintenance
-    {"TEND ", "SLOW ", "SOFT ", "KEEP ", "MEND ", "EASE ", "LIGHT", "WALK ",
-     "TREAD", "NURSE", "STAY ", "CALM "},
-    // 41-60: average — steady, carrying it
-    {"MOVE ", "SEEK ", "WORK ", "STEP ", "HOLD ", "CARRY", "PUSH ", "PRESS",
-     "GRIND", "PACE ", "TRACE", "KEEP "},
-    // 61-80: good — intentional, capable, building something
-    {"DRIVE", "SHAPE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD ",
-     "PRESS", "CARVE", "LOCK ", "FORM "},
-    // 81-100: sharp — peak, vivid, don't waste it
-    {"SURGE", "BLAZE", "FORGE", "SEAR ", "SPARK", "HUNT ", "SHARP", "BURN ",
-     "STORM", "BOLD ", "PUSH ", "FLY  "},
+static const char *words_b[55] = {
+    // Zone 0 (0-10): depleted — rest is the work, not the failure
+    "SLEEP", "REST ", "IDLE ", "FLOAT", "DWELL", "WAIT ", "STILL", "QUIET", "PAUSE", "HOLD ", "YIELD",
+    // Zone 1 (11-21): low — soft tending, gentle enough
+    "DRIFT", "TEND ", "MEND ", "NURSE", "SLOW ", "SOFT ", "CALM ", "EASE ", "LIGHT", "WALK ", "TREAD",
+    // Zone 2 (22-32): average — carrying it, steady
+    "STAY ", "LEAN ", "ROAM ", "MOVE ", "SEEK ", "STEP ", "PACE ", "WORK ", "PRESS", "CARRY", "GRIND",
+    // Zone 3 (33-43): good — intentional, building
+    "PUSH ", "BRACE", "DRIVE", "SHAPE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD ", "FORGE",
+    // Zone 4 (44-54): sharp — peak capacity, don't waste it
+    "CARVE", "SURGE", "SEAR ", "SPARK", "HUNT ", "BURN ", "STORM", "BOLD ", "SHARP", "BLAZE", "FLY  ",
 };
-#define WORDS_B_PER_TIER 12
 
 // ─────────────────────────────────────────────────────────────────
 // Moon phase calculation (J2000-based, ±1 day accuracy)
@@ -105,14 +91,18 @@ static const char *_moon_name(uint8_t phase) {
 // Compute phrase from current inputs
 // ─────────────────────────────────────────────────────────────────
 static void _compute_oracle(oracle_face_state_t *state) {
-    // Word A: moon phase selects the family (archetype cluster)
-    // day_of_year % 12 rolls through all 12 words in the family daily
-    state->word_a_idx = state->day_of_year % WORDS_A_PER_PHASE;
+    // Word A: moon phase seeds the chapter (8 words each), doy advances daily
+    // Full list of 64 words cycles in 64 days, but phase shifts by 8 between
+    // each lunar visit, so the same word in the same phase repeats every
+    // 8 × moon_cycle ≈ 8 × 29.5 = 236 days — less than once per season
+    state->word_a_idx = (uint8_t)((state->moon_phase * 8 + state->day_of_year) % 64);
 
-    // Word B: circadian tier selects the energy cluster
-    // (day_of_year / 3) % 12 drifts at 1/3 speed of Word A —
-    // the two words shift at different rates so combos stay varied
-    state->word_b_idx = (state->day_of_year / 3) % WORDS_B_PER_TIER;
+    // Word B: circadian tier seeds the zone (11 words each), doy*7 advances daily
+    // gcd(7, 55) = 1 → visits all 55 words before repeating (55-day full cycle)
+    // LCM(64, 55) = 3,520 days ≈ 9.6 years before same (A,B) pair repeats
+    uint8_t tier = state->circadian_score / 21;
+    if (tier > 4) tier = 4;
+    state->word_b_idx = (uint8_t)((tier * 11 + (uint16_t)state->day_of_year * 7) % 55);
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -168,16 +158,12 @@ static void _update_display(oracle_face_state_t *state) {
 
     switch (v) {
         case ORACLE_VIEW_WORD_A:
-            watch_display_text(WATCH_POSITION_BOTTOM,
-                words_a[state->moon_phase][state->word_a_idx]);
+            watch_display_text(WATCH_POSITION_BOTTOM, words_a[state->word_a_idx]);
             break;
 
-        case ORACLE_VIEW_WORD_B: {
-            uint8_t tier = state->circadian_score / 21;
-            if (tier > 4) tier = 4;
-            watch_display_text(WATCH_POSITION_BOTTOM, words_b[tier][state->word_b_idx]);
+        case ORACLE_VIEW_WORD_B:
+            watch_display_text(WATCH_POSITION_BOTTOM, words_b[state->word_b_idx]);
             break;
-        }
 
         case ORACLE_VIEW_INFO:
             snprintf(buf, sizeof(buf), "%s%3d", _moon_name(state->moon_phase), state->circadian_score);
