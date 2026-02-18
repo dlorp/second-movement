@@ -15,33 +15,49 @@
 #include "circadian_score.h"
 
 // ─────────────────────────────────────────────────────────────────
-// Word A: Moon phase pools
-// 8 phases × 4 words = 32 options
-// Day-of-year % 4 selects within pool for daily drift
+// Word A: Moon phase pools — the cosmic tone of the moment
+// 8 phases × 8 words = 64 options
+// day_of_year % 8 selects daily, giving a new word each day
 // ─────────────────────────────────────────────────────────────────
-static const char *words_a[8][4] = {
-    {"SEED ", "VOID ", "PULL ", "STILL"},  // New (0)
-    {"RISE ", "PATH ", "REACH", "LEAN "},  // Waxing crescent (1)
-    {"BUILD", "PUSH ", "FORGE", "PRESS"},  // First quarter (2)
-    {"SWELL", "FILL ", "GROW ", "DRAW "},  // Waxing gibbous (3)
-    {"TIDE ", "PEAK ", "BLOOM", "FORCE"},  // Full (4)
-    {"EASE ", "POUR ", "FLOW ", "HOLD "},  // Waning gibbous (5)
-    {"TURN ", "FALL ", "DRIFT", "SHED "},  // Last quarter (6)
-    {"THIN ", "FADE ", "HUSH ", "WANE "},  // Waning crescent (7)
+static const char *words_a[8][8] = {
+    // New moon: inward, dark, potential
+    {"SEED ", "VOID ", "BROOD", "STILL", "DRAW ", "QUIET", "HUSH ", "WAIT "},
+    // Waxing crescent: first stir, beginning
+    {"RISE ", "STIR ", "SPARK", "LEAN ", "SEEK ", "REACH", "TEND ", "PUSH "},
+    // First quarter: momentum, deciding, building
+    {"BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "CLIMB", "HOLD "},
+    // Waxing gibbous: swelling, near the peak, heavy
+    {"SWELL", "FILL ", "CREST", "PULL ", "GROW ", "HEAVY", "DRAW ", "NEAR "},
+    // Full moon: peak, flood, illuminated
+    {"TIDE ", "PEAK ", "FLOOD", "BLOOM", "SURGE", "BURN ", "SHINE", "GLOW "},
+    // Waning gibbous: after the peak, releasing slowly
+    {"EASE ", "POUR ", "SPILL", "FLOW ", "GIVE ", "DRAIN", "REST ", "YIELD"},
+    // Last quarter: turning, shedding, letting go
+    {"TURN ", "FALL ", "DRIFT", "SHED ", "PASS ", "BREAK", "LET  ", "YIELD"},
+    // Waning crescent: thinning, final dark, hush
+    {"THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "STILL", "SLEEP", "HUSH "},
 };
+#define WORDS_A_COUNT 8
 
 // ─────────────────────────────────────────────────────────────────
-// Word B: Circadian score tiers
-// 5 tiers × 4 words = 20 options
-// Day-of-year % 4 selects within tier for daily drift
+// Word B: Circadian score tiers — your energy, mood, capacity
+// 5 tiers × 8 words = 40 options
+// (day_of_year / 3) % 8 selects daily, offset from Word A drift
+// Words are mood/action hybrids: what you can bring, what fits your state
 // ─────────────────────────────────────────────────────────────────
-static const char *words_b[5][4] = {
-    {"REST ", "HOLD ", "STILL", "WAIT "},  // 0-20: depleted
-    {"TEND ", "SLOW ", "KEEP ", "SOFT "},  // 21-40: low
-    {"MOVE ", "SEEK ", "WORK ", "TEND "},  // 41-60: average
-    {"DRIVE", "SHAPE", "BUILD", "PUSH "},  // 61-80: good
-    {"FORGE", "SURGE", "BOLD ", "LEAD "},  // 81-100: sharp
+static const char *words_b[5][8] = {
+    // 0-20: depleted — rest is the right move, not failure
+    {"REST ", "HOLD ", "STILL", "WAIT ", "PAUSE", "YIELD", "QUIET", "DWELL"},
+    // 21-40: low — gentle tending, soft action
+    {"TEND ", "SLOW ", "SOFT ", "KEEP ", "MEND ", "EASE ", "LIGHT", "WALK "},
+    // 41-60: average — steady, carrying the weight
+    {"MOVE ", "SEEK ", "WORK ", "STEP ", "HOLD ", "CARRY", "PUSH ", "PRESS"},
+    // 61-80: good — intentional, capable
+    {"DRIVE", "SHAPE", "FORGE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD"},
+    // 81-100: sharp — peak capacity, vivid
+    {"SURGE", "BOLD ", "BLAZE", "LEAD ", "SEAR ", "SPARK", "HUNT ", "SHARP"},
 };
+#define WORDS_B_COUNT 8
 
 // ─────────────────────────────────────────────────────────────────
 // Moon phase calculation (J2000-based, ±1 day accuracy)
@@ -72,17 +88,14 @@ static const char *_moon_name(uint8_t phase) {
 // Compute phrase from current inputs
 // ─────────────────────────────────────────────────────────────────
 static void _compute_oracle(oracle_face_state_t *state) {
-    // Word A: moon phase pool + day-of-year drift
-    state->word_a_idx = state->day_of_year % 4;
+    // Word A: moon phase pool, day-of-year selects within pool
+    // Changes daily within the ~3.7-day phase window
+    state->word_a_idx = state->day_of_year % WORDS_A_COUNT;
 
-    // Word B: circadian score → tier, day-of-year drifts within tier
-    uint8_t tier = state->circadian_score / 21;
-    if (tier > 4) tier = 4;
-    state->word_b_idx = (state->day_of_year / 4) % 4;
-
-    // Store tier in word_b_idx upper nibble isn't needed — just use tier
-    // (tier used directly in display, word_b_idx is the within-tier index)
-    (void)tier;  // used in display, not stored (derived from circadian_score)
+    // Word B: circadian tier, offset day-of-year so A and B drift independently
+    // Dividing by 3 slows the drift slightly — A and B shift at different rates,
+    // keeping combinations fresh even when doy moves by 1
+    state->word_b_idx = (state->day_of_year / 3) % WORDS_B_COUNT;
 }
 
 // ─────────────────────────────────────────────────────────────────
