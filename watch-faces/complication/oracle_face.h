@@ -47,15 +47,22 @@ typedef enum {
     ORACLE_VIEW_COUNT
 } oracle_view_t;
 
+typedef enum {
+    ORACLE_MODE_BOTH   = 0,   // Full reading: Word A then Word B
+    ORACLE_MODE_A_ONLY = 1,   // Only Word A — no personal frame
+    ORACLE_MODE_B_ONLY = 2,   // Only Word B — no cosmic frame
+} oracle_mode_t;
+
 typedef struct {
-    oracle_view_t view;       // Current display view
-    uint8_t moon_phase;       // 0-7 (0=new, 4=full)
-    uint8_t circadian_score;  // 0-100
-    uint8_t word_a_idx;       // Index into moon phase pool
-    uint8_t word_b_idx;       // Index into circadian tier
-    uint8_t day_of_year;      // 1-255, truncated (daily drift)
-    bool is_birthday_today;   // True on configured birthday
-    bool needs_update;        // Recompute on next activate
+    oracle_view_t view;        // Current display view
+    oracle_mode_t mode;        // Today's reading mode (set daily)
+    uint8_t moon_phase;        // 0-7 (0=new, 4=full)
+    uint8_t circadian_score;   // 0-100
+    uint8_t word_a_idx;        // Index into words_a[]
+    uint8_t word_b_idx;        // Index into words_b[]
+    uint8_t day_of_year;       // 1-255, truncated (daily drift)
+    bool is_birthday_today;    // True on configured birthday
+    bool needs_update;         // Recompute on next activate
 } oracle_face_state_t;
 
 void oracle_face_setup(uint8_t watch_face_index, void **context_ptr);

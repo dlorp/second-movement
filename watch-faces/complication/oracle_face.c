@@ -101,23 +101,25 @@ static void _compute_oracle(oracle_face_state_t *state) {
     uint8_t year = now.unit.year;  // 0-63 (relative to 2020), enough for salt
 
     // Word A: moon phase chapter (8 words), doy + year-salt cycles daily.
-    // year % 8 shifts the starting word each calendar year — same date next
-    // year reads a different word (no annual repeat). After 8 years the salt
-    // repeats, but moon phase varies year-to-year (lunar ≠ solar), so
-    // practical same-word repeats on the same date are extremely rare.
+    // year % 8 shifts starting word each year — no same-date annual repeat.
     uint8_t inner_a = (state->day_of_year + year % 8) % 8;
     state->word_a_idx = state->moon_phase * 8 + inner_a;
 
     // Word B: circadian tier zone (11 words), shuffled order, annual reset.
-    // gcd(3, 11) = 1 → visits all 11 zone words before cycling.
-    // year % 11 shifts the zone position annually — different energy word
-    // each year on the same day even at the same circadian tier.
-    // LCM(8, 11) = 88 years before both salts simultaneously repeat.
+    // gcd(3, 11) = 1 → shuffled zone walk. year % 11 shifts annually.
     // circadian_score / 20: clean equal zones: 0-19, 20-39, 40-59, 60-79, 80-99
     uint8_t tier = state->circadian_score / 20;
     if (tier > 4) tier = 4;
     uint8_t inner_b = ((state->day_of_year * 3) + year % 11) % 11;
     state->word_b_idx = tier * 11 + inner_b;
+
+    // Reading mode: how many words does today's oracle speak?
+    // 60% both words, 20% A only (cosmic frame), 20% B only (pure energy)
+    // Deterministic per day — surprise is in not knowing until you press ALARM
+    uint8_t mode_seed = (year * 7 + state->day_of_year * 3 + state->moon_phase) % 5;
+    if      (mode_seed == 0) state->mode = ORACLE_MODE_A_ONLY;
+    else if (mode_seed == 1) state->mode = ORACLE_MODE_B_ONLY;
+    else                     state->mode = ORACLE_MODE_BOTH;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -214,8 +216,10 @@ void oracle_face_activate(void *context) {
         _refresh_oracle(state);
     }
 
-    // Open on BDAY view on birthday, else Word A
-    state->view = state->is_birthday_today ? ORACLE_VIEW_BDAY : ORACLE_VIEW_WORD_A;
+    // Open on BDAY if birthday, else first word based on today's reading mode
+    if (state->is_birthday_today)       state->view = ORACLE_VIEW_BDAY;
+    else if (state->mode == ORACLE_MODE_B_ONLY) state->view = ORACLE_VIEW_WORD_B;
+    else                                state->view = ORACLE_VIEW_WORD_A;
     _update_display(state);
 }
 
@@ -229,10 +233,37 @@ bool oracle_face_loop(movement_event_t event, void *context) {
             break;
 
         case EVENT_ALARM_BUTTON_UP: {
-            // Cycle: BDAY → Word A → Word B → Info → Word A
-            oracle_view_t next = (oracle_view_t)((state->view + 1) % ORACLE_VIEW_COUNT);
-            if (!state->is_birthday_today && next == ORACLE_VIEW_BDAY) {
-                next = ORACLE_VIEW_WORD_A;
+            // Cycle respects today's reading mode:
+            //   BOTH:   BDAY → Word A → Word B → Info → loop
+            //   A only: BDAY → Word A → Info → loop
+            //   B only: BDAY → Word B → Info → loop
+            oracle_view_t next;
+            switch (state->view) {
+                case ORACLE_VIEW_BDAY:
+                    // After birthday message, go to first oracle word
+                    next = (state->mode == ORACLE_MODE_B_ONLY)
+                           ? ORACLE_VIEW_WORD_B : ORACLE_VIEW_WORD_A;
+                    break;
+                case ORACLE_VIEW_WORD_A:
+                    // A-only and BOTH diverge here
+                    next = (state->mode == ORACLE_MODE_BOTH)
+                           ? ORACLE_VIEW_WORD_B : ORACLE_VIEW_INFO;
+                    break;
+                case ORACLE_VIEW_WORD_B:
+                    next = ORACLE_VIEW_INFO;
+                    break;
+                case ORACLE_VIEW_INFO:
+                    // Loop back to first view
+                    if (state->is_birthday_today)
+                        next = ORACLE_VIEW_BDAY;
+                    else if (state->mode == ORACLE_MODE_B_ONLY)
+                        next = ORACLE_VIEW_WORD_B;
+                    else
+                        next = ORACLE_VIEW_WORD_A;
+                    break;
+                default:
+                    next = ORACLE_VIEW_WORD_A;
+                    break;
             }
             state->view = next;
             _update_display(state);
