@@ -1305,9 +1305,15 @@ function loadTemplate(tmplState) {
     if (tmplState.ledBlue !== undefined) state.ledBlue = tmplState.ledBlue;
     if (tmplState.btnSound !== undefined) state.btnSound = tmplState.btnSound;
     if (tmplState.signalTune) state.signalTune = tmplState.signalTune;
-    if (tmplState.activeHoursEnabled !== undefined) state.activeHoursEnabled = tmplState.activeHoursEnabled;
-    if (tmplState.activeHoursStart !== undefined) state.activeHoursStart = tmplState.activeHoursStart;
-    if (tmplState.activeHoursEnd !== undefined) state.activeHoursEnd = tmplState.activeHoursEnd;
+    if (tmplState.activeHoursEnabled !== undefined) state.activeHoursEnabled = !!tmplState.activeHoursEnabled;
+    if (tmplState.activeHoursStart !== undefined) {
+        const v = parseInt(tmplState.activeHoursStart, 10);
+        state.activeHoursStart = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 16;
+    }
+    if (tmplState.activeHoursEnd !== undefined) {
+        const v = parseInt(tmplState.activeHoursEnd, 10);
+        state.activeHoursEnd = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 92;
+    }
     // sync sliders/toggles to loaded state
     document.getElementById('ledRed').value = state.ledRed;
     document.getElementById('ledRedVal').textContent = state.ledRed;
@@ -1574,11 +1580,13 @@ async function init() {
         updateHash();
     });
     document.getElementById('ahStart').addEventListener('change', e => {
-        state.activeHoursStart = parseInt(e.target.value, 10);
+        const v = parseInt(e.target.value, 10);
+        state.activeHoursStart = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 16;
         updateHash();
     });
     document.getElementById('ahEnd').addEventListener('change', e => {
-        state.activeHoursEnd = parseInt(e.target.value, 10);
+        const v = parseInt(e.target.value, 10);
+        state.activeHoursEnd = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 92;
         updateHash();
     });
 
