@@ -85,7 +85,10 @@ static uint8_t _moon_phase(int year, int month, int day) {
     long cycle_x100 = days_x100 % 2953L;
     if (cycle_x100 < 0) cycle_x100 += 2953L;
     // Map 0-2952 → 0-7
-    return (uint8_t)((cycle_x100 * 8L) / 2953L);
+    // Note: (2952 * 8) / 2953 = 8 via integer division — clamp to prevent
+    // word_a_idx = moon_phase * 8 + inner from exceeding words_a[63]
+    uint8_t phase = (uint8_t)((cycle_x100 * 8L) / 2953L);
+    return (phase > 7) ? 7 : phase;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -102,27 +105,25 @@ static const char *_moon_name(uint8_t phase) {
 // ─────────────────────────────────────────────────────────────────
 // Compute phrase from current inputs
 // ─────────────────────────────────────────────────────────────────
-static void _compute_oracle(oracle_face_state_t *state) {
-    watch_date_time_t now = movement_get_local_date_time();
-    uint8_t year = now.unit.year;  // 0-63 (relative to 2020), enough for salt
-
+// year_val: watch RTC year field (0-63, relative to WATCH_RTC_REFERENCE_YEAR)
+static void _compute_oracle(oracle_face_state_t *state, uint8_t year_val) {
     // Word A: moon phase chapter (8 words), doy + year-salt cycles daily.
-    // year % 8 shifts starting word each year — no same-date annual repeat.
-    uint8_t inner_a = (state->day_of_year + year % 8) % 8;
+    // year_val % 8 shifts starting word each year — no same-date annual repeat.
+    uint8_t inner_a = (state->day_of_year + year_val % 8) % 8;
     state->word_a_idx = state->moon_phase * 8 + inner_a;
 
     // Word B: circadian tier zone (11 words), shuffled order, annual reset.
-    // gcd(3, 11) = 1 → shuffled zone walk. year % 11 shifts annually.
-    // circadian_score / 20: clean equal zones: 0-19, 20-39, 40-59, 60-79, 80-99
+    // gcd(3, 11) = 1 → shuffled zone walk. year_val % 11 shifts annually.
+    // circadian_score valid range: 0-99. /20 gives tiers 0-4 exactly.
+    // score=100 clamped to tier=4 (valid: 100/20=5, clamp→4).
     uint8_t tier = state->circadian_score / 20;
     if (tier > 4) tier = 4;
-    uint8_t inner_b = ((state->day_of_year * 3) + year % 11) % 11;
+    uint8_t inner_b = ((state->day_of_year * 3) + year_val % 11) % 11;
     state->word_b_idx = tier * 11 + inner_b;
 
     // Reading mode: 85% full reading, ~7.5% A only, ~7.5% B only
     // % 13: 0=A_only(7.7%), 1=B_only(7.7%), 2-12=BOTH(84.6%)
-    // Surprise is in not knowing which until you press ALARM
-    uint8_t mode_seed = (year * 7 + state->day_of_year * 3 + state->moon_phase) % 13;
+    uint8_t mode_seed = (year_val * 7 + state->day_of_year * 3 + state->moon_phase) % 13;
     if      (mode_seed == 0) state->mode = ORACLE_MODE_A_ONLY;
     else if (mode_seed == 1) state->mode = ORACLE_MODE_B_ONLY;
     else                     state->mode = ORACLE_MODE_BOTH;
@@ -151,7 +152,7 @@ static void _refresh_oracle(oracle_face_state_t *state) {
     state->is_birthday_today = false;
 #endif
 
-    _compute_oracle(state);
+    _compute_oracle(state, (uint8_t)now.unit.year);
     state->needs_update = false;
 }
 
