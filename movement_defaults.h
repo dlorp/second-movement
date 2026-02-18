@@ -28,4 +28,14 @@
 #define MOVEMENT_DEFAULT_ACTIVE_HOURS_ENABLED true
 #endif
 
+// Compile-time range guards — catches out-of-range -D overrides at build time.
+_Static_assert(MOVEMENT_DEFAULT_ACTIVE_HOURS_START <= 95,
+    "MOVEMENT_DEFAULT_ACTIVE_HOURS_START must be 0-95 (quarter-hour increments)");
+_Static_assert(MOVEMENT_DEFAULT_ACTIVE_HOURS_END <= 95,
+    "MOVEMENT_DEFAULT_ACTIVE_HOURS_END must be 0-95 (quarter-hour increments)");
+_Static_assert(MOVEMENT_DEFAULT_LATITUDE >= -18000 && MOVEMENT_DEFAULT_LATITUDE <= 18000,
+    "MOVEMENT_DEFAULT_LATITUDE must be -18000 to 18000 (hundredths of a degree)");
+_Static_assert(MOVEMENT_DEFAULT_LONGITUDE >= -18000 && MOVEMENT_DEFAULT_LONGITUDE <= 18000,
+    "MOVEMENT_DEFAULT_LONGITUDE must be -18000 to 18000 (hundredths of a degree)");
+
 #endif // MOVEMENT_DEFAULTS_H_
