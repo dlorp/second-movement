@@ -3,6 +3,13 @@ Second Movement
 
 **Note:** This is my fork of second-movement. See upstream at [joeycastillo/second-movement](https://github.com/joeycastillo/second-movement).
 
+## Sites
+
+| Site | Description |
+|------|-------------|
+| [**Firmware Builder**](https://dlorp.github.io/second-movement/builder/) | Web UI — pick faces, configure settings, dispatch a GitHub Actions build, download UF2 |
+| [**Companion App**](https://dlorp.github.io/second-movement/companion-app/) | Optical TX web app — send data to the watch via screen flash (Timex DataLink-style) |
+
 ## Fork Changes
 
 ### Tap-to-Wake Feature
