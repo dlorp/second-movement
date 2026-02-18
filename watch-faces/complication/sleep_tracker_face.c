@@ -57,7 +57,7 @@ static const int16_t DEFAULT_LIGHT_MODIFIERS[4] = {
 //
 
 static void _sleep_tracker_display_duration(sleep_tracker_state_t *state) {
-    char buf[8];
+    char buf[12];
     uint8_t hours = state->total_sleep_minutes / 60;
     uint8_t minutes = state->total_sleep_minutes % 60;
     
@@ -72,14 +72,14 @@ static void _sleep_tracker_display_duration(sleep_tracker_state_t *state) {
 }
 
 static void _sleep_tracker_display_efficiency(sleep_tracker_state_t *state) {
-    uint16_t efficiency = sleep_tracker_calculate_efficiency(state);
-    char buf[7];
+    uint8_t efficiency = (uint8_t)sleep_tracker_calculate_efficiency(state);
+    char buf[9];
     snprintf(buf, sizeof(buf), "%d%% ", efficiency);
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
 
 static void _sleep_tracker_display_waso(sleep_tracker_state_t *state) {
-    char buf[7];
+    char buf[12];
     snprintf(buf, sizeof(buf), "%d  ", state->total_wake_minutes);
     watch_display_text(WATCH_POSITION_TOP_RIGHT, "min");
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
@@ -94,7 +94,7 @@ static void _sleep_tracker_display_awakenings(sleep_tracker_state_t *state) {
 static void _sleep_tracker_display_score(sleep_tracker_state_t *state) {
     // Calculate single-night sleep score (only when session is complete)
     if (!state->session_complete) {
-        watch_display_string("SL  --", 0);
+        watch_display_text(WATCH_POSITION_FULL, "SL  --");
         return;
     }
     
@@ -120,7 +120,7 @@ static void _sleep_tracker_display_score(sleep_tracker_state_t *state) {
     
     char buf[8];
     snprintf(buf, sizeof(buf), "SL  %2d", score);
-    watch_display_string(buf, 0);
+    watch_display_text(WATCH_POSITION_FULL, buf);
 }
 
 //
@@ -395,13 +395,13 @@ bool sleep_tracker_face_loop(movement_event_t event, void *context) {
             if (state->tracking_active) {
                 sleep_tracker_end_session(state);
                 // Show "END" briefly
-                watch_display_string("END   ", 0);
+                watch_display_text(WATCH_POSITION_FULL, "END   ");
                 movement_illuminate_led();
                 // Will update to metrics on next tick
             } else {
                 sleep_tracker_start_session(state);
                 // Show "START" briefly
-                watch_display_string("START ", 0);
+                watch_display_text(WATCH_POSITION_FULL, "START ");
                 movement_illuminate_led();
                 // Will update to duration on next tick
             }

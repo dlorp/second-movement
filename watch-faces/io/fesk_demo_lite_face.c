@@ -38,6 +38,7 @@ void fesk_demo_lite_face_setup(uint8_t watch_face_index, void ** context_ptr) {
 
 void fesk_demo_lite_face_activate(void *context) {
     fesk_demo_lite_state_t *state = (fesk_demo_lite_state_t *)context;
+    (void) state;
 }
 
 bool fesk_demo_lite_face_loop(movement_event_t event, void *context) {

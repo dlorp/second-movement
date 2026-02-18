@@ -147,28 +147,11 @@ static void _call_countdown(fesk_session_countdown_cb cb,
     }
 }
 
-static void _call_sequence(fesk_session_sequence_cb cb,
-                           const int8_t *sequence,
-                           size_t entries,
-                           void *user_data) {
-    if (cb) {
-        cb(sequence, entries, user_data);
-    }
-}
-
 static void _call_error(fesk_session_error_cb cb,
                         fesk_result_t error,
                         void *user_data) {
     if (cb) {
         cb(error, user_data);
-    }
-}
-
-static void _clear_sequence(fesk_session_t *session) {
-    if (session->sequence) {
-        fesk_free_sequence(session->sequence);
-        session->sequence = NULL;
-        session->sequence_entries = 0;
     }
 }
 
@@ -187,57 +170,12 @@ static void _finish_session(fesk_session_t *session, bool notify) {
     watch_buzzer_abort_sequence();
     watch_set_buzzer_off();
 
-    _clear_sequence(session);
     session->phase = FESK_SESSION_IDLE;
     session->seconds_remaining = 0;
 
     if (notify) {
         _call_simple(session->config.on_transmission_end, session->config.user_data);
     }
-}
-
-static bool _build_sequence(fesk_session_t *session) {
-    const char *payload = session->config.static_message;
-    size_t payload_length = 0;
-
-    if (session->config.provide_payload) {
-        fesk_result_t callback_result = session->config.provide_payload(&payload,
-                                                                        &payload_length,
-                                                                        session->config.user_data);
-        if (callback_result != FESK_OK) {
-            _call_error(session->config.on_error, callback_result, session->config.user_data);
-            return false;
-        }
-    }
-
-    if (payload && payload_length == 0) {
-        payload_length = strlen(payload);
-    }
-
-    if (!payload || payload_length == 0) {
-        _call_error(session->config.on_error, FESK_ERR_INVALID_ARGUMENT, session->config.user_data);
-        return false;
-    }
-
-    int8_t *sequence = NULL;
-    size_t entries = 0;
-    fesk_result_t encode_result = fesk_encode(payload,
-                                              session->config.mode,
-                                              &sequence,
-                                              &entries);
-    if (encode_result != FESK_OK) {
-        _call_error(session->config.on_error, encode_result, session->config.user_data);
-        return false;
-    }
-
-    _clear_sequence(session);
-    session->sequence = sequence;
-    session->sequence_entries = entries;
-    _call_sequence(session->config.on_sequence_ready,
-                   sequence,
-                   entries,
-                   session->config.user_data);
-    return true;
 }
 
 static void _fesk_transmission_complete(void);
@@ -569,8 +507,6 @@ void fesk_session_init(fesk_session_t *session, const fesk_session_config_t *con
     }
 
     session->phase = FESK_SESSION_IDLE;
-    session->sequence = NULL;
-    session->sequence_entries = 0;
 }
 
 void fesk_session_dispose(fesk_session_t *session) {
