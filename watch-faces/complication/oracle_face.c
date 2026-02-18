@@ -24,21 +24,28 @@
 // ─────────────────────────────────────────────────────────────────
 static const char *words_a[64] = {
     // Chapter 0: New moon — void, seed, quiet inward pull
-    "VOID ", "BROOD", "HUSH ", "WAIT ", "SEED ", "DEEP ", "DRAW ", "STILL",
+    // ODD: some new moons are just strange. That's valid.
+    "VOID ", "BROOD", "HUSH ", "ODD  ", "SEED ", "DEEP ", "DRAW ", "STILL",
     // Chapter 1: Waxing crescent — first stir, seeking
-    "STIR ", "LEAN ", "SEEK ", "REACH", "RISE ", "TEND ", "SPARK", "BEGIN",
+    // FLIP: sometimes the beginning is a coin toss
+    "STIR ", "LEAN ", "SEEK ", "REACH", "RISE ", "TEND ", "SPARK", "FLIP ",
     // Chapter 2: First quarter — momentum, cutting, building
-    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "MAKE ", "CLIMB",
+    // SNAP: decisive. make the call.
+    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "SNAP ", "CLIMB",
     // Chapter 3: Waxing gibbous — swelling, heavy, near the peak
-    "SWELL", "FILL ", "CREST", "GROW ", "PULL ", "HEAVY", "ACHE ", "TENSE",
+    // WILD: things get strange as the full approaches
+    "SWELL", "FILL ", "CREST", "GROW ", "PULL ", "HEAVY", "WILD ", "TENSE",
     // Chapter 4: Full moon — peak, flood, nothing hidden
-    "TIDE ", "PEAK ", "FLOOD", "BLOOM", "SURGE", "BURN ", "SHINE", "BLAZE",
+    // LUCK: full moon luck is real or it isn't, you decide
+    "TIDE ", "PEAK ", "FLOOD", "LUCK ", "SURGE", "BURN ", "SHINE", "BLAZE",
     // Chapter 5: Waning gibbous — after the peak, giving back
     "EASE ", "POUR ", "SPILL", "FLOW ", "GIVE ", "DRAIN", "YIELD", "SHED ",
     // Chapter 6: Last quarter — the turn, releasing what's done
-    "TURN ", "FALL ", "DRIFT", "PASS ", "BREAK", "CLEAR", "SLIDE", "SHIFT",
+    // SPIN: the last quarter can feel like losing your footing
+    "TURN ", "FALL ", "DRIFT", "PASS ", "BREAK", "SPIN ", "SLIDE", "SHIFT",
     // Chapter 7: Waning crescent — thinning, the final dark
-    "THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "SLEEP", "DARK ", "EMPTY",
+    // LIMB: sometimes you end the cycle out on a limb
+    "THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "LIMB ", "DARK ", "EMPTY",
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -51,15 +58,19 @@ static const char *words_a[64] = {
 // ─────────────────────────────────────────────────────────────────
 static const char *words_b[55] = {
     // Zone 0 (0-10): depleted — rest is the work, not the failure
-    "SLEEP", "REST ", "IDLE ", "FLOAT", "DWELL", "WAIT ", "STILL", "QUIET", "PAUSE", "HOLD ", "YIELD",
+    // MAYBE: when depleted, maybe is a complete answer
+    "SLEEP", "REST ", "IDLE ", "FLOAT", "MAYBE", "WAIT ", "STILL", "QUIET", "PAUSE", "HOLD ", "YIELD",
     // Zone 1 (11-21): low — soft tending, gentle enough
     "DRIFT", "TEND ", "MEND ", "NURSE", "SLOW ", "SOFT ", "CALM ", "EASE ", "LIGHT", "WALK ", "TREAD",
     // Zone 2 (22-32): average — carrying it, steady
-    "STAY ", "LEAN ", "ROAM ", "MOVE ", "SEEK ", "STEP ", "PACE ", "WORK ", "PRESS", "CARRY", "GRIND",
+    // RISK: average energy is exactly when you should take one
+    "STAY ", "LEAN ", "RISK ", "MOVE ", "SEEK ", "STEP ", "PACE ", "WORK ", "PRESS", "CARRY", "GRIND",
     // Zone 3 (33-43): good — intentional, building
-    "PUSH ", "BRACE", "DRIVE", "SHAPE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD ", "FORGE",
+    // DARE: good energy is when you earn the right to dare something
+    "PUSH ", "DARE ", "DRIVE", "SHAPE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD ", "FORGE",
     // Zone 4 (44-54): sharp — peak capacity, don't waste it
-    "CARVE", "SURGE", "SEAR ", "SPARK", "HUNT ", "BURN ", "STORM", "BOLD ", "SHARP", "BLAZE", "FLY  ",
+    // LEAP: sharp day is the leap day
+    "CARVE", "SURGE", "SEAR ", "SPARK", "HUNT ", "BURN ", "LEAP ", "BOLD ", "SHARP", "BLAZE", "FLY  ",
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -113,10 +124,10 @@ static void _compute_oracle(oracle_face_state_t *state) {
     uint8_t inner_b = ((state->day_of_year * 3) + year % 11) % 11;
     state->word_b_idx = tier * 11 + inner_b;
 
-    // Reading mode: how many words does today's oracle speak?
-    // 60% both words, 20% A only (cosmic frame), 20% B only (pure energy)
-    // Deterministic per day — surprise is in not knowing until you press ALARM
-    uint8_t mode_seed = (year * 7 + state->day_of_year * 3 + state->moon_phase) % 5;
+    // Reading mode: 85% full reading, ~7.5% A only, ~7.5% B only
+    // % 13: 0=A_only(7.7%), 1=B_only(7.7%), 2-12=BOTH(84.6%)
+    // Surprise is in not knowing which until you press ALARM
+    uint8_t mode_seed = (year * 7 + state->day_of_year * 3 + state->moon_phase) % 13;
     if      (mode_seed == 0) state->mode = ORACLE_MODE_A_ONLY;
     else if (mode_seed == 1) state->mode = ORACLE_MODE_B_ONLY;
     else                     state->mode = ORACLE_MODE_BOTH;
