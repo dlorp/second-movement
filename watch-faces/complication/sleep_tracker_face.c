@@ -57,7 +57,7 @@ static const int16_t DEFAULT_LIGHT_MODIFIERS[4] = {
 //
 
 static void _sleep_tracker_display_duration(sleep_tracker_state_t *state) {
-    char buf[8];
+    char buf[11];
     uint8_t hours = state->total_sleep_minutes / 60;
     uint8_t minutes = state->total_sleep_minutes % 60;
     
@@ -73,20 +73,20 @@ static void _sleep_tracker_display_duration(sleep_tracker_state_t *state) {
 
 static void _sleep_tracker_display_efficiency(sleep_tracker_state_t *state) {
     uint16_t efficiency = sleep_tracker_calculate_efficiency(state);
-    char buf[7];
+    char buf[11];
     snprintf(buf, sizeof(buf), "%d%% ", efficiency);
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
 
 static void _sleep_tracker_display_waso(sleep_tracker_state_t *state) {
-    char buf[7];
+    char buf[11];
     snprintf(buf, sizeof(buf), "%d  ", state->total_wake_minutes);
     watch_display_text(WATCH_POSITION_TOP_RIGHT, "min");
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
 
 static void _sleep_tracker_display_awakenings(sleep_tracker_state_t *state) {
-    char buf[7];
+    char buf[11];
     snprintf(buf, sizeof(buf), "%d  ", state->num_awakenings);
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
