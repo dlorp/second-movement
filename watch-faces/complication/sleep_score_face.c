@@ -28,7 +28,7 @@ static void _sleep_score_face_update_display(sleep_score_face_state_t *state) {
     circadian_sleep_night_t *last_night = _get_last_night();
     
     if (!last_night->valid) {
-        watch_display_string("SL  --", 0);
+        watch_display_text(WATCH_POSITION_FULL, "SL  --");
         return;
     }
     
@@ -61,7 +61,7 @@ static void _sleep_score_face_update_display(sleep_score_face_state_t *state) {
             break;
     }
     
-    watch_display_string(buf, 0);
+    watch_display_text(WATCH_POSITION_FULL, buf);
 }
 
 void sleep_score_face_setup(uint8_t watch_face_index, void **context_ptr) {
