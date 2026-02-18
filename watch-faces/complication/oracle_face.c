@@ -129,22 +129,41 @@ static void _compute_oracle(oracle_face_state_t *state) {
     uint8_t score_tier = score / 21;
     if (score_tier > 4) score_tier = 4;
 
-    // Day length tier (0-4) — modifies both words for seasonal feel
+    // Day length tier (0-4) — seasonal feel modifier
     uint8_t day_tier = _day_length_tier(state->day_length_min);
 
-    // Word A: circadian score tier + day-of-year drift
-    uint8_t a_count = words_a_counts[score_tier];
-    state->word_a_idx = (doy + (day_tier * 2)) % a_count;
+    // Personal seed offset from birthday (month × day XOR'd in)
+    // Makes phrase unique per person even with identical inputs
+    uint8_t birth_offset = 0;
+    if (state->birthday.bit.is_set) {
+        birth_offset = (uint8_t)((state->birthday.bit.month * state->birthday.bit.day) & 0x07);
+    }
 
-    // Word B: moon phase pool + day length shifts index within pool
-    // Short day → 'still/deep' words (lower indices)
-    // Long day → 'surge/bloom' words (higher indices)
-    uint8_t b_base = (doy / 3) % words_b_count;
-    int8_t b_shift = (int8_t)day_tier - 2;  // -2 (dark) to +2 (bright)
+    // Word A: circadian score tier + day-of-year + birthday drift
+    uint8_t a_count = words_a_counts[score_tier];
+    state->word_a_idx = (doy + (day_tier * 2) + birth_offset) % a_count;
+
+    // Word B: moon phase pool + day length + birthday shifts index
+    uint8_t b_base = (doy / 3 + birth_offset) % words_b_count;
+    int8_t b_shift = (int8_t)day_tier - 2;  // -2 (dark/winter) to +2 (bright/summer)
     int8_t b_idx = (int8_t)b_base + b_shift;
     if (b_idx < 0) b_idx = 0;
     if (b_idx >= words_b_count) b_idx = words_b_count - 1;
     state->word_b_idx = (uint8_t)b_idx;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Birthday helpers
+// ─────────────────────────────────────────────────────────────────
+static void _load_birthday(oracle_face_state_t *state) {
+    uint32_t bkup3 = watch_get_backup_data(3);
+    state->birthday.reg = (uint16_t)(bkup3 & 0xFFFF);
+}
+
+static void _save_birthday(oracle_face_state_t *state) {
+    uint32_t bkup3 = watch_get_backup_data(3);
+    bkup3 = (bkup3 & 0xFFFF0000) | (uint32_t)state->birthday.reg;
+    watch_store_backup_data(bkup3, 3);
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -156,10 +175,10 @@ static void _refresh_oracle(oracle_face_state_t *state) {
     int month = now.unit.month;
     int day = now.unit.day;
 
-    // Moon phase
+    // Moon phase today
     state->moon_phase = _calculate_moon_phase(year, month, day);
 
-    // Day of year (1-365, truncated to uint8 for drift math, enough range for variance)
+    // Day of year (1-365, truncated to uint8 for drift math)
     state->day_of_year = (uint8_t)watch_utility_days_since_new_year(year, month, day);
 
     // Location from BKUP[1]
@@ -174,6 +193,19 @@ static void _refresh_oracle(oracle_face_state_t *state) {
     circadian_data_t circ;
     circadian_data_load_from_flash(&circ);
     state->circadian_score = circadian_score_calculate(&circ);
+
+    // Birthday: load from BKUP[3] and check if today is the birthday
+    _load_birthday(state);
+    state->is_birthday_today = false;
+    if (state->birthday.bit.is_set &&
+        state->birthday.bit.month == (uint16_t)month &&
+        state->birthday.bit.day   == (uint16_t)day) {
+        state->is_birthday_today = true;
+        // Calculate the moon phase on the user's next/current birthday this year
+        state->birth_moon_phase = _calculate_moon_phase(year,
+                                                        state->birthday.bit.month,
+                                                        state->birthday.bit.day);
+    }
 
     // Compute phrase from all inputs
     _compute_oracle(state);
@@ -203,7 +235,48 @@ static const char *_moon_phase_name(uint8_t phase) {
 static void _update_display(oracle_face_state_t *state) {
     char buf[16];
 
+    // Settings mode overrides normal view
+    if (state->settings != ORACLE_SETTINGS_IDLE) {
+        watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "BD", "BDay");
+        if (state->settings == ORACLE_SETTINGS_MONTH) {
+            snprintf(buf, sizeof(buf), " MO %2d ", state->birthday.bit.month);
+        } else {
+            snprintf(buf, sizeof(buf), " DY %2d ", state->birthday.bit.day);
+        }
+        watch_display_text(WATCH_POSITION_BOTTOM, buf);
+        return;
+    }
+
+    // Birthday: on user's birthday, show special phrase using birth moon phase
+    if (state->is_birthday_today) {
+        watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "OR", "Oracle");
+        switch (state->view) {
+            case ORACLE_VIEW_WORD_A: {
+                // Show normal word A but with top indicator flashing
+                uint8_t tier = state->circadian_score / 21;
+                if (tier > 4) tier = 4;
+                watch_display_text(WATCH_POSITION_BOTTOM, words_a_tiers[tier][state->word_a_idx]);
+                watch_set_indicator(WATCH_INDICATOR_BELL);  // Celebration marker
+                break;
+            }
+            case ORACLE_VIEW_WORD_B:
+                // Show word B from BIRTH moon phase (not today's) — the surprise
+                watch_display_text(WATCH_POSITION_BOTTOM, words_b_phases[state->birth_moon_phase][state->word_b_idx]);
+                break;
+            case ORACLE_VIEW_INFO:
+                // Show birth moon phase as special info
+                snprintf(buf, sizeof(buf), "%s BDY", _moon_phase_name(state->birth_moon_phase));
+                watch_display_text(WATCH_POSITION_BOTTOM, buf);
+                break;
+            default:
+                break;
+        }
+        return;
+    }
+
+    // Normal mode
     watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "OR", "Oracle");
+    watch_clear_indicator(WATCH_INDICATOR_BELL);
 
     switch (state->view) {
         case ORACLE_VIEW_WORD_A: {
@@ -216,7 +289,6 @@ static void _update_display(oracle_face_state_t *state) {
             watch_display_text(WATCH_POSITION_BOTTOM, words_b_phases[state->moon_phase][state->word_b_idx]);
             break;
         case ORACLE_VIEW_INFO:
-            // Show moon phase name + circadian score
             snprintf(buf, sizeof(buf), "%s%3d", _moon_phase_name(state->moon_phase), state->circadian_score);
             watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
@@ -265,30 +337,60 @@ bool oracle_face_loop(movement_event_t event, void *context) {
             break;
 
         case EVENT_ALARM_BUTTON_UP:
-            // Cycle through: Word A → Word B → Info → Word A
-            state->view = (state->view + 1) % ORACLE_VIEW_COUNT;
-            _update_display(state);
+            if (state->settings == ORACLE_SETTINGS_MONTH) {
+                // Increment birth month (1-12, wraps)
+                state->birthday.bit.month = (state->birthday.bit.month % 12) + 1;
+                _update_display(state);
+            } else if (state->settings == ORACLE_SETTINGS_DAY) {
+                // Increment birth day (1-31, wraps)
+                state->birthday.bit.day = (state->birthday.bit.day % 31) + 1;
+                _update_display(state);
+            } else {
+                // Normal: cycle Word A → Word B → Info → Word A
+                state->view = (oracle_view_t)((state->view + 1) % ORACLE_VIEW_COUNT);
+                _update_display(state);
+            }
             break;
 
         case EVENT_ALARM_LONG_PRESS:
-            // Force refresh (in case sleep score updated after waking)
-            _refresh_oracle(state);
-            state->view = ORACLE_VIEW_WORD_A;
+            if (state->settings != ORACLE_SETTINGS_IDLE) {
+                // Exit settings: save birthday, return to normal
+                state->birthday.bit.is_set = 1;
+                _save_birthday(state);
+                state->settings = ORACLE_SETTINGS_IDLE;
+                _refresh_oracle(state);  // Recompute with new birthday offset
+            } else {
+                // Force refresh (update after sleep score finalizes)
+                _refresh_oracle(state);
+                state->view = ORACLE_VIEW_WORD_A;
+            }
             _update_display(state);
             break;
 
         case EVENT_LIGHT_BUTTON_DOWN:
-            movement_illuminate_led();
+            if (state->settings == ORACLE_SETTINGS_IDLE) {
+                movement_illuminate_led();
+            }
+            break;
+
+        case EVENT_LIGHT_BUTTON_UP:
+            if (state->settings == ORACLE_SETTINGS_MONTH) {
+                // Advance to day setting
+                state->settings = ORACLE_SETTINGS_DAY;
+                _update_display(state);
+            }
             break;
 
         case EVENT_LIGHT_LONG_PRESS:
-            // Show moon phase name + day length
-            {
-                char buf[16];
-                snprintf(buf, sizeof(buf), "%s%3dh",
-                         _moon_phase_name(state->moon_phase),
-                         state->day_length_min / 60);
-                watch_display_text(WATCH_POSITION_BOTTOM, buf);
+            if (state->settings == ORACLE_SETTINGS_IDLE) {
+                // Enter birthday settings
+                _load_birthday(state);
+                if (!state->birthday.bit.is_set) {
+                    state->birthday.bit.month = 1;
+                    state->birthday.bit.day = 1;
+                }
+                state->settings = ORACLE_SETTINGS_MONTH;
+                _update_display(state);
             }
             break;
 
