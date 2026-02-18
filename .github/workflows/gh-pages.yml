@@ -10,9 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
       - name: Doxygen Action
         uses: mattnotmitt/doxygen-action@v1
+
+      - name: Copy companion-app and builder
+        run: |
+          cp -r companion-app/ docs/companion-app/
+          cp -r builder/ docs/builder/
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
