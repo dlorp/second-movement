@@ -198,7 +198,7 @@ void comms_face_activate(void *context) {
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
     state->tx_elapsed_seconds = 0;
-    state->active_mode = COMMS_TX;  // Default to TX mode
+    state->active_mode = COMMS_RX;  // Default to RX mode
     state->light_sensor_active = false;
     _update_display(state);
 }
@@ -261,14 +261,17 @@ bool comms_face_loop(movement_event_t event, void *context) {
                 _update_display(state);
             }
             break;
-        case EVENT_LIGHT_BUTTON_DOWN:
-            // Suppress LED when in RX mode (would interfere with light sensor)
-            if (state->active_mode != COMMS_RX) {
+        case EVENT_LIGHT_BUTTON_UP:
+            // Light cycles TX ↔ RX when idle (suppress LED in RX to protect light sensor)
+            if (state->mode == COMMS_MODE_IDLE) {
+                state->active_mode = (state->active_mode == COMMS_TX) ? COMMS_RX : COMMS_TX;
+                _update_display(state);
+            } else if (state->active_mode != COMMS_RX) {
                 movement_illuminate_led();
             }
             break;
-        case EVENT_LIGHT_LONG_PRESS:
-            // Toggle TX ↔ RX mode (only when idle)
+        case EVENT_ALARM_LONG_PRESS:
+            // Hold alarm swaps TX ↔ RX mode when idle
             if (state->mode == COMMS_MODE_IDLE) {
                 state->active_mode = (state->active_mode == COMMS_TX) ? COMMS_RX : COMMS_TX;
                 _update_display(state);

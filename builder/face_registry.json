@@ -49,9 +49,9 @@
     {
       "id": "comms_face",
       "name": "Comms",
-      "category": "complication",
-      "source": "./watch-faces/complication/comms_face.c",
-      "header": "./watch-faces/complication/comms_face.h",
+      "category": "io",
+      "source": "./watch-faces/io/comms_face.c",
+      "header": "./watch-faces/io/comms_face.h",
       "description": "Bidirectional Communication (TX + RX): - TX mode: Acoustic data transmission via FESK (buzzer phone mic) - RX mode: Optical data reception (phone screen light sensor)",
       "requires_sensor": null,
       "default": true,
