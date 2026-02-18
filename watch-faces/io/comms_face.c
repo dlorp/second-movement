@@ -117,14 +117,24 @@ static void _update_display(comms_face_state_t *state) {
     char buf[16];
     
     switch (state->mode) {
-        case COMMS_MODE_IDLE:
+        case COMMS_MODE_IDLE: {
+            // Top-left: TX or RX
             if (state->active_mode == COMMS_TX) {
-                watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
+                watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "TX");
             } else {
-                watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "Recv");
+                watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "RX");
             }
-            watch_display_text(WATCH_POSITION_BOTTOM, " RDY  ");
+            // Bottom: show selected data sub-mode
+            switch (state->data_type) {
+                case COMMS_DATA_ALL:      watch_display_text(WATCH_POSITION_BOTTOM, " ALL  "); break;
+                case COMMS_DATA_SLEEP:    watch_display_text(WATCH_POSITION_BOTTOM, " SLP  "); break;
+                case COMMS_DATA_LIGHT:    watch_display_text(WATCH_POSITION_BOTTOM, " LIT  "); break;
+                case COMMS_DATA_ACTIVITY: watch_display_text(WATCH_POSITION_BOTTOM, " ACT  "); break;
+                case COMMS_DATA_CONTROL:  watch_display_text(WATCH_POSITION_BOTTOM, " CTL  "); break;
+                default:                  watch_display_text(WATCH_POSITION_BOTTOM, " ALL  "); break;
+            }
             break;
+        }
         case COMMS_MODE_TX_ACTIVE: {
             watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "TX", "Trans");
 
@@ -198,7 +208,8 @@ void comms_face_activate(void *context) {
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
     state->tx_elapsed_seconds = 0;
-    state->active_mode = COMMS_TX;  // Default to TX mode
+    state->active_mode = COMMS_RX;  // Default to RX mode
+    state->data_type = COMMS_DATA_ALL; // Default: all data types
     state->light_sensor_active = false;
     _update_display(state);
 }
@@ -261,16 +272,27 @@ bool comms_face_loop(movement_event_t event, void *context) {
                 _update_display(state);
             }
             break;
-        case EVENT_LIGHT_BUTTON_DOWN:
-            // Suppress LED when in RX mode (would interfere with light sensor)
-            if (state->active_mode != COMMS_RX) {
+        case EVENT_LIGHT_BUTTON_UP:
+            // Light short press: cycle RX ↔ TX (only when idle)
+            // In non-idle TX mode, illuminate LED; in RX mode never use LED (interferes with sensor)
+            if (state->mode == COMMS_MODE_IDLE) {
+                state->active_mode = (state->active_mode == COMMS_TX) ? COMMS_RX : COMMS_TX;
+                _update_display(state);
+            } else if (state->active_mode == COMMS_TX) {
                 movement_illuminate_led();
             }
             break;
         case EVENT_LIGHT_LONG_PRESS:
-            // Toggle TX ↔ RX mode (only when idle)
+            // Light long press: cycle data sub-mode (all → sleep → light → activity → control → all)
+            // Only when idle; resets on each TX/RX toggle
             if (state->mode == COMMS_MODE_IDLE) {
-                state->active_mode = (state->active_mode == COMMS_TX) ? COMMS_RX : COMMS_TX;
+                if (state->data_type == COMMS_DATA_ALL) {
+                    state->data_type = COMMS_DATA_SLEEP;
+                } else if ((uint8_t)state->data_type < COMMS_DATA_TYPE_COUNT - 1) {
+                    state->data_type = (comms_data_type_t)((uint8_t)state->data_type + 1);
+                } else {
+                    state->data_type = COMMS_DATA_ALL;
+                }
                 _update_display(state);
             }
             break;
