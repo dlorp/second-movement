@@ -13,7 +13,7 @@ static circadian_data_t global_circadian_data = {0};
 static bool data_loaded = false;
 
 static void _circadian_score_face_update_display(circadian_score_face_state_t *state) {
-    char buf[9] = {0};
+    char buf[11] = {0};
     
     // Load data from flash if not yet loaded
     if (!data_loaded) {
@@ -44,6 +44,8 @@ static void _circadian_score_face_update_display(circadian_score_face_state_t *s
                 break;
             case CSFACE_MODE_LI:
                 snprintf(buf, sizeof(buf), "LI  %2d", components.light_score);
+                break;
+            default:
                 break;
         }
     } else {
@@ -77,11 +79,13 @@ static void _circadian_score_face_update_display(circadian_score_face_state_t *s
                 case CSFACE_MODE_LI:
                     snprintf(buf, sizeof(buf), "-%d  %2d", state->historical_night, night->light_quality);
                     break;
+                default:
+                    break;
             }
         }
     }
     
-    watch_display_string(buf, 0);
+    watch_display_text(WATCH_POSITION_FULL, buf);
 }
 
 void circadian_score_face_setup(uint8_t watch_face_index, void **context_ptr) {
