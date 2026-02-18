@@ -32,6 +32,7 @@ const watch_face_t watch_faces[] = {
     clock_face,
     sleep_tracker_face,
     circadian_score_face,
+    oracle_face,
     comms_face,
     world_clock_face,
     sunrise_sunset_face,
@@ -111,5 +112,15 @@ const watch_face_t watch_faces[] = {
  * with multiple button presses firing.
 */
 #define MOVEMENT_DEBOUNCE_TICKS 0
+
+/* Oracle Face — Birthday Configuration
+ * Set your birth month and day to enable the birthday message.
+ * On your birthday, the oracle face opens with " BDAY" before the daily phrase.
+ * Remove or comment out these defines to disable the birthday feature.
+ *
+ * Example: born March 15 → ORACLE_BIRTH_MONTH 3, ORACLE_BIRTH_DAY 15
+ */
+// #define ORACLE_BIRTH_MONTH 1
+// #define ORACLE_BIRTH_DAY   1
 
 #endif // MOVEMENT_CONFIG_H_

@@ -411,9 +411,7 @@ float movement_get_temperature(void);
 
 
 // Forward declaration for smart alarm integration
-
-// Forward declaration for smart alarm integration
-struct sleep_tracker_state_t;
+struct sleep_tracker_state_s;
 
 // Get global sleep tracker state for smart alarm light sleep detection
-struct sleep_tracker_state_t* movement_get_sleep_tracker_state(void);
+struct sleep_tracker_state_s* movement_get_sleep_tracker_state(void);
