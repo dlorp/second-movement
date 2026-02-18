@@ -188,14 +188,13 @@ static void process_packet(comms_face_state_t *state) {
                 // the watch would show 01:00 instead of 10:00).
                 (void)tz_offset;  // retained for future use / logging
 
-                // Validate hour and minute before committing to RTC.
-                // A Unix timestamp is always non-negative and fully determined, so
-                // an invalid hour/minute indicates corrupt data -- reject the write.
-                uint32_t time_of_day = timestamp % 86400UL;
-                uint8_t  hour        = (uint8_t)(time_of_day / 3600U);
-                uint8_t  minute      = (uint8_t)((time_of_day % 3600U) / 60U);
-
-                if (hour > 23 || minute > 59) {
+                // Validate timestamp is within a plausible range (2020-01-01 to 2100-12-31).
+                // The previous check derived hour/minute from the adjusted value and tested
+                // hour > 23 || minute > 59, but those conditions can never be true: hour is
+                // always 0-23 (timestamp % 86400 / 3600) and minute is always 0-59
+                // (timestamp % 3600 / 60).  That dead check passed epoch 0 and any garbage
+                // value.  Test the raw timestamp directly instead.
+                if (timestamp < 1577836800UL || timestamp > 4133980799UL) {
                     state->mode = COMMS_MODE_RX_ERROR;
                     break;
                 }
