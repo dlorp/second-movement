@@ -1,10 +1,11 @@
-name: Deploy Companion App to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'companion-app/**'
+      - 'builder/**'
   workflow_dispatch:
 
 permissions:
@@ -26,13 +27,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Assemble Pages content
+        run: |
+          mkdir -p _site/builder
+          cp -r companion-app/. _site/
+          cp -r builder/. _site/builder/
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: companion-app
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
