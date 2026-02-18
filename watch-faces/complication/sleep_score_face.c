@@ -24,7 +24,7 @@ static circadian_sleep_night_t* _get_last_night(void) {
 }
 
 static void _sleep_score_face_update_display(sleep_score_face_state_t *state) {
-    char buf[7] = {0};
+    char buf[11] = {0};
     circadian_sleep_night_t *last_night = _get_last_night();
     
     if (!last_night->valid) {
@@ -35,29 +35,29 @@ static void _sleep_score_face_update_display(sleep_score_face_state_t *state) {
     switch (state->mode) {
         case SLFACE_MODE_SL: {
             uint8_t score = circadian_score_calculate_sleep_score(last_night);
-            sprintf(buf, "SL  %2d", score);
+            snprintf(buf, sizeof(buf), "SL  %2d", score);
             break;
         }
         case SLFACE_MODE_DU: {
             uint8_t hours = last_night->duration_min / 60;
             uint8_t mins = last_night->duration_min % 60;
-            sprintf(buf, "DU%2d%02d", hours, mins);
+            snprintf(buf, sizeof(buf), "DU%2d%02d", hours, mins);
             break;
         }
         case SLFACE_MODE_EF: {
-            sprintf(buf, "EF  %2d", last_night->efficiency);
+            snprintf(buf, sizeof(buf), "EF  %2d", last_night->efficiency);
             break;
         }
         case SLFACE_MODE_WA: {
-            sprintf(buf, "WA %3d", last_night->waso_min);
+            snprintf(buf, sizeof(buf), "WA %3d", last_night->waso_min);
             break;
         }
         case SLFACE_MODE_AW: {
-            sprintf(buf, "AW  %2d", last_night->awakenings);
+            snprintf(buf, sizeof(buf), "AW  %2d", last_night->awakenings);
             break;
         }
         default:
-            sprintf(buf, "SL  --");
+            snprintf(buf, sizeof(buf), "SL  --");
             break;
     }
     
