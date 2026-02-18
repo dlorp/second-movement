@@ -1,0 +1,729 @@
+{
+  "version": "1.0",
+  "generated_from": "watch-faces.mk",
+  "faces": [
+    {
+      "id": "beats_face",
+      "name": "Beats",
+      "category": "clock",
+      "source": "./watch-faces/clock/beats_face.c",
+      "header": "./watch-faces/clock/beats_face.h",
+      "description": "Swatch Internet Time \u2014 decimal time (0\u2013999 beats/day) centered on Switzerland.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "clock_face",
+      "name": "Clock",
+      "category": "clock",
+      "source": "./watch-faces/clock/clock_face.c",
+      "header": "./watch-faces/clock/clock_face.h",
+      "description": "Standard clock with date. Long-press ALARM to toggle hourly chime.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 1
+    },
+    {
+      "id": "close_enough_face",
+      "name": "Close Enough",
+      "category": "clock",
+      "source": "./watch-faces/clock/close_enough_face.c",
+      "header": "./watch-faces/clock/close_enough_face.h",
+      "description": "Fuzzy clock. Displays time rounded to nearest 5 minutes.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "ish_face",
+      "name": "Ish",
+      "category": "clock",
+      "source": "./watch-faces/clock/ish_face.c",
+      "header": "./watch-faces/clock/ish_face.h",
+      "description": "Even fuzzier clock. Shows approximate time like \"about half nine\".",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "ke_decimal_time_face",
+      "name": "Ke Decimal Time",
+      "category": "clock",
+      "source": "./watch-faces/clock/ke_decimal_time_face.c",
+      "header": "./watch-faces/clock/ke_decimal_time_face.h",
+      "description": "Chinese decimal time (ke). Divides the day into 100 equal ke units.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "mars_time_face",
+      "name": "Mars Time",
+      "category": "clock",
+      "source": "./watch-faces/clock/mars_time_face.c",
+      "header": "./watch-faces/clock/mars_time_face.h",
+      "description": "Mars Standard Time plus local solar time for active NASA mission sites.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "world_clock_face",
+      "name": "World Clock",
+      "category": "clock",
+      "source": "./watch-faces/clock/world_clock_face.c",
+      "header": "./watch-faces/clock/world_clock_face.h",
+      "description": "Configurable second timezone. Long-press ALARM to set city code and UTC offset.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 5
+    },
+    {
+      "id": "wyoscan_face",
+      "name": "Wyoscan",
+      "category": "clock",
+      "source": "./watch-faces/clock/wyoscan_face.c",
+      "header": "./watch-faces/clock/wyoscan_face.h",
+      "description": "Recreation of the Wyoscan watch (2014). Displays time at 0.5 Hz pulse rate.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 0
+    },
+    {
+      "id": "advanced_alarm_face",
+      "name": "Advanced Alarm",
+      "category": "complication",
+      "source": "./watch-faces/complication/advanced_alarm_face.c",
+      "header": "./watch-faces/complication/advanced_alarm_face.h",
+      "description": "Up to 4 independent alarms with day-of-week scheduling.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "alarm_face",
+      "name": "Alarm",
+      "category": "complication",
+      "source": "./watch-faces/complication/alarm_face.c",
+      "header": "./watch-faces/complication/alarm_face.h",
+      "description": "Basic daily alarm. Short-press ALARM to set; fires at the same time each day.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 10
+    },
+    {
+      "id": "baby_kicks_face",
+      "name": "Baby Kicks",
+      "category": "complication",
+      "source": "./watch-faces/complication/baby_kicks_face.c",
+      "header": "./watch-faces/complication/baby_kicks_face.h",
+      "description": "Fetal kick counter. Tracks kick sessions and calculates kicks per hour.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "breathing_face",
+      "name": "Breathing",
+      "category": "complication",
+      "source": "./watch-faces/complication/breathing_face.c",
+      "header": "./watch-faces/complication/breathing_face.h",
+      "description": "Guided 4-7-8 breathing exercise. Visual cue paces inhale, hold, exhale.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "circadian_score_face",
+      "name": "Circadian Score",
+      "category": "complication",
+      "source": "./watch-faces/complication/circadian_score_face.c",
+      "header": "./watch-faces/complication/circadian_score_face.h",
+      "description": "7-day circadian health score with 5 subscores: timing, duration, efficiency, active hours, light.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 3
+    },
+    {
+      "id": "countdown_face",
+      "name": "Countdown",
+      "category": "complication",
+      "source": "./watch-faces/complication/countdown_face.c",
+      "header": "./watch-faces/complication/countdown_face.h",
+      "description": "Configurable countdown timer with buzzer alert on completion.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 9
+    },
+    {
+      "id": "counter_face",
+      "name": "Counter",
+      "category": "complication",
+      "source": "./watch-faces/complication/counter_face.c",
+      "header": "./watch-faces/complication/counter_face.h",
+      "description": "Simple tally counter. Press ALARM to increment; long-press to reset.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "days_since_face",
+      "name": "Days Since",
+      "category": "complication",
+      "source": "./watch-faces/complication/days_since_face.c",
+      "header": "./watch-faces/complication/days_since_face.h",
+      "description": "Counts elapsed days from a configurable start date. Good for streaks or anniversaries.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "deadline_face",
+      "name": "Deadline",
+      "category": "complication",
+      "source": "./watch-faces/complication/deadline_face.c",
+      "header": "./watch-faces/complication/deadline_face.h",
+      "description": "Counts down days to a configurable deadline.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "fast_stopwatch_face",
+      "name": "Fast Stopwatch",
+      "category": "complication",
+      "source": "./watch-faces/complication/fast_stopwatch_face.c",
+      "header": "./watch-faces/complication/fast_stopwatch_face.h",
+      "description": "High-resolution stopwatch with centisecond precision.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 8
+    },
+    {
+      "id": "interval_face",
+      "name": "Interval",
+      "category": "complication",
+      "source": "./watch-faces/complication/interval_face.c",
+      "header": "./watch-faces/complication/interval_face.h",
+      "description": "HIIT interval timer. Configurable work/rest periods and round count.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "kitchen_conversions_face",
+      "name": "Kitchen Conversions",
+      "category": "complication",
+      "source": "./watch-faces/complication/kitchen_conversions_face.c",
+      "header": "./watch-faces/complication/kitchen_conversions_face.h",
+      "description": "Unit converter for common cooking measurements (cups, oz, ml, tbsp, tsp).",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "moon_phase_face",
+      "name": "Moon Phase",
+      "category": "complication",
+      "source": "./watch-faces/complication/moon_phase_face.c",
+      "header": "./watch-faces/complication/moon_phase_face.h",
+      "description": "Tonight's moon phase. Press ALARM to see future phases.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 7
+    },
+    {
+      "id": "periodic_table_face",
+      "name": "Periodic Table",
+      "category": "complication",
+      "source": "./watch-faces/complication/periodic_table_face.c",
+      "header": "./watch-faces/complication/periodic_table_face.h",
+      "description": "Periodic table browser. Scroll by atomic number; shows symbol and atomic weight.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "ping_face",
+      "name": "Ping",
+      "category": "complication",
+      "source": "./watch-faces/complication/ping_face.c",
+      "header": "./watch-faces/complication/ping_face.h",
+      "description": "Periodic chime reminder. Configurable interval \u2014 good for mindfulness or hydration.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "probability_face",
+      "name": "Probability",
+      "category": "complication",
+      "source": "./watch-faces/complication/probability_face.c",
+      "header": "./watch-faces/complication/probability_face.h",
+      "description": "Probability calculator. Enter numerator and denominator; shows percentage.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "pulsometer_face",
+      "name": "Pulsometer",
+      "category": "complication",
+      "source": "./watch-faces/complication/pulsometer_face.c",
+      "header": "./watch-faces/complication/pulsometer_face.h",
+      "description": "Heart rate estimator. Hold ALARM while counting 30 pulse beats, then release.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "simple_coin_flip_face",
+      "name": "Simple Coin Flip",
+      "category": "complication",
+      "source": "./watch-faces/complication/simple_coin_flip_face.c",
+      "header": "./watch-faces/complication/simple_coin_flip_face.h",
+      "description": "Single-press coin flip. Heads or tails.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "sleep_score_face",
+      "name": "Sleep Score",
+      "category": "complication",
+      "source": "./watch-faces/complication/sleep_score_face.c",
+      "header": "./watch-faces/complication/sleep_score_face.h",
+      "description": "Single-night sleep score (0\u2013100). Drill down: duration, efficiency, WASO, awakenings.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "sleep_tracker_face",
+      "name": "Sleep Tracker",
+      "category": "complication",
+      "source": "./watch-faces/complication/sleep_tracker_face.c",
+      "header": "./watch-faces/complication/sleep_tracker_face.h",
+      "description": "Cole-Kripke sleep detection using accelerometer + light. Tracks duration, efficiency, WASO, and awakenings.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 2
+    },
+    {
+      "id": "smart_alarm_face",
+      "name": "Smart Alarm",
+      "category": "complication",
+      "source": "./watch-faces/complication/smart_alarm_face.c",
+      "header": "./watch-faces/complication/smart_alarm_face.h",
+      "description": "Light-sleep-aware alarm. Wakes you in a lighter sleep phase within a 30-min window.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "stopwatch_face",
+      "name": "Stopwatch",
+      "category": "complication",
+      "source": "./watch-faces/complication/stopwatch_face.c",
+      "header": "./watch-faces/complication/stopwatch_face.h",
+      "description": "Standard stopwatch with one-second resolution and lap support.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "sunrise_sunset_face",
+      "name": "Sunrise Sunset",
+      "category": "complication",
+      "source": "./watch-faces/complication/sunrise_sunset_face.c",
+      "header": "./watch-faces/complication/sunrise_sunset_face.h",
+      "description": "Local sunrise and sunset times. Requires latitude/longitude set in settings.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 6
+    },
+    {
+      "id": "tally_face",
+      "name": "Tally",
+      "category": "complication",
+      "source": "./watch-faces/complication/tally_face.c",
+      "header": "./watch-faces/complication/tally_face.h",
+      "description": "Tally counter with persistence across face changes.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "tarot_face",
+      "name": "Tarot",
+      "category": "complication",
+      "source": "./watch-faces/complication/tarot_face.c",
+      "header": "./watch-faces/complication/tarot_face.h",
+      "description": "Daily tarot draw. Press ALARM for a random card from the Major Arcana.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "timer_face",
+      "name": "Timer",
+      "category": "complication",
+      "source": "./watch-faces/complication/timer_face.c",
+      "header": "./watch-faces/complication/timer_face.h",
+      "description": "Simple countdown timer. Press ALARM to start/stop; long-press to reset.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "totp_face",
+      "name": "Totp",
+      "category": "complication",
+      "source": "./watch-faces/complication/totp_face.c",
+      "header": "./watch-faces/complication/totp_face.h",
+      "description": "TOTP two-factor authentication codes. Keys stored in firmware at compile time.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "totp_lfs_face",
+      "name": "Totp Lfs",
+      "category": "complication",
+      "source": "./watch-faces/complication/totp_lfs_face.c",
+      "header": "./watch-faces/complication/totp_lfs_face.h",
+      "description": "TOTP 2FA codes with LittleFS storage \u2014 keys persist without recompile.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "wareki_face",
+      "name": "Wareki",
+      "category": "complication",
+      "source": "./watch-faces/complication/wareki_face.c",
+      "header": "./watch-faces/complication/wareki_face.h",
+      "description": "Japanese imperial era date display (Reiwa / Heisei / Showa).",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "all_segments_face",
+      "name": "All Segments",
+      "category": "demo",
+      "source": "./watch-faces/demo/all_segments_face.c",
+      "header": "./watch-faces/demo/all_segments_face.h",
+      "description": "Energizes all LCD segments at once. Useful for testing display continuity.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "character_set_face",
+      "name": "Character Set",
+      "category": "demo",
+      "source": "./watch-faces/demo/character_set_face.c",
+      "header": "./watch-faces/demo/character_set_face.h",
+      "description": "Cycles through every character in the Sensor Watch character set.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "light_sensor_face",
+      "name": "Light Sensor",
+      "category": "demo",
+      "source": "./watch-faces/demo/light_sensor_face.c",
+      "header": "./watch-faces/demo/light_sensor_face.h",
+      "description": "Raw ambient light sensor readout. May conflict with temperature logger ADC.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "peek_memory_face",
+      "name": "Peek Memory",
+      "category": "demo",
+      "source": "./watch-faces/demo/peek_memory_face.c",
+      "header": "./watch-faces/demo/peek_memory_face.h",
+      "description": "Displays a raw memory address. Debug only; custom LCD required.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "rtccount_face",
+      "name": "Rtccount",
+      "category": "demo",
+      "source": "./watch-faces/demo/rtccount_face.c",
+      "header": "./watch-faces/demo/rtccount_face.h",
+      "description": "Raw RTC counter value. Debug face for testing RTC-counter32 mode.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "blackjack_face",
+      "name": "Blackjack",
+      "category": "games",
+      "source": "./watch-faces/complication/blackjack_face.c",
+      "header": "./watch-faces/complication/blackjack_face.h",
+      "description": "Blackjack card game. Press ALARM to hit; long-press to stand.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "endless_runner_face",
+      "name": "Endless Runner",
+      "category": "games",
+      "source": "./watch-faces/complication/endless_runner_face.c",
+      "header": "./watch-faces/complication/endless_runner_face.h",
+      "description": "Infinite side-scroller. Press ALARM to jump over obstacles.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "higher_lower_game_face",
+      "name": "Higher Lower Game",
+      "category": "games",
+      "source": "./watch-faces/complication/higher_lower_game_face.c",
+      "header": "./watch-faces/complication/higher_lower_game_face.h",
+      "description": "Guess if the next card is higher or lower.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "lander_face",
+      "name": "Lander",
+      "category": "games",
+      "source": "./watch-faces/complication/lander_face.c",
+      "header": "./watch-faces/complication/lander_face.h",
+      "description": "Lunar lander \u2014 manage thrust and fuel to touch down safely.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "simon_face",
+      "name": "Simon",
+      "category": "games",
+      "source": "./watch-faces/complication/simon_face.c",
+      "header": "./watch-faces/complication/simon_face.h",
+      "description": "Simon memory game. Watch the pattern; repeat it back.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "squash_face",
+      "name": "Squash",
+      "category": "games",
+      "source": "./watch-faces/complication/squash_face.c",
+      "header": "./watch-faces/complication/squash_face.h",
+      "description": "Squash/racquetball rally timer and score tracker.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "wordle_face",
+      "name": "Wordle",
+      "category": "games",
+      "source": "./watch-faces/complication/wordle_face.c",
+      "header": "./watch-faces/complication/wordle_face.h",
+      "description": "6-letter Wordle on a 10-segment display. Daily word puzzle.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "chirpy_demo_face",
+      "name": "Chirpy Demo",
+      "category": "io",
+      "source": "./watch-faces/io/chirpy_demo_face.c",
+      "header": "./watch-faces/io/chirpy_demo_face.h",
+      "description": "Demo for Chirpy-TX acoustic data library. Transmits sensor data as audible chirps.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "comms_face",
+      "name": "Comms",
+      "category": "io",
+      "source": "./watch-faces/io/comms_face.c",
+      "header": "./watch-faces/io/comms_face.h",
+      "description": "Bidirectional data transfer. RX: optical receive via light sensor. TX: acoustic FESK transmit.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 4
+    },
+    {
+      "id": "fesk_demo_lite_face",
+      "name": "Fesk Demo Lite",
+      "category": "io",
+      "source": "./watch-faces/io/fesk_demo_lite_face.c",
+      "header": "./watch-faces/io/fesk_demo_lite_face.h",
+      "description": "Simplest FESK acoustic TX demo. Press ALARM to transmit the text \"TEST\".",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "irda_upload_face",
+      "name": "Irda Upload",
+      "category": "io",
+      "source": "./watch-faces/io/irda_upload_face.c",
+      "header": "./watch-faces/io/irda_upload_face.h",
+      "description": "IrDA data upload via light sensor. Temporary / experimental.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "accelerometer_status_face",
+      "name": "Accelerometer Status",
+      "category": "sensor",
+      "source": "./watch-faces/sensor/accelerometer_status_face.c",
+      "header": "./watch-faces/sensor/accelerometer_status_face.h",
+      "description": "Live accelerometer state \u2014 shows whether wearer is still or active.",
+      "requires_sensor": "sensor",
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "activity_logging_face",
+      "name": "Activity Logging",
+      "category": "sensor",
+      "source": "./watch-faces/sensor/activity_logging_face.c",
+      "header": "./watch-faces/sensor/activity_logging_face.h",
+      "description": "14-day active minutes log. Flags 2+ consecutive minutes over threshold as active.",
+      "requires_sensor": "sensor",
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "lis2dw_monitor_face",
+      "name": "Lis2dw Monitor",
+      "category": "sensor",
+      "source": "./watch-faces/sensor/lis2dw_monitor_face.c",
+      "header": "./watch-faces/sensor/lis2dw_monitor_face.h",
+      "description": "Raw LIS2DW accelerometer debug face \u2014 shows X/Y/Z and orientation register.",
+      "requires_sensor": "sensor",
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "temperature_display_face",
+      "name": "Temperature Display",
+      "category": "sensor",
+      "source": "./watch-faces/sensor/temperature_display_face.c",
+      "header": "./watch-faces/sensor/temperature_display_face.h",
+      "description": "Current temperature from the on-board thermistor. Press ALARM to toggle \u00b0C/\u00b0F.",
+      "requires_sensor": "sensor",
+      "default": true,
+      "default_position": 11
+    },
+    {
+      "id": "temperature_logging_face",
+      "name": "Temperature Logging",
+      "category": "sensor",
+      "source": "./watch-faces/sensor/temperature_logging_face.c",
+      "header": "./watch-faces/sensor/temperature_logging_face.h",
+      "description": "36-hour temperature log sampled every 30 min. Good for overnight readings.",
+      "requires_sensor": "sensor",
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "voltage_face",
+      "name": "Voltage",
+      "category": "sensor",
+      "source": "./watch-faces/sensor/voltage_face.c",
+      "header": "./watch-faces/sensor/voltage_face.h",
+      "description": "Battery voltage monitor. Useful for gauging remaining battery life.",
+      "requires_sensor": "sensor",
+      "default": true,
+      "default_position": 12
+    },
+    {
+      "id": "finetune_face",
+      "name": "Finetune",
+      "category": "settings",
+      "source": "./watch-faces/settings/finetune_face.c",
+      "header": "./watch-faces/settings/finetune_face.h",
+      "description": "Sub-second time alignment with 25ms precision. Counts ticks since last finetune.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "nanosec_face",
+      "name": "Nanosec",
+      "category": "settings",
+      "source": "./watch-faces/settings/nanosec_face.c",
+      "header": "./watch-faces/settings/nanosec_face.h",
+      "description": "Nanosecond-level RTC calibration via drift measurement.",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "set_time_face",
+      "name": "Set Time",
+      "category": "settings",
+      "source": "./watch-faces/settings/set_time_face.c",
+      "header": "./watch-faces/settings/set_time_face.h",
+      "description": "Set year, month, day, timezone, hour, minute, and second.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 14
+    },
+    {
+      "id": "settings_face",
+      "name": "Settings",
+      "category": "settings",
+      "source": "./watch-faces/settings/settings_face.c",
+      "header": "./watch-faces/settings/settings_face.h",
+      "description": "Main settings: clock mode (12/24h), button volume, timeouts, LED color and duration.",
+      "requires_sensor": null,
+      "default": true,
+      "default_position": 13
+    }
+  ],
+  "categories": [
+    {
+      "id": "clock",
+      "name": "Clock"
+    },
+    {
+      "id": "complication",
+      "name": "Complication"
+    },
+    {
+      "id": "demo",
+      "name": "Demo"
+    },
+    {
+      "id": "games",
+      "name": "Games"
+    },
+    {
+      "id": "io",
+      "name": "IO"
+    },
+    {
+      "id": "sensor",
+      "name": "Sensor"
+    },
+    {
+      "id": "settings",
+      "name": "Settings"
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "version": "1.0",
+  "runtime_defaults": [
+    {
+      "id": "active_hours_enabled",
+      "name": "Active Hours Enabled",
+      "type": "bool",
+      "default": true,
+      "description": "Enable the active hours sleep window feature"
+    },
+    {
+      "id": "active_hours_start",
+      "name": "Active Hours Start",
+      "type": "quarter_hours",
+      "default": 16,
+      "min": 0,
+      "max": 95,
+      "description": "Wake window start time (15-min steps, 16=04:00)"
+    },
+    {
+      "id": "active_hours_end",
+      "name": "Active Hours End",
+      "type": "quarter_hours",
+      "default": 92,
+      "min": 0,
+      "max": 95,
+      "description": "Wake window end time (15-min steps, 92=23:00)"
+    }
+  ],
+  "settings": [
+    {
+      "id": "MOVEMENT_SECONDARY_FACE_INDEX",
+      "name": "Secondary Face Index",
+      "type": "choice",
+      "default": "(MOVEMENT_NUM_FACES - 5)",
+      "description": "Determines what face to go to from the first face on long press of the Mode button. Also excludes these faces from the normal rotation. In the default firmware, this lets you access temperature and battery voltage with a long press of Mode. Some folks also like to use this to hide the preferences and time set faces from the normal rotation. If you don't want any faces to be excluded, set this to 0 and a long Mode press will have no effect."
+    },
+    {
+      "id": "SIGNAL_TUNE_DEFAULT",
+      "name": "Signal Tune",
+      "type": "bool",
+      "default": true,
+      "description": "Custom hourly chime tune. Check movement_custom_signal_tunes.h for options."
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_RED_COLOR",
+      "name": "Red Color",
+      "type": "int",
+      "default": 0,
+      "description": "Determines the intensity of the led colors Set a hex value 0-15 with 0x0 being off and 0xF being max intensity",
+      "min": 0,
+      "max": 15
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_GREEN_COLOR",
+      "name": "Green Color",
+      "type": "int",
+      "default": 15,
+      "description": ""
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_BLUE_COLOR",
+      "name": "Blue Color",
+      "type": "int",
+      "default": 0,
+      "description": ""
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_24H_MODE",
+      "name": "24h Mode",
+      "type": "bool",
+      "default": false,
+      "description": "Set to true for 24h mode or false for 12h mode"
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_BUTTON_SOUND",
+      "name": "Button Sound",
+      "type": "bool",
+      "default": true,
+      "description": "Enable or disable the sound on mode button press"
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_BUTTON_VOLUME",
+      "name": "Button Volume",
+      "type": "choice",
+      "default": "WATCH_BUZZER_VOLUME_SOFT",
+      "description": ""
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_SIGNAL_VOLUME",
+      "name": "Signal Volume",
+      "type": "choice",
+      "default": "WATCH_BUZZER_VOLUME_LOUD",
+      "description": ""
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_ALARM_VOLUME",
+      "name": "Alarm Volume",
+      "type": "choice",
+      "default": "WATCH_BUZZER_VOLUME_LOUD",
+      "description": ""
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_TIMEOUT_INTERVAL",
+      "name": "Timeout Interval",
+      "type": "int",
+      "default": 0,
+      "description": "Set the timeout before switching back to the main watch face Valid values are: 0: 60 seconds 1: 2 minutes 2: 5 minutes 3: 30 minutes",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_LOW_ENERGY_INTERVAL",
+      "name": "Low Energy Interval",
+      "type": "int",
+      "default": 2,
+      "description": "Set the timeout before switching to low energy mode Valid values are: 0: Never 1: 10 minutes 2: 1 hour 3: 2 hours 4: 6 hours 5: 12 hours 6: 1 day 7: 7 days",
+      "min": 0,
+      "max": 7
+    },
+    {
+      "id": "MOVEMENT_DEFAULT_LED_DURATION",
+      "name": "Led Duration",
+      "type": "int",
+      "default": 1,
+      "description": "Set the led duration Valid values are: 0: No LED 1: 1 second 2: 3 seconds 3: 5 seconds",
+      "min": 0,
+      "max": 3
+    },
+    {
+      "id": "MOVEMENT_DEBOUNCE_TICKS",
+      "name": "Debounce Ticks",
+      "type": "int",
+      "default": 0,
+      "description": "Optionally debounce button presses (disable by default). A value of 4 is a good starting point if you have issues with multiple button presses firing."
+    }
+  ]
+}
