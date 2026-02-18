@@ -126,10 +126,17 @@ static void _compute_oracle(oracle_face_state_t *state, uint8_t year_val) {
 
     // Word B: circadian tier zone (11 words), shuffled order, annual reset.
     // gcd(3, 11) = 1 → shuffled zone walk. year_val % 11 shifts annually.
-    // circadian_score valid range: 0-99. /20 gives tiers 0-4 exactly.
-    // score=100 clamped to tier=4 (valid: 100/20=5, clamp→4).
-    uint8_t tier = state->circadian_score / 20;
-    if (tier > 4) tier = 4;
+    // Normalize score to actual range [17, 100] -> tiers 0-4
+    // Boundaries: 0: 17-33, 1: 34-50, 2: 51-67, 3: 68-84, 4: 85-100
+    // (Minimum score is 17 because SRI timing component defaults to 50,
+    // contributing 17 pts minimum when no sleep data is available.)
+    uint8_t score = state->circadian_score;
+    uint8_t tier;
+    if      (score < 34) tier = 0;
+    else if (score < 51) tier = 1;
+    else if (score < 68) tier = 2;
+    else if (score < 85) tier = 3;
+    else                 tier = 4;
     uint8_t inner_b = ((state->day_of_year * 3) + year_val % 11) % 11;
     state->word_b_idx = tier * 11 + inner_b;
 
