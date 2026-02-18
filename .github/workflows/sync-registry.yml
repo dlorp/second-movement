@@ -1,0 +1,63 @@
+name: Sync Face Registry
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'watch-faces.mk'
+      - 'watch-faces/**/*.h'
+      - 'movement_config.h'
+      - '.github/scripts/generate_face_registry.py'
+      - '.github/scripts/settings_discovery.py'
+
+jobs:
+  sync-registry:
+    name: Regenerate face registry and settings registry
+    runs-on: ubuntu-latest
+    # contents:write is scoped to this job only (minimum required).
+    # This workflow is intentionally restricted to pushes on main (see 'on' trigger above).
+    # Do NOT add a pull_request trigger without removing the write token: a forked PR
+    # would gain write access to the base repository via GITHUB_TOKEN.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        # Safe: trigger is main-only (no pull_request), so GITHUB_TOKEN write access
+        # cannot be exploited by a fork. github.head_ref is empty on push events;
+        # github.ref_name resolves to 'main'. The explicit token is required for the
+        # subsequent git push step in this same job.
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate face registry
+        run: |
+          python3 .github/scripts/generate_face_registry.py \
+            --repo-root . \
+            --output builder/face_registry.json
+
+      - name: Generate settings registry
+        run: |
+          python3 .github/scripts/settings_discovery.py \
+            --repo-root . \
+            --output builder/settings_registry.json
+
+      - name: Commit updated registries if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add builder/face_registry.json builder/settings_registry.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore(builder): auto-update face and settings registries [skip ci]"
+            git push
+          fi

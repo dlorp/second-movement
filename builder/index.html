@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SM Builder">
+    <meta name="application-name" content="SM Builder">
+    <meta name="theme-color" content="#0B0900">
+    <meta name="description" content="Second Movement firmware configuration builder">
+    <title>SECOND MOVEMENT BUILDER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+    <style>
+        :root {
+            --color-bg: #0B0900;
+            --color-bg-elevated: #130F07;
+            --color-bg-recessed: #060500;
+            --color-amber-hot: #FFD060;
+            --color-amber-bright: #FFB000;
+            --color-amber-mid: #CC8800;
+            --color-amber-dim: #7A5200;
+            --color-amber-trace: #3D2900;
+            --color-alert: #FF6B00;
+            --color-critical: #FF3300;
+            --color-border: #7A5200;
+            --color-border-active: #FFB000;
+            --font-mono: 'Share Tech Mono', 'IBM Plex Mono', 'Courier New', monospace;
+            --line-height-dense: 1.25;
+            --touch-min: 44px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            background: var(--color-bg);
+            color: var(--color-amber-mid);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: var(--line-height-dense);
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* scanline overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0 2px,
+                rgba(0,0,0,0.15) 2px 4px
+            );
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        button, input, select, textarea {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.25;
+        }
+
+        button {
+            min-height: var(--touch-min);
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-elevated);
+            color: var(--color-amber-bright);
+            padding: 0 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        button:hover { border-color: var(--color-border-active); }
+
+        button:focus-visible {
+            outline: none;
+            border-color: var(--color-border-active);
+            box-shadow: inset 0 0 0 1px var(--color-border-active);
+        }
+
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        select {
+            background: var(--color-bg-elevated);
+            border: 1px solid var(--color-border);
+            color: var(--color-amber-bright);
+            padding: 6px 8px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            min-height: var(--touch-min);
+            width: 100%;
+        }
+
+        select:focus { outline: none; border-color: var(--color-border-active); }
+
+        .terminal-app {
+            max-width: 480px;
+            margin: 0 auto;
+            background: var(--color-bg);
+            border-left: 1px solid var(--color-amber-trace);
+            border-right: 1px solid var(--color-amber-trace);
+            position: relative;
+            z-index: 1;
+            min-height: 100dvh;
+        }
+
+        /* ---- SYSTEM BAR ---- */
+        .system-bar {
+            height: 24px;
+            background: var(--color-bg-elevated);
+            border-bottom: 1px solid var(--color-amber-trace);
+            color: var(--color-amber-mid);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* ---- SECTIONS ---- */
+        .section {
+            border-bottom: 1px solid var(--color-amber-trace);
+            padding: 12px 12px 14px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: var(--color-amber-dim);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        /* ---- RADIO GROUP ---- */
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .radio-btn {
+            min-height: var(--touch-min);
+            padding: 0 10px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg);
+            color: var(--color-amber-dim);
+            cursor: pointer;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+
+        .radio-btn.active {
+            border-color: var(--color-amber-bright);
+            color: var(--color-amber-bright);
+            background: var(--color-bg-elevated);
+            text-shadow: 0 0 8px rgba(255,176,0,0.4);
+        }
+
+        .radio-btn .dot { color: var(--color-amber-hot); }
+
+        /* ---- ACTIVE FACE LIST ---- */
+        .faces-active-header {
+            font-size: 10px;
+            color: var(--color-amber-dim);
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .face-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 6px;
+        }
+
+        .face-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: var(--touch-min);
+            padding: 0 8px;
+            border: 1px solid var(--color-amber-trace);
+            background: var(--color-bg-elevated);
+            cursor: grab;
+            user-select: none;
+        }
+
+        .face-item:active { cursor: grabbing; }
+
+        .face-item.sortable-ghost {
+            opacity: 0.3;
+            border-color: var(--color-amber-dim);
+        }
+
+        .face-item.sortable-drag {
+            background: var(--color-bg);
+            border-color: var(--color-border-active);
+        }
+
+        .face-num {
+            color: var(--color-amber-dim);
+            min-width: 18px;
+            font-size: 10px;
+        }
+
+        .face-handle {
+            color: var(--color-amber-trace);
+            font-size: 12px;
+            letter-spacing: -2px;
+        }
+
+        .face-name {
+            flex: 1;
+            color: var(--color-amber-bright);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .face-remove {
+            min-height: var(--touch-min);
+            min-width: var(--touch-min);
+            border: none;
+            background: transparent;
+            color: var(--color-amber-dim);
+            font-size: 14px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .face-remove:hover { color: var(--color-critical); }
+
+        /* secondary divider */
+        .secondary-divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: var(--touch-min);
+            padding: 0 8px;
+            border: 1px dashed var(--color-amber-dim);
+            background: var(--color-bg-recessed);
+            cursor: grab;
+            user-select: none;
+            color: var(--color-amber-dim);
+            font-size: 10px;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        .secondary-divider .face-handle { color: var(--color-amber-trace); }
+
+        /* ---- AVAILABLE FACES ---- */
+        .avail-header {
+            font-size: 10px;
+            color: var(--color-amber-dim);
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            margin-top: 12px;
+            margin-bottom: 6px;
+        }
+
+        .category-section { border-top: 1px solid var(--color-amber-trace); }
+
+        .category-toggle {
+            width: 100%;
+            min-height: var(--touch-min);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 8px;
+            background: transparent;
+            border: none;
+            color: var(--color-amber-mid);
+            cursor: pointer;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            text-align: left;
+        }
+
+        .category-toggle:hover { color: var(--color-amber-bright); background: var(--color-bg-elevated); }
+
+        .category-arrow { font-size: 10px; color: var(--color-amber-dim); }
+        .category-name { flex: 1; }
+        .category-count { font-size: 10px; color: var(--color-amber-dim); }
+
+        .category-faces {
+            display: none;
+            padding: 4px 0 4px 8px;
+            background: var(--color-bg-recessed);
+        }
+
+        .category-faces.open { display: block; }
+
+        .avail-face-btn {
+            width: 100%;
+            min-height: var(--touch-min);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 8px;
+            border: none;
+            background: transparent;
+            color: var(--color-amber-dim);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            text-align: left;
+        }
+
+        .avail-face-btn:hover {
+            background: var(--color-bg-elevated);
+            color: var(--color-amber-bright);
+        }
+
+        .avail-face-btn.already-added {
+            color: var(--color-amber-trace);
+            cursor: default;
+        }
+
+        .avail-face-btn.already-added:hover {
+            background: transparent;
+            color: var(--color-amber-trace);
+        }
+
+        .avail-add-icon { font-size: 12px; min-width: 16px; }
+        .avail-face-name { flex: 1; }
+        .avail-face-desc { font-size: 10px; color: var(--color-amber-trace); }
+
+        /* ---- SETTINGS ---- */
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: var(--touch-min);
+            padding: 4px 0;
+            border-bottom: 1px solid var(--color-amber-trace);
+            gap: 12px;
+        }
+
+        .setting-row:last-child { border-bottom: none; }
+
+        .setting-label {
+            color: var(--color-amber-mid);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 11px;
+            flex: 0 0 auto;
+            min-width: 100px;
+        }
+
+        .setting-control { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+        /* toggle */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            min-height: var(--touch-min);
+        }
+
+        .toggle-track {
+            width: 44px;
+            height: 22px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-recessed);
+            position: relative;
+            transition: background 0.15s;
+        }
+
+        .toggle-track.on {
+            background: var(--color-amber-trace);
+            border-color: var(--color-amber-mid);
+        }
+
+        .toggle-thumb {
+            width: 18px;
+            height: 18px;
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            background: var(--color-amber-dim);
+            transition: left 0.15s, background 0.15s;
+        }
+
+        .toggle-track.on .toggle-thumb {
+            left: 23px;
+            background: var(--color-amber-bright);
+        }
+
+        .toggle-label {
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            color: var(--color-amber-dim);
+        }
+
+        .toggle-track.on + .toggle-label { color: var(--color-amber-bright); }
+
+        /* slider */
+        .slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .slider-val {
+            min-width: 24px;
+            text-align: right;
+            color: var(--color-amber-bright);
+            font-size: 11px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 120px;
+            height: 4px;
+            background: var(--color-amber-trace);
+            border: none;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--color-amber-bright);
+            border: 1px solid var(--color-amber-hot);
+            cursor: pointer;
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: var(--color-amber-bright);
+            border: 1px solid var(--color-amber-hot);
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        /* ---- BUILD SECTION ---- */
+        .build-section {
+            padding: 16px 12px;
+        }
+
+        .build-btn {
+            width: 100%;
+            min-height: 56px;
+            border: 2px solid var(--color-amber-mid);
+            background: var(--color-bg);
+            color: var(--color-amber-hot);
+            font-size: 16px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-shadow: 0 0 12px rgba(255,208,96,0.6);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .build-btn:hover:not(:disabled) {
+            border-color: var(--color-amber-bright);
+            box-shadow: 0 0 16px rgba(255,176,0,0.3);
+        }
+
+        .build-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .build-status {
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-elevated);
+            color: var(--color-amber-mid);
+            letter-spacing: 0.06em;
+            font-size: 11px;
+            display: none;
+        }
+
+        .build-status.active { display: block; }
+        .build-status.error { border-color: var(--color-critical); color: var(--color-critical); }
+        .build-status.success { border-color: var(--color-border-active); color: var(--color-amber-hot); }
+
+        .download-btn {
+            width: 100%;
+            min-height: 48px;
+            margin-top: 10px;
+            border: 1px solid var(--color-border-active);
+            background: var(--color-bg);
+            color: var(--color-amber-hot);
+            font-size: 13px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-shadow: 0 0 8px rgba(255,208,96,0.4);
+            display: none;
+        }
+
+        .download-btn.active { display: block; }
+
+        .cooldown-bar {
+            height: 3px;
+            background: var(--color-amber-trace);
+            margin-top: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .cooldown-bar.active { display: block; }
+
+        .cooldown-fill {
+            height: 100%;
+            background: var(--color-amber-dim);
+            width: 100%;
+            transition: width 1s linear;
+        }
+
+        /* ---- SHARE SECTION ---- */
+        .share-section {
+            padding: 12px;
+            border-top: 1px solid var(--color-amber-trace);
+            border-bottom: 1px solid var(--color-amber-trace);
+        }
+
+        .share-title {
+            font-size: 10px;
+            color: var(--color-amber-dim);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .copy-btn {
+            width: 100%;
+            min-height: var(--touch-min);
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-elevated);
+            color: var(--color-amber-mid);
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        .copy-btn:hover { border-color: var(--color-border-active); color: var(--color-amber-bright); }
+
+        .token-note {
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid var(--color-amber-trace);
+            background: var(--color-bg-recessed);
+            font-size: 10px;
+            color: var(--color-amber-dim);
+            letter-spacing: 0.04em;
+        }
+
+        .token-note input[type=text] {
+            width: 100%;
+            margin-top: 6px;
+            background: var(--color-bg-recessed);
+            border: 1px solid var(--color-border);
+            color: var(--color-amber-bright);
+            padding: 6px;
+            letter-spacing: 0.04em;
+            min-height: 36px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+        }
+
+        .token-note input[type=text]:focus { outline: none; border-color: var(--color-border-active); }
+
+        /* ---- FOOTER PADDING ---- */
+        .footer-pad {
+            height: calc(24px + env(safe-area-inset-bottom, 0px));
+        }
+
+        /* ---- PANEL (collapsible) ---- */
+        .panel {
+            border-bottom: 1px solid var(--color-amber-trace);
+        }
+
+        .panel-header {
+            width: 100%;
+            min-height: var(--touch-min);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            background: transparent;
+            border: none;
+            color: var(--color-amber-dim);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .panel-header:hover { color: var(--color-amber-bright); background: var(--color-bg-elevated); }
+
+        .panel-chevron {
+            font-size: 14px;
+            color: var(--color-amber-dim);
+            line-height: 1;
+        }
+
+        .panel-body {
+            padding: 10px 12px 14px;
+        }
+
+        /* ---- TEMPLATES ---- */
+        .templates-group-label {
+            color: var(--color-amber-dim);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+            margin-top: 4px;
+        }
+
+        .template-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: auto auto;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--color-amber-trace);
+        }
+
+        .template-row:last-child { border-bottom: none; }
+
+        .template-name {
+            color: var(--color-amber-bright);
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        .template-desc {
+            color: var(--color-amber-dim);
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            grid-column: 1;
+            grid-row: 2;
+            margin-top: -2px;
+        }
+
+        .template-load-btn {
+            grid-column: 2;
+            grid-row: 1 / 3;
+        }
+
+        .template-del-btn {
+            grid-column: 3;
+            grid-row: 1 / 3;
+        }
+
+        .template-load-btn, .template-del-btn {
+            min-height: 36px;
+            padding: 0 8px;
+            font-size: 10px;
+        }
+
+        .template-del-btn {
+            color: var(--color-alert);
+            border-color: var(--color-alert);
+        }
+
+        .template-del-btn:hover { border-color: var(--color-critical); color: var(--color-critical); }
+
+        .template-empty {
+            color: var(--color-amber-dim);
+            font-size: 10px;
+            padding: 8px 0;
+            letter-spacing: 0.06em;
+        }
+
+        .templates-save-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* ---- MISC ---- */
+        .glow {
+            color: var(--color-amber-bright);
+            text-shadow: 0 0 8px rgba(255,176,0,0.4);
+        }
+
+        .app-title {
+            padding: 14px 12px 10px;
+            border-bottom: 1px solid var(--color-amber-trace);
+        }
+
+        .app-title-main {
+            font-size: 18px;
+            letter-spacing: 0.2em;
+            color: var(--color-amber-bright);
+            text-shadow: 0 0 10px rgba(255,176,0,0.4);
+            text-transform: uppercase;
+        }
+
+        .app-title-sub {
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--color-amber-dim);
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        @media (min-width: 600px) {
+            .terminal-app {
+                margin-top: 12px;
+                margin-bottom: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="terminal-app">
+
+    <div class="system-bar">
+        <span>SECOND MOVEMENT BUILDER</span>
+        <span id="sysStatus">--:-- | READY</span>
+    </div>
+
+    <div class="app-title">
+        <div class="app-title-main">SECOND MOVEMENT</div>
+        <div class="app-title-sub">FIRMWARE CONFIGURATION BUILDER v1.0</div>
+    </div>
+
+    <!-- BOARD SELECTION -->
+    <div class="section">
+        <div class="section-title">BOARD</div>
+        <div class="radio-group" id="boardRadio" role="radiogroup" aria-label="Board selection"></div>
+    </div>
+
+    <!-- DISPLAY SELECTION -->
+    <div class="section">
+        <div class="section-title">DISPLAY</div>
+        <div class="radio-group" id="displayRadio" role="radiogroup" aria-label="Display selection"></div>
+    </div>
+
+    <!-- WATCH FACES -->
+    <div class="section">
+        <div class="section-title">WATCH FACES</div>
+
+        <div class="faces-active-header">ACTIVE (drag to reorder)</div>
+        <ul class="face-list" id="activeList" aria-label="Active watch faces"></ul>
+
+        <div class="avail-header">AVAILABLE (tap to add)</div>
+        <div id="availList"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section">
+        <div class="section-title">SETTINGS</div>
+
+        <!-- 24H MODE -->
+        <div class="setting-row">
+            <span class="setting-label">24H MODE</span>
+            <div class="setting-control">
+                <label class="toggle-wrap" aria-label="24H mode toggle">
+                    <div class="toggle-track" id="toggle24h" role="switch" aria-checked="false">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                    <span class="toggle-label" id="label24h">OFF</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- LED RED -->
+        <div class="setting-row">
+            <span class="setting-label">LED RED</span>
+            <div class="setting-control slider-wrap">
+                <input type="range" id="ledRed" min="0" max="15" value="0" aria-label="LED red brightness">
+                <span class="slider-val" id="ledRedVal">0</span>
+            </div>
+        </div>
+
+        <!-- LED GREEN -->
+        <div class="setting-row">
+            <span class="setting-label">LED GREEN</span>
+            <div class="setting-control slider-wrap">
+                <input type="range" id="ledGreen" min="0" max="15" value="15" aria-label="LED green brightness">
+                <span class="slider-val" id="ledGreenVal">15</span>
+            </div>
+        </div>
+
+        <!-- LED BLUE -->
+        <div class="setting-row">
+            <span class="setting-label">LED BLUE</span>
+            <div class="setting-control slider-wrap">
+                <input type="range" id="ledBlue" min="0" max="15" value="0" aria-label="LED blue brightness">
+                <span class="slider-val" id="ledBlueVal">0</span>
+            </div>
+        </div>
+
+        <!-- BTN SOUND -->
+        <div class="setting-row">
+            <span class="setting-label">BTN SOUND</span>
+            <div class="setting-control">
+                <label class="toggle-wrap" aria-label="Button sound toggle">
+                    <div class="toggle-track" id="toggleBtn" role="switch" aria-checked="false">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                    <span class="toggle-label" id="labelBtn">OFF</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- SIGNAL TUNE -->
+        <div class="setting-row">
+            <span class="setting-label">SIGNAL TUNE</span>
+            <div class="setting-control">
+                <select id="signalTune" aria-label="Signal tune selection">
+                    <option value="SIGNAL_TUNE_DEFAULT">DEFAULT</option>
+                    <option value="SIGNAL_TUNE_LONG_BEEP">LONG BEEP</option>
+                    <option value="SIGNAL_TUNE_DOUBLE_LONG">DOUBLE LONG</option>
+                    <option value="SIGNAL_TUNE_TRIPLE_BEEP">TRIPLE BEEP</option>
+                    <option value="SIGNAL_TUNE_MELODY">MELODY</option>
+                    <option value="SIGNAL_TUNE_NONE">NONE</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- GITHUB TOKEN -->
+    <div class="share-section">
+        <div class="share-title">GITHUB ACCESS TOKEN</div>
+        <div class="token-note">
+            REQUIRED TO TRIGGER BUILDS. STORED IN SESSIONSTORAGE ONLY.
+            <input type="text" id="githubToken" placeholder="ghp_XXXXXXXXXXXXXXXXXXXX" autocomplete="off" spellcheck="false">
+        </div>
+    </div>
+
+    <!-- TEMPLATES -->
+    <section class="panel" id="templatesPanel">
+        <button class="panel-header" id="templatesPanelBtn" aria-expanded="false" aria-controls="templatesPanelBody">
+            <span>[ TEMPLATES ]</span>
+            <span class="panel-chevron" id="templatesChevron">+</span>
+        </button>
+        <div class="panel-body" id="templatesPanelBody" style="display:none">
+            <!-- Presets -->
+            <div class="templates-group-label">-- PRESETS --</div>
+            <div id="preset-templates"></div>
+
+            <!-- User saved -->
+            <div class="templates-group-label" style="margin-top:12px">-- SAVED --</div>
+            <div id="user-templates-section">
+                <div id="user-templates"></div>
+                <div id="no-saved-templates" class="template-empty">no saved templates</div>
+            </div>
+
+            <!-- Save current -->
+            <div class="templates-save-row" style="margin-top:12px">
+                <input type="text" id="templateNameInput" placeholder="template name..." maxlength="40" style="flex:1; min-height:44px; background:var(--color-bg-recessed); border:1px solid var(--color-border); color:var(--color-amber-bright); padding:6px 8px; letter-spacing:0.06em;">
+                <button id="saveTemplateBtn">[save]</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- BUILD -->
+    <div class="build-section">
+        <button class="build-btn" id="buildBtn" onclick="triggerBuild()">[ BUILD FIRMWARE ]</button>
+        <div class="cooldown-bar" id="cooldownBar">
+            <div class="cooldown-fill" id="cooldownFill"></div>
+        </div>
+        <div class="build-status" id="buildStatus"></div>
+        <a class="download-btn" id="downloadBtn" href="#" target="_blank" rel="noopener">[ DOWNLOAD UF2 ]</a>
+    </div>
+
+    <!-- SHARE -->
+    <div class="share-section">
+        <div class="share-title">SHARE CONFIG</div>
+        <button class="copy-btn" id="copyLinkBtn" onclick="copyLink()">[copy link]</button>
+    </div>
+
+    <div class="footer-pad"></div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const GITHUB_TOKEN = 'REPLACE_WITH_PAT';
+const REPO = 'dlorp/second-movement';
+const BOARD_MAP = { red: 'sensorwatch_red', green: 'sensorwatch_green',
+                    blue: 'sensorwatch_blue', pro: 'sensorwatch_pro' };
+const WORKFLOW_ID = 'custom-build.yml';
+const COOLDOWN_MS = 90 * 1000;
+const POLL_INTERVAL_MS = 5000;
+
+const BOARDS = [
+    { id: 'red', name: 'RED' },
+    { id: 'green', name: 'GRN' },
+    { id: 'blue', name: 'BLU' },
+    { id: 'pro', name: 'PRO' }
+];
+
+const DISPLAYS = [
+    { id: 'classic', name: 'CLASSIC' },
+    { id: 'custom', name: 'CUSTOM' }
+];
+
+const PRESET_TEMPLATES = [
+    {
+        id: 'preset_standard',
+        name: 'Standard Edition',
+        description: 'Classic setup: clock, alarm, stopwatch, tools',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'alarm_face',
+                'stopwatch_face',
+                'countdown_face',
+                '__secondary__',
+                'sunrise_sunset_face',
+                'moon_phase_face',
+                'temperature_display_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_activity',
+        name: 'Activity Explorer',
+        description: 'Sleep + activity tracking with sensors',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'sleep_tracker_face',
+                'smart_alarm_face',
+                '__secondary__',
+                'circadian_score_face',
+                'temperature_display_face',
+                'activity_logging_face',
+                'accelerometer_status_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_minimal',
+        name: 'Minimal',
+        description: 'Just the essentials: clock + settings',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                '__secondary__',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_focus',
+        name: 'Focus',
+        description: 'Productivity: clock, stopwatch, countdown, alarm, deadline, breathing',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'stopwatch_face',
+                'countdown_face',
+                'alarm_face',
+                'deadline_face',
+                '__secondary__',
+                'breathing_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: true,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_athlete',
+        name: 'The Athlete',
+        description: 'Fitness: stopwatch, HIIT intervals, countdown, tally counter, pulsometer',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'stopwatch_face',
+                'fast_stopwatch_face',
+                'interval_face',
+                'countdown_face',
+                '__secondary__',
+                'tally_face',
+                'pulsometer_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_backpacker',
+        name: 'The Backpacker',
+        description: 'Outdoors: sunrise, moon phase, temperature + logging, light',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'sunrise_sunset_face',
+                'moon_phase_face',
+                '__secondary__',
+                'temperature_display_face',
+                'temperature_logging_face',
+                'light_sensor_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_stargazer',
+        name: 'The Stargazer',
+        description: 'Space: Mars time, world clock, sunrise, moon phase',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'mars_time_face',
+                'world_clock_face',
+                'sunrise_sunset_face',
+                'moon_phase_face',
+                '__secondary__',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_deep_space',
+        name: 'Deep Space Now',
+        description: 'For DSN fans: Mars time, world clocks, mission day counter',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'mars_time_face',
+                'world_clock_face',
+                '__secondary__',
+                'days_since_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_alt_time',
+        name: 'alt.time',
+        description: 'Alternative timekeeping: beat time (Swatch), day counter',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'beats_face',
+                'days_since_face',
+                '__secondary__',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_gamer',
+        name: 'The Gamer',
+        description: 'Games: Wordle, Blackjack, Endless Runner, Simon, Lunar Lander, coin flip',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'wordle_face',
+                'blackjack_face',
+                'endless_runner_face',
+                'simon_face',
+                '__secondary__',
+                'lander_face',
+                'higher_lower_game_face',
+                'simple_coin_flip_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 15, ledGreen: 0, ledBlue: 0,
+            btnSound: true,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_sleep_lab',
+        name: 'The Sleep Lab',
+        description: 'Sleep health: tracker, circadian score, sleep score, smart alarm, breathing',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'sleep_tracker_face',
+                'smart_alarm_face',
+                '__secondary__',
+                'circadian_score_face',
+                'sleep_score_face',
+                'breathing_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 0, ledBlue: 15,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_security',
+        name: 'Security',
+        description: 'TOTP 2FA codes, clock, key age tracking',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'totp_lfs_face',
+                '__secondary__',
+                'days_since_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: true,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_vague',
+        name: 'Vague Vibes',
+        description: 'Fuzzy time, coin flips, tarot, Swatch beats — chaos watch',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'ish_face',
+                'close_enough_face',
+                'beats_face',
+                '__secondary__',
+                'simple_coin_flip_face',
+                'tarot_face',
+                'probability_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 15,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_parent',
+        name: 'The Parent',
+        description: 'Baby kicks tracker, countdown timers, interval, advanced alarm',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'baby_kicks_face',
+                'countdown_face',
+                'interval_face',
+                '__secondary__',
+                'advanced_alarm_face',
+                'tally_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: true,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    },
+    {
+        id: 'preset_nerd',
+        name: 'The Nerd',
+        description: 'Periodic table, decimal time, Wareki, kitchen conversions, Mars time',
+        preset: true,
+        state: {
+            board: 'red',
+            display: 'classic',
+            activeFaces: [
+                'clock_face',
+                'periodic_table_face',
+                'ke_decimal_time_face',
+                'wareki_face',
+                '__secondary__',
+                'mars_time_face',
+                'kitchen_conversions_face',
+                'settings_face',
+                'set_time_face'
+            ],
+            clock24h: false,
+            ledRed: 0, ledGreen: 15, ledBlue: 0,
+            btnSound: false,
+            signalTune: 'SIGNAL_TUNE_DEFAULT'
+        }
+    }
+];
+
+const REGISTRY_MOCK = {
+    faces: [
+        { id: "clock_face", name: "Clock", category: "clock", description: "Main clock display", default: true },
+        { id: "wyoscan_face", name: "Wyoscan", category: "clock", description: "Wyoming scanner clock", default: true },
+        { id: "alarm_face", name: "Alarm", category: "complication", description: "Simple alarm", default: true },
+        { id: "temperature_display_face", name: "Temperature", category: "sensor", description: "Thermistor readout", default: false },
+        { id: "movement_settings_face", name: "Settings", category: "settings", description: "Firmware settings", default: true }
+    ],
+    categories: [
+        { id: "clock", name: "Clock" },
+        { id: "complication", name: "Complication" },
+        { id: "sensor", name: "Sensor" },
+        { id: "demo", name: "Demo" },
+        { id: "io", name: "I/O" },
+        { id: "settings", name: "Settings" }
+    ]
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let registry = null;
+
+let state = {
+    board: 'red',
+    display: 'classic',
+    activeFaces: [], // array of face ids (includes '__secondary__' divider sentinel)
+    clock24h: false,
+    ledRed: 0,
+    ledGreen: 15,
+    ledBlue: 0,
+    btnSound: false,
+    signalTune: 'SIGNAL_TUNE_DEFAULT'
+};
+
+let buildId = null;
+let pollTimer = null;
+let cooldownTimer = null;
+let cooldownEnd = 0;
+
+// ============================================================
+// TEMPLATES
+// ============================================================
+const TEMPLATES_KEY = 'sm_templates';
+
+function loadUserTemplates() {
+    try {
+        return JSON.parse(localStorage.getItem(TEMPLATES_KEY) || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveUserTemplates(templates) {
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+}
+
+function saveCurrentAsTemplate(name) {
+    if (!name || !name.trim()) return false;
+    const templates = loadUserTemplates();
+    const tmpl = {
+        id: 'user_' + Date.now(),
+        name: name.trim(),
+        createdAt: Date.now(),
+        state: JSON.parse(JSON.stringify(state))  // deep copy
+    };
+    templates.unshift(tmpl);  // newest first
+    saveUserTemplates(templates);
+    renderTemplates();
+    return true;
+}
+
+function deleteUserTemplate(id) {
+    const templates = loadUserTemplates().filter(t => t.id !== id);
+    saveUserTemplates(templates);
+    renderTemplates();
+}
+
+function loadTemplate(tmplState) {
+    if (tmplState.board) state.board = tmplState.board;
+    if (tmplState.display) state.display = tmplState.display;
+    if (tmplState.activeFaces) state.activeFaces = [...tmplState.activeFaces];
+    if (tmplState.clock24h !== undefined) state.clock24h = tmplState.clock24h;
+    if (tmplState.ledRed !== undefined) state.ledRed = tmplState.ledRed;
+    if (tmplState.ledGreen !== undefined) state.ledGreen = tmplState.ledGreen;
+    if (tmplState.ledBlue !== undefined) state.ledBlue = tmplState.ledBlue;
+    if (tmplState.btnSound !== undefined) state.btnSound = tmplState.btnSound;
+    if (tmplState.signalTune) state.signalTune = tmplState.signalTune;
+    // sync sliders/toggles to loaded state
+    document.getElementById('ledRed').value = state.ledRed;
+    document.getElementById('ledRedVal').textContent = state.ledRed;
+    document.getElementById('ledGreen').value = state.ledGreen;
+    document.getElementById('ledGreenVal').textContent = state.ledGreen;
+    document.getElementById('ledBlue').value = state.ledBlue;
+    document.getElementById('ledBlueVal').textContent = state.ledBlue;
+    document.getElementById('signalTune').value = state.signalTune;
+    setToggle('toggle24h', 'label24h', state.clock24h);
+    setToggle('toggleBtn', 'labelBtn', state.btnSound);
+    renderBoards();
+    renderDisplays();
+    renderActiveFaces();
+    renderAvailFaces();
+    updateHash();
+}
+
+function renderTemplates() {
+    const presetContainer = document.getElementById('preset-templates');
+    const userContainer = document.getElementById('user-templates');
+    const noSaved = document.getElementById('no-saved-templates');
+
+    // Render presets
+    presetContainer.innerHTML = '';
+    PRESET_TEMPLATES.forEach(tmpl => {
+        const row = document.createElement('div');
+        row.className = 'template-row';
+        row.innerHTML =
+            '<span class="template-name">' + tmpl.name + '</span>' +
+            '<span class="template-desc">' + tmpl.description + '</span>' +
+            '<button class="template-load-btn" data-id="' + tmpl.id + '">[load]</button>';
+        row.querySelector('.template-load-btn').addEventListener('click', () => loadTemplate(tmpl.state));
+        presetContainer.appendChild(row);
+    });
+
+    // Render user templates
+    const userTemplates = loadUserTemplates();
+    if (userTemplates.length === 0) {
+        noSaved.style.display = '';
+        userContainer.innerHTML = '';
+    } else {
+        noSaved.style.display = 'none';
+        userContainer.innerHTML = '';
+        userTemplates.forEach(tmpl => {
+            const row = document.createElement('div');
+            row.className = 'template-row';
+            const date = new Date(tmpl.createdAt).toLocaleDateString();
+            row.innerHTML =
+                '<span class="template-name">' + tmpl.name + '</span>' +
+                '<span class="template-desc">' + date + '</span>' +
+                '<button class="template-load-btn" data-id="' + tmpl.id + '">[load]</button>' +
+                '<button class="template-del-btn" data-id="' + tmpl.id + '">[del]</button>';
+            row.querySelector('.template-load-btn').addEventListener('click', () => loadTemplate(tmpl.state));
+            row.querySelector('.template-del-btn').addEventListener('click', () => {
+                if (confirm('Delete template "' + tmpl.name + '"?')) deleteUserTemplate(tmpl.id);
+            });
+            userContainer.appendChild(row);
+        });
+    }
+}
+
+// ============================================================
+// REGISTRY LOAD
+// ============================================================
+async function loadRegistry() {
+    try {
+        const resp = await fetch('./face_registry.json');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        registry = await resp.json();
+    } catch (e) {
+        registry = REGISTRY_MOCK;
+    }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    await loadRegistry();
+
+    // restore token from sessionStorage
+    const savedToken = sessionStorage.getItem('sm_github_token');
+    if (savedToken) document.getElementById('githubToken').value = savedToken;
+
+    // parse hash or apply defaults
+    const hashState = parseHash();
+    if (hashState) {
+        Object.assign(state, hashState);
+    } else {
+        // default active faces from registry
+        state.activeFaces = registry.faces
+            .filter(f => f.default)
+            .map(f => f.id);
+        // insert secondary divider after first non-settings face
+        const settingsIdx = state.activeFaces.findIndex(id => {
+            const f = registry.faces.find(r => r.id === id);
+            return f && f.category === 'settings';
+        });
+        if (settingsIdx > 0) {
+            state.activeFaces.splice(settingsIdx, 0, '__secondary__');
+        } else {
+            state.activeFaces.push('__secondary__');
+        }
+    }
+
+    // restore sliders / toggles from state
+    document.getElementById('ledRed').value = state.ledRed;
+    document.getElementById('ledRedVal').textContent = state.ledRed;
+    document.getElementById('ledGreen').value = state.ledGreen;
+    document.getElementById('ledGreenVal').textContent = state.ledGreen;
+    document.getElementById('ledBlue').value = state.ledBlue;
+    document.getElementById('ledBlueVal').textContent = state.ledBlue;
+    document.getElementById('signalTune').value = state.signalTune;
+    setToggle('toggle24h', 'label24h', state.clock24h);
+    setToggle('toggleBtn', 'labelBtn', state.btnSound);
+
+    renderBoards();
+    renderDisplays();
+    renderActiveFaces();
+    renderAvailFaces();
+
+    // check cooldown
+    const cooldownStored = parseInt(localStorage.getItem('sm_cooldown_end') || '0', 10);
+    if (cooldownStored > Date.now()) {
+        startCooldownUI(cooldownStored - Date.now());
+    }
+
+    // resume build polling
+    const storedBuildId = localStorage.getItem('sm_build_id');
+    if (storedBuildId && !localStorage.getItem('sm_build_result_' + storedBuildId)) {
+        buildId = storedBuildId;
+        showStatus('RESUMING BUILD ' + buildId + '...', '');
+        pollBuild();
+    }
+
+    wireSlider('ledRed', 'ledRedVal', v => { state.ledRed = +v; updateHash(); });
+    wireSlider('ledGreen', 'ledGreenVal', v => { state.ledGreen = +v; updateHash(); });
+    wireSlider('ledBlue', 'ledBlueVal', v => { state.ledBlue = +v; updateHash(); });
+    document.getElementById('signalTune').addEventListener('change', e => {
+        state.signalTune = e.target.value;
+        updateHash();
+    });
+    document.getElementById('githubToken').addEventListener('input', e => {
+        sessionStorage.setItem('sm_github_token', e.target.value);
+    });
+    document.getElementById('toggle24h').addEventListener('click', () => {
+        state.clock24h = !state.clock24h;
+        setToggle('toggle24h', 'label24h', state.clock24h);
+        updateHash();
+    });
+    document.getElementById('toggleBtn').addEventListener('click', () => {
+        state.btnSound = !state.btnSound;
+        setToggle('toggleBtn', 'labelBtn', state.btnSound);
+        updateHash();
+    });
+
+    // Templates panel toggle
+    document.getElementById('templatesPanelBtn').addEventListener('click', function() {
+        const body = document.getElementById('templatesPanelBody');
+        const chevron = document.getElementById('templatesChevron');
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', String(!expanded));
+        body.style.display = expanded ? 'none' : 'block';
+        chevron.textContent = expanded ? '+' : '-';
+    });
+
+    // Save template button
+    document.getElementById('saveTemplateBtn').addEventListener('click', function() {
+        const input = document.getElementById('templateNameInput');
+        if (saveCurrentAsTemplate(input.value)) {
+            input.value = '';
+        }
+    });
+
+    // Initial render of templates
+    renderTemplates();
+}
+
+// ============================================================
+// CLOCK
+// ============================================================
+function updateClock() {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, '0');
+    const m = now.getMinutes().toString().padStart(2, '0');
+    document.getElementById('sysStatus').textContent = h + ':' + m + ' | READY';
+}
+
+// ============================================================
+// RENDER BOARDS
+// ============================================================
+function renderBoards() {
+    const el = document.getElementById('boardRadio');
+    el.innerHTML = '';
+    BOARDS.forEach(b => {
+        const btn = document.createElement('button');
+        btn.className = 'radio-btn' + (state.board === b.id ? ' active' : '');
+        btn.setAttribute('role', 'radio');
+        btn.setAttribute('aria-checked', state.board === b.id ? 'true' : 'false');
+        btn.setAttribute('aria-label', 'Board: ' + b.name);
+        btn.innerHTML = '<span class="dot">' + (state.board === b.id ? '*' : ' ') + '</span> ' + b.name;
+        btn.onclick = () => {
+            state.board = b.id;
+            renderBoards();
+            updateHash();
+        };
+        el.appendChild(btn);
+    });
+}
+
+// ============================================================
+// RENDER DISPLAYS
+// ============================================================
+function renderDisplays() {
+    const el = document.getElementById('displayRadio');
+    el.innerHTML = '';
+    DISPLAYS.forEach(d => {
+        const btn = document.createElement('button');
+        btn.className = 'radio-btn' + (state.display === d.id ? ' active' : '');
+        btn.setAttribute('role', 'radio');
+        btn.setAttribute('aria-checked', state.display === d.id ? 'true' : 'false');
+        btn.setAttribute('aria-label', 'Display: ' + d.name);
+        btn.innerHTML = '<span class="dot">' + (state.display === d.id ? '*' : ' ') + '</span> ' + d.name;
+        btn.onclick = () => {
+            state.display = d.id;
+            renderDisplays();
+            updateHash();
+        };
+        el.appendChild(btn);
+    });
+}
+
+// ============================================================
+// RENDER ACTIVE FACES
+// ============================================================
+function renderActiveFaces() {
+    const ul = document.getElementById('activeList');
+    ul.innerHTML = '';
+    let faceNum = 1;
+
+    state.activeFaces.forEach((id, idx) => {
+        const li = document.createElement('li');
+        li.setAttribute('data-id', id);
+
+        if (id === '__secondary__') {
+            li.className = 'secondary-divider';
+            li.innerHTML = '<span class="face-handle">:::::</span><span>-- SECONDARY --</span>';
+        } else {
+            const face = registry.faces.find(f => f.id === id);
+            const name = face ? face.name.toUpperCase() : id.toUpperCase();
+            li.className = 'face-item';
+            li.innerHTML =
+                '<span class="face-num">' + faceNum + '</span>' +
+                '<span class="face-handle">:::::</span>' +
+                '<span class="face-name">' + name + '</span>' +
+                '<button class="face-remove" aria-label="Remove ' + name + '" data-idx="' + idx + '">x</button>';
+            faceNum++;
+        }
+
+        ul.appendChild(li);
+    });
+
+    // wire remove buttons
+    ul.querySelectorAll('.face-remove').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-idx'), 10);
+            removeFace(idx);
+        });
+    });
+
+    // init SortableJS
+    if (window._sortable) { try { window._sortable.destroy(); } catch(e) {} }
+    window._sortable = Sortable.create(ul, {
+        animation: 120,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        handle: '.face-handle',
+        onEnd: function() {
+            const newOrder = Array.from(ul.children).map(li => li.getAttribute('data-id'));
+            state.activeFaces = newOrder;
+            renderActiveFaces();
+            renderAvailFaces();
+            updateHash();
+        }
+    });
+}
+
+function removeFace(idx) {
+    state.activeFaces.splice(idx, 1);
+    renderActiveFaces();
+    renderAvailFaces();
+    updateHash();
+}
+
+function addFace(id) {
+    // insert before secondary divider if exists, otherwise append
+    const secIdx = state.activeFaces.indexOf('__secondary__');
+    if (secIdx >= 0) {
+        state.activeFaces.splice(secIdx, 0, id);
+    } else {
+        state.activeFaces.push(id);
+    }
+    renderActiveFaces();
+    renderAvailFaces();
+    updateHash();
+}
+
+// ============================================================
+// RENDER AVAILABLE FACES
+// ============================================================
+function renderAvailFaces() {
+    const el = document.getElementById('availList');
+    el.innerHTML = '';
+
+    registry.categories.forEach(cat => {
+        const catFaces = registry.faces.filter(f => f.category === cat.id);
+        if (catFaces.length === 0) return;
+
+        const section = document.createElement('div');
+        section.className = 'category-section';
+
+        const toggle = document.createElement('button');
+        toggle.className = 'category-toggle';
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', cat.name + ' category, ' + catFaces.length + ' faces');
+
+        const arrow = document.createElement('span');
+        arrow.className = 'category-arrow';
+        arrow.textContent = '>';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'category-name';
+        nameEl.textContent = cat.name.toUpperCase();
+
+        const count = document.createElement('span');
+        count.className = 'category-count';
+        count.textContent = '(' + catFaces.length + ')';
+
+        toggle.appendChild(arrow);
+        toggle.appendChild(nameEl);
+        toggle.appendChild(count);
+
+        const facesDiv = document.createElement('div');
+        facesDiv.className = 'category-faces';
+
+        catFaces.forEach(face => {
+            const alreadyAdded = state.activeFaces.includes(face.id);
+            const btn = document.createElement('button');
+            btn.className = 'avail-face-btn' + (alreadyAdded ? ' already-added' : '');
+            btn.setAttribute('aria-label', (alreadyAdded ? 'Already added: ' : 'Add: ') + face.name);
+            btn.setAttribute('disabled', alreadyAdded ? 'true' : 'false');
+            btn.innerHTML =
+                '<span class="avail-add-icon">' + (alreadyAdded ? '*' : '[+]') + '</span>' +
+                '<span class="avail-face-name">' + face.name.toUpperCase() + '</span>' +
+                '<span class="avail-face-desc">' + face.description.toUpperCase() + '</span>';
+            if (!alreadyAdded) {
+                btn.onclick = () => addFace(face.id);
+            }
+            facesDiv.appendChild(btn);
+        });
+
+        toggle.onclick = () => {
+            const open = facesDiv.classList.toggle('open');
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            arrow.textContent = open ? 'v' : '>';
+        };
+
+        section.appendChild(toggle);
+        section.appendChild(facesDiv);
+        el.appendChild(section);
+    });
+}
+
+// ============================================================
+// TOGGLE HELPER
+// ============================================================
+function setToggle(trackId, labelId, value) {
+    const track = document.getElementById(trackId);
+    const label = document.getElementById(labelId);
+    if (value) {
+        track.classList.add('on');
+        track.setAttribute('aria-checked', 'true');
+        if (label) label.textContent = 'ON';
+    } else {
+        track.classList.remove('on');
+        track.setAttribute('aria-checked', 'false');
+        if (label) label.textContent = 'OFF';
+    }
+}
+
+// ============================================================
+// SLIDER HELPER
+// ============================================================
+function wireSlider(id, valId, cb) {
+    const slider = document.getElementById(id);
+    const valEl = document.getElementById(valId);
+    slider.addEventListener('input', () => {
+        valEl.textContent = slider.value;
+        cb(slider.value);
+    });
+}
+
+// ============================================================
+// HASH ENCODE / DECODE
+// ============================================================
+function updateHash() {
+    const faces = state.activeFaces.filter(id => id !== '__secondary__').join(',');
+    const secIdx = state.activeFaces.indexOf('__secondary__');
+    // count non-sentinel items before the divider
+    const secondaryAt = secIdx >= 0
+        ? state.activeFaces.slice(0, secIdx).filter(id => id !== '__secondary__').length
+        : state.activeFaces.filter(id => id !== '__secondary__').length;
+
+    const params = [
+        'board=' + state.board,
+        'display=' + state.display,
+        'faces=' + encodeURIComponent(faces),
+        'secondary=' + secondaryAt,
+        '24h=' + state.clock24h,
+        'led_r=' + state.ledRed,
+        'led_g=' + state.ledGreen,
+        'led_b=' + state.ledBlue,
+        'btn=' + state.btnSound,
+        'tune=' + encodeURIComponent(state.signalTune)
+    ];
+    history.replaceState(null, '', '#' + params.join('&'));
+}
+
+function parseHash() {
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return null;
+
+    const params = {};
+    hash.split('&').forEach(part => {
+        const eq = part.indexOf('=');
+        if (eq > 0) {
+            params[part.slice(0, eq)] = decodeURIComponent(part.slice(eq + 1));
+        }
+    });
+
+    if (!params.faces) return null;
+
+    const faceIds = params.faces ? params.faces.split(',').filter(Boolean) : [];
+    const secondaryAt = params.secondary !== undefined ? parseInt(params.secondary, 10) : faceIds.length;
+
+    const activeFaces = [];
+    faceIds.forEach((id, i) => {
+        if (i === secondaryAt) activeFaces.push('__secondary__');
+        activeFaces.push(id);
+    });
+    if (secondaryAt >= faceIds.length) activeFaces.push('__secondary__');
+
+    return {
+        board: params.board || 'red',
+        display: params.display || 'classic',
+        activeFaces,
+        clock24h: params['24h'] === 'true',
+        ledRed: parseInt(params.led_r || '0', 10),
+        ledGreen: parseInt(params.led_g || '15', 10),
+        ledBlue: parseInt(params.led_b || '0', 10),
+        btnSound: params.btn === 'true',
+        signalTune: params.tune || 'SIGNAL_TUNE_DEFAULT'
+    };
+}
+
+// ============================================================
+// BUILD TRIGGER
+// ============================================================
+function genBuildId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+async function triggerBuild() {
+    const token = document.getElementById('githubToken').value.trim() || GITHUB_TOKEN;
+    if (token === 'REPLACE_WITH_PAT') {
+        showStatus('[ERR] ENTER GITHUB PAT IN TOKEN FIELD ABOVE', 'error');
+        return;
+    }
+
+    const faces = state.activeFaces.filter(id => id !== '__secondary__');
+    if (faces.length === 0) {
+        showStatus('[ERR] ADD AT LEAST ONE WATCH FACE', 'error');
+        return;
+    }
+
+    // rate limit check
+    const now = Date.now();
+    const prevCooldownEnd = parseInt(localStorage.getItem('sm_cooldown_end') || '0', 10);
+    if (now < prevCooldownEnd) {
+        const remaining = Math.ceil((prevCooldownEnd - now) / 1000);
+        showStatus('[WAIT] COOLDOWN: ' + remaining + 's REMAINING', 'error');
+        return;
+    }
+
+    buildId = genBuildId();
+    localStorage.setItem('sm_build_id', buildId);
+    localStorage.removeItem('sm_build_result_' + buildId);
+
+    const cooldownEnd_ = now + COOLDOWN_MS;
+    localStorage.setItem('sm_cooldown_end', cooldownEnd_.toString());
+    startCooldownUI(COOLDOWN_MS);
+
+    const secIdx = state.activeFaces.indexOf('__secondary__');
+    const secondaryIndex = secIdx >= 0
+        ? state.activeFaces.slice(0, secIdx).filter(id => id !== '__secondary__').length
+        : faces.length;
+
+    const inputs = {
+        faces: faces.join(','),
+        board: BOARD_MAP[state.board] || state.board,
+        display: state.display,
+        secondary_index: String(secondaryIndex),
+        clock_24h: String(state.clock24h),
+        led_red: String(state.ledRed),
+        led_green: String(state.ledGreen),
+        led_blue: String(state.ledBlue),
+        button_sound: String(state.btnSound),
+        signal_tune: state.signalTune,
+        build_id: buildId
+    };
+
+    showStatus('DISPATCHING BUILD ' + buildId + '...', '');
+    document.getElementById('buildBtn').disabled = true;
+    document.getElementById('downloadBtn').classList.remove('active');
+
+    try {
+        const resp = await fetch(
+            'https://api.github.com/repos/' + REPO + '/actions/workflows/' + WORKFLOW_ID + '/dispatches',
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/vnd.github+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ref: 'main', inputs })
+            }
+        );
+
+        if (resp.status === 204) {
+            showStatus('BUILD QUEUED. WAITING FOR RUNNER...', '');
+            // slight delay so GH has time to create the run
+            setTimeout(pollBuild, 4000);
+        } else {
+            const body = await resp.text();
+            showStatus('[ERR] DISPATCH FAILED: ' + resp.status + ' ' + body.slice(0, 120), 'error');
+        }
+    } catch (e) {
+        showStatus('[ERR] NETWORK ERROR: ' + e.message, 'error');
+    }
+}
+
+// ============================================================
+// POLL BUILD
+// ============================================================
+async function pollBuild() {
+    if (!buildId) return;
+    clearTimeout(pollTimer);
+
+    const token = document.getElementById('githubToken').value.trim() || GITHUB_TOKEN;
+    const headers = {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json'
+    };
+
+    try {
+        const resp = await fetch(
+            'https://api.github.com/repos/' + REPO + '/actions/runs?event=workflow_dispatch&per_page=5',
+            { headers }
+        );
+        const data = await resp.json();
+        const runs = data.workflow_runs || [];
+
+        // find our run by build_id in name or by recency
+        // The workflow should set run name to include build_id; otherwise match newest
+        // Workflow sets run-name = "custom-build[{buildId}] ..." so match is reliable
+        let run = runs.find(r => r.name && r.name.includes('custom-build[' + buildId + ']'));
+        // Fallback: scan display_title (older API field)
+        if (!run) run = runs.find(r => r.display_title && r.display_title.includes(buildId));
+        if (!run) {
+            showStatus('WAITING FOR RUNNER... (BUILD ' + buildId + ')', '');
+            pollTimer = setTimeout(pollBuild, POLL_INTERVAL_MS);
+            return;
+        }
+
+        const status = run.status;       // queued, in_progress, completed
+        const conclusion = run.conclusion; // success, failure, cancelled, null
+
+        let elapsed = '';
+        if (run.created_at) {
+            const created = new Date(run.created_at).getTime();
+            const secs = Math.round((Date.now() - created) / 1000);
+            elapsed = ' ' + secs + 's';
+        }
+
+        if (status === 'completed') {
+            if (conclusion === 'success') {
+                // Filename matches what custom-build.yml produces: {board}-{display}-{buildId}.uf2
+                const boardFull = (BOARD_MAP && BOARD_MAP[state.board]) || state.board;
+                const buildName = boardFull + '-' + state.display + '-' + buildId;
+                const uf2Url = 'https://github.com/' + REPO + '/releases/download/custom-builds/' + buildName + '.uf2';
+                localStorage.setItem('sm_build_result_' + buildId, 'success:' + uf2Url);
+                showStatus('[OK] BUILD COMPLETE' + elapsed + ' - READY TO DOWNLOAD', 'success');
+                const dlBtn = document.getElementById('downloadBtn');
+                dlBtn.href = uf2Url;
+                dlBtn.classList.add('active');
+            } else {
+                localStorage.setItem('sm_build_result_' + buildId, 'fail:' + conclusion);
+                showStatus('[ERR] BUILD ' + (conclusion || 'FAILED').toUpperCase() + elapsed, 'error');
+            }
+            document.getElementById('buildBtn').disabled = false;
+            buildId = null;
+        } else {
+            const statusLabel = status === 'in_progress' ? 'BUILDING' : 'QUEUED';
+            showStatus(statusLabel + '...' + elapsed, '');
+            pollTimer = setTimeout(pollBuild, POLL_INTERVAL_MS);
+        }
+    } catch (e) {
+        showStatus('[ERR] POLL ERROR: ' + e.message, 'error');
+        pollTimer = setTimeout(pollBuild, POLL_INTERVAL_MS);
+    }
+}
+
+// ============================================================
+// STATUS DISPLAY
+// ============================================================
+function showStatus(msg, type) {
+    const el = document.getElementById('buildStatus');
+    el.className = 'build-status active' + (type ? ' ' + type : '');
+    el.textContent = msg;
+}
+
+// ============================================================
+// COOLDOWN UI
+// ============================================================
+function startCooldownUI(durationMs) {
+    const bar = document.getElementById('cooldownBar');
+    const fill = document.getElementById('cooldownFill');
+    bar.classList.add('active');
+    fill.style.transition = 'none';
+    fill.style.width = '100%';
+
+    // force reflow
+    void fill.offsetWidth;
+
+    fill.style.transition = 'width ' + (durationMs / 1000) + 's linear';
+    fill.style.width = '0%';
+
+    clearTimeout(cooldownTimer);
+    cooldownTimer = setTimeout(() => {
+        bar.classList.remove('active');
+        document.getElementById('buildBtn').disabled = false;
+    }, durationMs);
+}
+
+// ============================================================
+// COPY LINK
+// ============================================================
+function copyLink() {
+    updateHash();
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('copyLinkBtn');
+        const orig = btn.textContent;
+        btn.textContent = '[copied!]';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+    }).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const btn = document.getElementById('copyLinkBtn');
+        btn.textContent = '[copied!]';
+        setTimeout(() => { btn.textContent = '[copy link]'; }, 2000);
+    });
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+init().catch(console.error);
+</script>
+</body>
+</html>
