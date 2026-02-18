@@ -151,9 +151,9 @@ static void _refresh_oracle(oracle_face_state_t *state) {
     int day   = now.unit.day;
 
     state->moon_phase  = _moon_phase(year, month, day);
-    state->day_of_year = (uint8_t)watch_utility_days_since_new_year(year, month, day);
+    state->day_of_year = (uint16_t)watch_utility_days_since_new_year(year, month, day);
 
-    circadian_data_t circ;
+    circadian_data_t circ = {0};
     circadian_data_load_from_flash(&circ);
     state->circadian_score = circadian_score_calculate(&circ);
 
@@ -218,6 +218,7 @@ void oracle_face_setup(uint8_t watch_face_index, void **context_ptr) {
     (void)watch_face_index;
     if (*context_ptr == NULL) {
         *context_ptr = malloc(sizeof(oracle_face_state_t));
+        if (*context_ptr == NULL) return;
         memset(*context_ptr, 0, sizeof(oracle_face_state_t));
         ((oracle_face_state_t *)*context_ptr)->needs_update = true;
     }
@@ -229,7 +230,7 @@ void oracle_face_activate(void *context) {
     // Recompute once per day
     watch_date_time_t now = movement_get_local_date_time();
     int year = now.unit.year + WATCH_RTC_REFERENCE_YEAR;
-    uint8_t today = (uint8_t)watch_utility_days_since_new_year(year, now.unit.month, now.unit.day);
+    uint16_t today = (uint16_t)watch_utility_days_since_new_year(year, now.unit.month, now.unit.day);
 
     if (state->needs_update || today != state->day_of_year) {
         _refresh_oracle(state);

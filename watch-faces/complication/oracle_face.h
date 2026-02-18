@@ -60,7 +60,7 @@ typedef struct {
     uint8_t circadian_score;   // 0-100
     uint8_t word_a_idx;        // Index into words_a[]
     uint8_t word_b_idx;        // Index into words_b[]
-    uint8_t day_of_year;       // 1-255, truncated (daily drift)
+    uint16_t day_of_year;      // 1-365, full range (daily drift)
     bool is_birthday_today;    // True on configured birthday
     bool needs_update;         // Recompute on next activate
 } oracle_face_state_t;
