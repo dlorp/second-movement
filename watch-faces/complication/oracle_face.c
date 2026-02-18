@@ -15,49 +15,66 @@
 #include "circadian_score.h"
 
 // ─────────────────────────────────────────────────────────────────
-// Word A: Moon phase pools — the cosmic tone of the moment
-// 8 phases × 8 words = 64 options
-// day_of_year % 8 selects daily, giving a new word each day
+// Word A: Moon phase families — the cosmic tone of the moment
+//
+// Moon phase seeds the archetype cluster (8 families × 12 words = 96).
+// day_of_year % 12 rolls through the family daily — a new word every day,
+// thematically related but never locked to just one word per phase.
 // ─────────────────────────────────────────────────────────────────
-static const char *words_a[8][8] = {
-    // New moon: inward, dark, potential
-    {"SEED ", "VOID ", "BROOD", "STILL", "DRAW ", "QUIET", "HUSH ", "WAIT "},
-    // Waxing crescent: first stir, beginning
-    {"RISE ", "STIR ", "SPARK", "LEAN ", "SEEK ", "REACH", "TEND ", "PUSH "},
-    // First quarter: momentum, deciding, building
-    {"BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "CLIMB", "HOLD "},
-    // Waxing gibbous: swelling, near the peak, heavy
-    {"SWELL", "FILL ", "CREST", "PULL ", "GROW ", "HEAVY", "DRAW ", "NEAR "},
-    // Full moon: peak, flood, illuminated
-    {"TIDE ", "PEAK ", "FLOOD", "BLOOM", "SURGE", "BURN ", "SHINE", "GLOW "},
-    // Waning gibbous: after the peak, releasing slowly
-    {"EASE ", "POUR ", "SPILL", "FLOW ", "GIVE ", "DRAIN", "REST ", "YIELD"},
-    // Last quarter: turning, shedding, letting go
-    {"TURN ", "FALL ", "DRIFT", "SHED ", "PASS ", "BREAK", "LET  ", "YIELD"},
-    // Waning crescent: thinning, final dark, hush
-    {"THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "STILL", "SLEEP", "HUSH "},
+static const char *words_a[8][12] = {
+    // New moon: inward, potential, the quiet pull before anything begins
+    {"SEED ", "VOID ", "DRAW ", "STILL", "BROOD", "HUSH ", "WAIT ",
+     "PULL ", "DEEP ", "EMPTY", "QUIET", "DARK "},
+    // Waxing crescent: first stir, something kindling
+    {"RISE ", "STIR ", "SPARK", "LEAN ", "SEEK ", "REACH", "TEND ",
+     "PUSH ", "BEGIN", "OPEN ", "LIGHT", "MOVE "},
+    // First quarter: momentum, deciding, cutting through
+    {"BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "CLIMB",
+     "HOLD ", "MAKE ", "FORM ", "BRACE", "GRIND"},
+    // Waxing gibbous: swelling, heavy with what's coming
+    {"SWELL", "FILL ", "CREST", "PULL ", "GROW ", "HEAVY", "NEAR ",
+     "ACHE ", "LOAD ", "RICH ", "FULL ", "TENSE"},
+    // Full moon: peak, flood, nothing hidden
+    {"TIDE ", "PEAK ", "FLOOD", "BLOOM", "SURGE", "BURN ", "SHINE",
+     "GLOW ", "BOLD ", "FORCE", "BLAZE", "OPEN "},
+    // Waning gibbous: after the peak, slowly giving back
+    {"EASE ", "POUR ", "SPILL", "FLOW ", "GIVE ", "DRAIN", "REST ",
+     "YIELD", "LOOSE", "SLOW ", "SHED ", "SPENT"},
+    // Last quarter: the turn, releasing what's done
+    {"TURN ", "FALL ", "DRIFT", "SHED ", "PASS ", "BREAK", "YIELD",
+     "LEAN ", "CLEAR", "SLIDE", "SHIFT", "LOOSE"},
+    // Waning crescent: thinning, the final dark, going quiet
+    {"THIN ", "FADE ", "SINK ", "WANE ", "BARE ", "STILL", "SLEEP",
+     "HUSH ", "QUIET", "DARK ", "CLOSE", "EMPTY"},
 };
-#define WORDS_A_COUNT 8
+#define WORDS_A_PER_PHASE 12
 
 // ─────────────────────────────────────────────────────────────────
-// Word B: Circadian score tiers — your energy, mood, capacity
-// 5 tiers × 8 words = 40 options
-// (day_of_year / 3) % 8 selects daily, offset from Word A drift
-// Words are mood/action hybrids: what you can bring, what fits your state
+// Word B: Circadian score families — your energy, mood, what you can bring
+//
+// Circadian tier seeds the cluster (5 tiers × 12 words = 60).
+// (day_of_year / 3) % 12 drifts daily at a different rate than Word A —
+// the two words shift independently, keeping combos fresh.
+// Words are mood/action: not just nouns, not just verbs — the texture of the day.
 // ─────────────────────────────────────────────────────────────────
-static const char *words_b[5][8] = {
-    // 0-20: depleted — rest is the right move, not failure
-    {"REST ", "HOLD ", "STILL", "WAIT ", "PAUSE", "YIELD", "QUIET", "DWELL"},
-    // 21-40: low — gentle tending, soft action
-    {"TEND ", "SLOW ", "SOFT ", "KEEP ", "MEND ", "EASE ", "LIGHT", "WALK "},
-    // 41-60: average — steady, carrying the weight
-    {"MOVE ", "SEEK ", "WORK ", "STEP ", "HOLD ", "CARRY", "PUSH ", "PRESS"},
-    // 61-80: good — intentional, capable
-    {"DRIVE", "SHAPE", "FORGE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD"},
-    // 81-100: sharp — peak capacity, vivid
-    {"SURGE", "BOLD ", "BLAZE", "LEAD ", "SEAR ", "SPARK", "HUNT ", "SHARP"},
+static const char *words_b[5][12] = {
+    // 0-20: depleted — rest is the work, not the failure
+    {"REST ", "HOLD ", "STILL", "WAIT ", "PAUSE", "YIELD", "QUIET", "DWELL",
+     "FLOAT", "LOW  ", "IDLE ", "SLEEP"},
+    // 21-40: low — soft, tending, gentle maintenance
+    {"TEND ", "SLOW ", "SOFT ", "KEEP ", "MEND ", "EASE ", "LIGHT", "WALK ",
+     "TREAD", "NURSE", "STAY ", "CALM "},
+    // 41-60: average — steady, carrying it
+    {"MOVE ", "SEEK ", "WORK ", "STEP ", "HOLD ", "CARRY", "PUSH ", "PRESS",
+     "GRIND", "PACE ", "TRACE", "KEEP "},
+    // 61-80: good — intentional, capable, building something
+    {"DRIVE", "SHAPE", "MAKE ", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD ",
+     "PRESS", "CARVE", "LOCK ", "FORM "},
+    // 81-100: sharp — peak, vivid, don't waste it
+    {"SURGE", "BLAZE", "FORGE", "SEAR ", "SPARK", "HUNT ", "SHARP", "BURN ",
+     "STORM", "BOLD ", "PUSH ", "FLY  "},
 };
-#define WORDS_B_COUNT 8
+#define WORDS_B_PER_TIER 12
 
 // ─────────────────────────────────────────────────────────────────
 // Moon phase calculation (J2000-based, ±1 day accuracy)
@@ -88,14 +105,14 @@ static const char *_moon_name(uint8_t phase) {
 // Compute phrase from current inputs
 // ─────────────────────────────────────────────────────────────────
 static void _compute_oracle(oracle_face_state_t *state) {
-    // Word A: moon phase pool, day-of-year selects within pool
-    // Changes daily within the ~3.7-day phase window
-    state->word_a_idx = state->day_of_year % WORDS_A_COUNT;
+    // Word A: moon phase selects the family (archetype cluster)
+    // day_of_year % 12 rolls through all 12 words in the family daily
+    state->word_a_idx = state->day_of_year % WORDS_A_PER_PHASE;
 
-    // Word B: circadian tier, offset day-of-year so A and B drift independently
-    // Dividing by 3 slows the drift slightly — A and B shift at different rates,
-    // keeping combinations fresh even when doy moves by 1
-    state->word_b_idx = (state->day_of_year / 3) % WORDS_B_COUNT;
+    // Word B: circadian tier selects the energy cluster
+    // (day_of_year / 3) % 12 drifts at 1/3 speed of Word A —
+    // the two words shift at different rates so combos stay varied
+    state->word_b_idx = (state->day_of_year / 3) % WORDS_B_PER_TIER;
 }
 
 // ─────────────────────────────────────────────────────────────────
