@@ -45,6 +45,27 @@ Added crystal tap detection for instant display wake on Sensor Watch Pro boards:
 **Persistence:**
 Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power cycles, resets on complete battery removal (standard Sensor Watch behavior).
 
+### Bidirectional Communications System
+Acoustic TX (FESK) and optical RX (Manchester-coded light sensor) for data export and time sync.
+
+**TX — FESK acoustic export (`comms_face`):**
+- Transmits 7 nights of circadian data (112 bytes) as audio frequency-shift keying
+- Protocol: FESK by Eirik S. Morland (PR #139 to second-movement), 26 bps
+- Data: 16 bytes/night × 7 nights (sleep score, circadian score, timestamps, flags)
+- Countdown timer shows estimated transmission time (~69 seconds for 112 bytes)
+- Companion app: `companion-app/fesk-decoder.html` decodes via phone microphone
+
+**RX — Optical light sensor (`comms_rx`):**
+- Receives Manchester-encoded data via phone screen → watch light sensor
+- Protocol: 10 bps, SYNC(0xAA) + LEN + TYPE + DATA + CRC8 (CRC-8/MAXIM)
+- Packet types: time sync (TYPE=1), config push (TYPE=2), ACK (TYPE=3)
+- Hardware: `HAL_GPIO_IRSENSE_pin()` ADC @ 64 Hz sample rate
+- Companion app: `companion-app/optical-tx.html` transmits time sync via screen flash
+
+**Companion apps** (static HTML, iPhone Safari + Add to Home Screen compatible):
+- `fesk-decoder.html` — decodes FESK audio export, renders 7-night health summary
+- `optical-tx.html` — sends Manchester-encoded time sync to watch via screen
+
 ### Sleep & Circadian Tracking System
 **What it is:** Research-backed sleep detection + circadian health scoring for long-term pattern tracking. Uses accelerometer motion detection + ambient light sensor to distinguish sleep from wake, then calculates health metrics over 7-day rolling windows.
 
@@ -84,6 +105,50 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 3. **Sleep Tracker** (live + review with SL score)
 4. **Circadian Score** (7-day CS + drill-down)
 5. World Clock, Sunrise/Sunset, etc.
+
+### Oracle Face
+A daily 2-word phrase computed from the current moon phase and your circadian score. Not a prediction — a field reading.
+
+**Word A — Moon Phase** (`OR` top-left indicator):
+- 64 words across 8 lunar chapters (8 words per chapter)
+- Chapter determined by moon phase (0=New, 4=Full, etc.)
+- Word cycles daily within chapter via day-of-year + year salt
+- Full lunar arc: void/seed → stir/seek → build/forge → swell/fill → tide/peak → ease/flow → turn/fall → thin/fade
+
+**Word B — Circadian Score:**
+- 55 words across 5 energy zones (11 words per zone)
+- Zone determined by circadian score tier (0=depleted, 4=sharp)
+- Word shuffles within zone daily (gcd(3,11)=1 ensures full zone walk)
+- Energy arc: sleep/rest/haze → drift/tend/hum → scan/seek/grind → push/dare/forge → go/zap/lock/blaze
+
+**Reading modes** (deterministic per day):
+- ~85% — both words (Word A → Word B)
+- ~7.5% — Word A only (cosmic read)
+- ~7.5% — Word B only (energy read)
+- Surprise is intentional: you don't know which until pressing ALARM
+
+**Birthday display** (optional):
+```c
+// Uncomment in movement_config.h:
+// #define ORACLE_BIRTH_MONTH 1
+// #define ORACLE_BIRTH_DAY   1
+```
+On your birthday the watch shows `BDAY` with a bell chime. Press ALARM to cycle to the phrase.
+
+**ALARM button:** Cycles through available screens for the day's reading mode. Long-press forces a full refresh (re-reads circadian score, recomputes).
+
+### First-Boot Defaults
+Active hours and location can be pre-configured at build time via `movement_defaults.h`:
+
+```c
+#define MOVEMENT_DEFAULT_ACTIVE_HOURS_START 16  // 04:00
+#define MOVEMENT_DEFAULT_ACTIVE_HOURS_END   92  // 23:00
+#define MOVEMENT_DEFAULT_ACTIVE_HOURS_ENABLED true
+#define MOVEMENT_DEFAULT_LATITUDE  0  // hundredths of a degree
+#define MOVEMENT_DEFAULT_LONGITUDE 0
+```
+
+These values initialize BKUP registers on first flash only. User changes via watch face are preserved across resets. The custom firmware builder (`builder/index.html`) exposes these as UI controls under **FIRST BOOT DEFAULTS**.
 
 ---
 
