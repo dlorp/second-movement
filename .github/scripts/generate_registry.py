@@ -18,10 +18,17 @@ WATCH_FACES_ROOT = "watch-faces"
 CATEGORY_NAMES = {
     "clock":       "Clock",
     "complication": "Complication",
+    "games":       "Games",
     "sensor":      "Sensor",
     "demo":        "Demo",
     "io":          "I/O",
     "settings":    "Settings",
+}
+
+# Faces that live in watch-faces/complication/ on disk but belong in the Games category
+GAME_FACES = {
+    "blackjack_face", "endless_runner_face", "higher_lower_game_face",
+    "lander_face", "simon_face", "wordle_face", "squash_face",
 }
 
 DEFAULT_FACES = {
@@ -58,6 +65,9 @@ def scan_faces(root: str):
             face_id = fname[:-2]          # strip .c
             parts = dirpath.split(os.sep)
             cat = parts[1] if len(parts) >= 2 else "other"
+            # Override category for game faces regardless of filesystem location
+            if face_id in GAME_FACES:
+                cat = "games"
             categories.add(cat)
 
             c_path = os.path.join(dirpath, fname)
