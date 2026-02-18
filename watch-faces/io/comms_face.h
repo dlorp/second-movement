@@ -66,6 +66,17 @@ typedef enum {
     COMMS_RX,              // RX mode selected
 } comms_active_mode_t;
 
+// Data type sub-mode: what data to send or receive
+// Matches stream_type bitfield in comms_packet_hdr_t (sleep=0, light=1, activity=2, control=3)
+typedef enum {
+    COMMS_DATA_ALL      = 0xFF, // TX: send all streams; RX: accept any stream
+    COMMS_DATA_SLEEP    = 0,    // Sleep tracking data
+    COMMS_DATA_LIGHT    = 1,    // Light/circadian data
+    COMMS_DATA_ACTIVITY = 2,    // Activity/step data
+    COMMS_DATA_CONTROL  = 3,    // Control/config packets
+    COMMS_DATA_TYPE_COUNT = 4,  // Sentinel (cycle wraps back to 0, then ALL)
+} comms_data_type_t;
+
 typedef enum {
     COMMS_MODE_IDLE,       // Waiting to start
     COMMS_MODE_TX_ACTIVE,  // Transmitting data
@@ -109,6 +120,7 @@ typedef struct {
 
 typedef struct {
     comms_active_mode_t active_mode;  // Current mode (TX or RX)
+    comms_data_type_t data_type;      // Data sub-mode (all/sleep/light/activity/control)
     comms_mode_t mode;                // Current state machine state
     fesk_session_t fesk_session;
     
