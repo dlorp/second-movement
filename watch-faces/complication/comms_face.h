@@ -75,6 +75,18 @@ typedef enum {
     COMMS_MODE_RX_ERROR,   // Reception error (timeout, CRC fail)
 } comms_mode_t;
 
+// RX error codes (for detailed error reporting)
+typedef enum {
+    RX_ERROR_NONE,              // No error
+    RX_ERROR_SYNC_TIMEOUT,      // Couldn't find sync pattern (10s timeout)
+    RX_ERROR_BIT_TIMEOUT,       // Missed edge transition (missed bit)
+    RX_ERROR_PACKET_TIMEOUT,    // Packet incomplete after 2 minutes
+    RX_ERROR_CRC_FAIL,          // CRC checksum mismatch
+    RX_ERROR_BUFFER_OVERFLOW,   // Packet too large for buffer
+    RX_ERROR_INVALID_LENGTH,    // LEN field out of range (>64)
+    RX_ERROR_INVALID_TYPE,      // Unknown packet type
+} rx_error_code_t;
+
 // Packet header bitfield
 typedef struct {
     uint8_t direction : 2;    // 00 = watch→app
@@ -109,6 +121,9 @@ typedef struct {
     optical_rx_state_t rx_state;  // Optical receiver state
     uint8_t bytes_received;       // Total bytes received
     bool light_sensor_active;     // Is light sensor enabled?
+    rx_error_code_t rx_error_code;  // Last error code (for display)
+    uint16_t rx_seconds_elapsed;  // Seconds elapsed during RX (uint16_t = max 18 hours)
+    uint8_t rx_tick_counter;      // Tick counter for elapsed time (64 ticks = 1 second @ 64 Hz)
 } comms_face_state_t;
 
 void comms_face_setup(uint8_t watch_face_index, void **context_ptr);
