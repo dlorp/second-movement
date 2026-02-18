@@ -48,6 +48,7 @@
 #include "adc.h"
 
 #include "movement_config.h"
+#include "movement_defaults.h"
 #include "sleep_tracker_face.h"
 #include "circadian_score.h"
 
@@ -1032,18 +1033,18 @@ movement_active_hours_t movement_get_active_hours(void) {
     settings.reg = watch_get_backup_data(2);
     
     // Check if backup register is uninitialized (all zeros or all ones)
-    // Initialize with defaults: 04:00-23:00 (16-92 in quarter hours), enabled
+    // Initialize with defaults from movement_defaults.h
     if (settings.reg == 0 || settings.reg == 0xFFFFFFFF) {
-        settings.bit.start_quarter_hours = 16;  // 04:00 = 4 * 4 = 16
-        settings.bit.end_quarter_hours = 92;    // 23:00 = 23 * 4 = 92
-        settings.bit.enabled = true;
+        settings.bit.start_quarter_hours = MOVEMENT_DEFAULT_ACTIVE_HOURS_START;
+        settings.bit.end_quarter_hours = MOVEMENT_DEFAULT_ACTIVE_HOURS_END;
+        settings.bit.enabled = MOVEMENT_DEFAULT_ACTIVE_HOURS_ENABLED;
         settings.bit.reserved = 0;
         movement_set_active_hours(settings);
     }
-    
+
     // Validate values are in range (0-95)
-    if (settings.bit.start_quarter_hours > 95) settings.bit.start_quarter_hours = 16;
-    if (settings.bit.end_quarter_hours > 95) settings.bit.end_quarter_hours = 92;
+    if (settings.bit.start_quarter_hours > 95) settings.bit.start_quarter_hours = MOVEMENT_DEFAULT_ACTIVE_HOURS_START;
+    if (settings.bit.end_quarter_hours > 95) settings.bit.end_quarter_hours = MOVEMENT_DEFAULT_ACTIVE_HOURS_END;
     
     return settings;
 }
@@ -1176,6 +1177,20 @@ void app_init(void) {
         movement_store_settings();
     }
 
+    // Initialize location defaults on first boot (BKUP[1])
+    // Only applies if defaults are non-zero and register is uninitialized.
+#if (MOVEMENT_DEFAULT_LATITUDE != 0 || MOVEMENT_DEFAULT_LONGITUDE != 0)
+    {
+        movement_location_t location;
+        location.reg = watch_get_backup_data(1);
+        if (location.reg == 0) {
+            location.bit.latitude = MOVEMENT_DEFAULT_LATITUDE;
+            location.bit.longitude = MOVEMENT_DEFAULT_LONGITUDE;
+            watch_store_backup_data(location.reg, 1);
+        }
+    }
+#endif
+
     watch_date_time_t date_time = watch_rtc_get_date_time();
     if (date_time.reg == 0) {
         date_time = watch_get_init_date_time();
@@ -1196,7 +1211,8 @@ void app_init(void) {
     movement_state.signal_volume = MOVEMENT_DEFAULT_SIGNAL_VOLUME;
     movement_state.alarm_volume = MOVEMENT_DEFAULT_ALARM_VOLUME;
     movement_state.light_on = false;
-    movement_state.next_available_backup_register = 2;
+    // Reserve BKUP[0-3] for movement core (settings, location, active_hours, reserved)
+    movement_state.next_available_backup_register = 4;
     _movement_reset_inactivity_countdown();
 
     // set up the 1 minute alarm (for background tasks and low power updates)
