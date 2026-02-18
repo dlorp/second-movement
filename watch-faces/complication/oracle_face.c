@@ -28,17 +28,20 @@ static const char *words_a[64] = {
     // Chapter 1: Waxing crescent — first stir, seeking
     "STIR", "LEAN", "SEEK", "REACH", "RISE", "TEND", "SPARK", "FLIP",
     // Chapter 2: First quarter — momentum, cutting, building
-    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CARVE", "SNAP", "CLIMB",
+    "BUILD", "FORGE", "PRESS", "SHAPE", "DRIVE", "CUT", "SNAP", "CLIMB",
     // Chapter 3: Waxing gibbous — swelling, heavy, near the peak
-    "SWELL", "FILL", "CREST", "GROW", "PULL", "HEAVY", "WILD", "TENSE",
+    // ACHE: the body knows something's building before the mind does
+    "SWELL", "FILL", "CREST", "GROW", "PULL", "HEAVY", "WILD", "ACHE",
     // Chapter 4: Full moon — peak, flood, nothing hidden
     "TIDE", "PEAK", "FLOOD", "LUCK", "SURGE", "BURN", "SHINE", "BLAZE",
     // Chapter 5: Waning gibbous — after the peak, giving back
-    "EASE", "POUR", "SPILL", "FLOW", "GIVE", "DRAIN", "YIELD", "SHED",
+    // DONE: the peak is over. definitive. sometimes funny.
+    "EASE", "POUR", "SPILL", "FLOW", "GIVE", "DONE", "YIELD", "SHED",
     // Chapter 6: Last quarter — the turn, releasing what's done
     "TURN", "FALL", "DRIFT", "PASS", "BREAK", "SPIN", "SLIDE", "SHIFT",
     // Chapter 7: Waning crescent — thinning, the final dark
-    "THIN", "FADE", "SINK", "WANE", "BARE", "LIMB", "DARK", "EMPTY",
+    // HUSK: the shell after the seed is gone — organic, specific, not just empty
+    "THIN", "FADE", "SINK", "WANE", "BARE", "LIMB", "DARK", "HUSK",
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -53,14 +56,16 @@ static const char *words_b[55] = {
     // Zone 0 (0-10): depleted — rest is the work, not the failure
     "SLEEP", "REST", "IDLE", "FLOAT", "MAYBE", "WAIT", "STILL", "QUIET", "PAUSE", "HOLD", "YIELD",
     // Zone 1 (11-21): low — soft tending, gentle enough
-    "DRIFT", "TEND", "MEND", "NURSE", "SLOW", "SOFT", "CALM", "EASE", "LIGHT", "WALK", "TREAD",
+    // LAY: lay low / lay it down / lay the groundwork — context does the work
+    "DRIFT", "TEND", "MEND", "NURSE", "SLOW", "SOFT", "CALM", "EASE", "LIGHT", "WALK", "LAY",
     // Zone 2 (22-32): average — carrying it, steady
-    "STAY", "LEAN", "RISK", "MOVE", "SEEK", "STEP", "PACE", "WORK", "PRESS", "CARRY", "GRIND",
+    // DIG: dig in, dig it, literally dig — earthy, committed
+    "STAY", "LEAN", "RISK", "MOVE", "SEEK", "STEP", "PACE", "WORK", "PRESS", "DIG", "GRIND",
     // Zone 3 (33-43): good — intentional, building
     "PUSH", "DARE", "DRIVE", "SHAPE", "MAKE", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD", "FORGE",
     // Zone 4 (44-54): sharp — peak capacity, don't waste it
-    // GO and NOW: the oracle doesn't always need five letters
-    "GO", "SURGE", "SEAR", "SPARK", "HUNT", "BURN", "LEAP", "NOW", "SHARP", "BLAZE", "FLY",
+    // GO, NOW, HIT: the oracle doesn't always need five letters
+    "GO", "SURGE", "SEAR", "SPARK", "HUNT", "BURN", "LEAP", "NOW", "HIT", "BLAZE", "FLY",
 };
 
 // ─────────────────────────────────────────────────────────────────
