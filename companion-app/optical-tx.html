@@ -133,7 +133,7 @@
         // 0 = HIGH→LOW (white→black)
         // 1 = LOW→HIGH (black→white)
         async function flashBit(bit) {
-            const halfBit = 31.25;  // 31.25ms per half-bit (62.5ms total = 16 bps)
+            const halfBit = 50;  // 50ms per half-bit (100ms total = 10 bps)
             
             if (bit === 0) {
                 flashScreen.style.background = '#FFF';  // HIGH
@@ -220,16 +220,16 @@
                 }
             } catch (err) {
                 statusDiv.textContent = 'Error: ' + err.message;
-            }
-            
-            // Cleanup
-            transmitting = false;
-            sendTimeBtn.classList.remove('hidden');
-            cancelBtn.classList.add('hidden');
-            
-            if (wakeLock) {
-                wakeLock.release();
-                wakeLock = null;
+            } finally {
+                // Cleanup in finally block (runs on success AND error)
+                transmitting = false;
+                sendTimeBtn.classList.remove('hidden');
+                cancelBtn.classList.add('hidden');
+                
+                if (wakeLock) {
+                    await wakeLock.release();
+                    wakeLock = null;
+                }
             }
         }
 
