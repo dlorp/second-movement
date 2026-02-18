@@ -43,7 +43,8 @@ static void _on_transmission_end(void *user_data) {
 }
 
 static void _on_transmission_start(void *user_data) {
-    (void)user_data;
+    comms_face_state_t *state = (comms_face_state_t *)user_data;
+    state->tx_elapsed_seconds = 0;
     watch_set_indicator(WATCH_INDICATOR_BELL);
 }
 
@@ -52,6 +53,7 @@ static void _on_error(fesk_result_t error, void *user_data) {
     comms_face_state_t *state = (comms_face_state_t *)user_data;
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
+    state->tx_elapsed_seconds = 0;
     watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
@@ -100,6 +102,7 @@ static void _stop_transmission(comms_face_state_t *state) {
     fesk_session_dispose(&state->fesk_session);
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
+    state->tx_elapsed_seconds = 0;
     watch_clear_indicator(WATCH_INDICATOR_BELL);
 }
 
@@ -153,8 +156,8 @@ static void _update_display(comms_face_state_t *state) {
         case COMMS_MODE_RX_ACTIVE:
             watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "Recv");
             if (state->rx_state.synced) {
-                // Receiving data - show bytes received
-                sprintf(buf, " %2db  ", state->bytes_received);
+                // Receiving data - show elapsed time
+                snprintf(buf, sizeof(buf), " %2ds  ", state->rx_seconds_elapsed);
                 watch_display_text(WATCH_POSITION_BOTTOM, buf);
             } else {
                 // Looking for sync
@@ -167,7 +170,16 @@ static void _update_display(comms_face_state_t *state) {
             break;
         case COMMS_MODE_RX_ERROR:
             watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, "RX", "Recv");
-            watch_display_text(WATCH_POSITION_BOTTOM, " ERR  ");
+            switch (state->rx_error_code) {
+                case RX_ERROR_SYNC_TIMEOUT:    watch_display_text(WATCH_POSITION_BOTTOM, "ER SYN"); break;
+                case RX_ERROR_CRC_FAIL:        watch_display_text(WATCH_POSITION_BOTTOM, "ER CRC"); break;
+                case RX_ERROR_PACKET_TIMEOUT:  watch_display_text(WATCH_POSITION_BOTTOM, "ER TMO"); break;
+                case RX_ERROR_BIT_TIMEOUT:     watch_display_text(WATCH_POSITION_BOTTOM, "ER BIT"); break;
+                case RX_ERROR_BUFFER_OVERFLOW: watch_display_text(WATCH_POSITION_BOTTOM, "ER BUF"); break;
+                case RX_ERROR_INVALID_LENGTH:  watch_display_text(WATCH_POSITION_BOTTOM, "ER LEN"); break;
+                case RX_ERROR_INVALID_TYPE:    watch_display_text(WATCH_POSITION_BOTTOM, "ER TYP"); break;
+                default:                       watch_display_text(WATCH_POSITION_BOTTOM, " ERR  "); break;
+            }
             break;
     }
 }
@@ -185,6 +197,7 @@ void comms_face_activate(void *context) {
     comms_face_state_t *state = (comms_face_state_t *)context;
     state->mode = COMMS_MODE_IDLE;
     state->transmission_active = false;
+    state->tx_elapsed_seconds = 0;
     state->active_mode = COMMS_TX;  // Default to TX mode
     state->light_sensor_active = false;
     _update_display(state);
@@ -198,10 +211,25 @@ bool comms_face_loop(movement_event_t event, void *context) {
             _update_display(state);
             break;
         case EVENT_TICK:
+            if (state->mode == COMMS_MODE_TX_ACTIVE) {
+                state->tx_elapsed_seconds++;
+            }
             // Poll RX if active
             #ifdef HAS_IR_SENSOR
             if (state->mode == COMMS_MODE_RX_ACTIVE) {
                 optical_rx_poll(state);
+
+                // Track elapsed time (increment every 64 ticks = 1 second @ 64 Hz)
+                if (state->rx_state.synced) {
+                    state->rx_tick_counter++;
+                    if (state->rx_tick_counter >= 64) {
+                        // Prevent overflow (uint16_t supports up to 18 hours)
+                        if (state->rx_seconds_elapsed < UINT16_MAX) {
+                            state->rx_seconds_elapsed++;
+                        }
+                        state->rx_tick_counter = 0;
+                    }
+                }
             }
             #endif
             _update_display(state);
@@ -229,6 +257,7 @@ bool comms_face_loop(movement_event_t event, void *context) {
                        state->mode == COMMS_MODE_RX_DONE || 
                        state->mode == COMMS_MODE_RX_ERROR) {
                 state->mode = COMMS_MODE_IDLE;
+                state->tx_elapsed_seconds = 0;
                 _update_display(state);
             }
             break;
