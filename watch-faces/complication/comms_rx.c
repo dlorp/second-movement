@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "comms_face.h"
+#include "comms_rx.h"
 #include "watch.h"
 
 #ifdef HAS_IR_SENSOR

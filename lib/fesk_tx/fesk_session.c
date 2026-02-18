@@ -196,7 +196,7 @@ static void _finish_session(fesk_session_t *session, bool notify) {
     }
 }
 
-static bool _build_sequence(fesk_session_t *session) {
+static __attribute__((unused)) bool _build_sequence(fesk_session_t *session) {
     const char *payload = session->config.static_message;
     size_t payload_length = 0;
 
