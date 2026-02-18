@@ -1,5 +1,32 @@
 {
   "version": "1.0",
+  "runtime_defaults": [
+    {
+      "id": "active_hours_enabled",
+      "name": "Active Hours Enabled",
+      "type": "bool",
+      "default": true,
+      "description": "Enable the active hours sleep window feature"
+    },
+    {
+      "id": "active_hours_start",
+      "name": "Active Hours Start",
+      "type": "quarter_hours",
+      "default": 16,
+      "min": 0,
+      "max": 95,
+      "description": "Wake window start time (15-min steps, 16=04:00)"
+    },
+    {
+      "id": "active_hours_end",
+      "name": "Active Hours End",
+      "type": "quarter_hours",
+      "default": 92,
+      "min": 0,
+      "max": 95,
+      "description": "Wake window end time (15-min steps, 92=23:00)"
+    }
+  ],
   "settings": [
     {
       "id": "MOVEMENT_SECONDARY_FACE_INDEX",
