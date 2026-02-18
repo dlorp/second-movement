@@ -492,6 +492,29 @@
             border-radius: 0;
         }
 
+        /* ---- FIRST BOOT DEFAULTS HEADER ---- */
+        .setting-section-header {
+            padding: 10px 0 4px;
+            border-bottom: 1px solid var(--color-amber-trace);
+        }
+
+        .setting-section-label {
+            font-size: 10px;
+            color: var(--color-amber-dim);
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .setting-section-note {
+            display: block;
+            font-size: 10px;
+            color: var(--color-amber-trace);
+            letter-spacing: 0.04em;
+            margin-top: 3px;
+            text-transform: none;
+            line-height: 1.4;
+        }
+
         /* ---- BUILD SECTION ---- */
         .build-section {
             padding: 16px 12px;
@@ -895,6 +918,41 @@
             </div>
         </div>
 
+        <!-- FIRST BOOT DEFAULTS HEADER -->
+        <div class="setting-section-header">
+            <span class="setting-section-label">-- FIRST BOOT DEFAULTS --</span>
+            <span class="setting-section-note">Applied once on first flash. User can override via watch face UI.</span>
+        </div>
+
+        <!-- ACTIVE HOURS ENABLED -->
+        <div class="setting-row">
+            <span class="setting-label">ACTIVE HRS</span>
+            <div class="setting-control">
+                <label class="toggle-wrap" aria-label="Active hours enabled toggle">
+                    <div class="toggle-track" id="toggleAhEn" role="switch" aria-checked="true">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                    <span class="toggle-label" id="labelAhEn">ON</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- ACTIVE HOURS START -->
+        <div class="setting-row" id="ahStartRow">
+            <span class="setting-label">AH START</span>
+            <div class="setting-control">
+                <select id="ahStart" aria-label="Active hours start time"></select>
+            </div>
+        </div>
+
+        <!-- ACTIVE HOURS END -->
+        <div class="setting-row" id="ahEndRow">
+            <span class="setting-label">AH END</span>
+            <div class="setting-control">
+                <select id="ahEnd" aria-label="Active hours end time"></select>
+            </div>
+        </div>
+
     </div>
 
     <!-- SIGNAL TUNE -->
@@ -1187,7 +1245,11 @@ let state = {
     ledGreen: 15,
     ledBlue: 0,
     btnSound: false,
-    signalTune: 'SIGNAL_TUNE_DEFAULT'
+    signalTune: 'SIGNAL_TUNE_DEFAULT',
+    // First-boot defaults (BKUP[2]: active hours)
+    activeHoursEnabled: true,
+    activeHoursStart: 16,  // 04:00
+    activeHoursEnd: 92     // 23:00
 };
 
 let buildId = null;
@@ -1243,6 +1305,15 @@ function loadTemplate(tmplState) {
     if (tmplState.ledBlue !== undefined) state.ledBlue = tmplState.ledBlue;
     if (tmplState.btnSound !== undefined) state.btnSound = tmplState.btnSound;
     if (tmplState.signalTune) state.signalTune = tmplState.signalTune;
+    if (tmplState.activeHoursEnabled !== undefined) state.activeHoursEnabled = !!tmplState.activeHoursEnabled;
+    if (tmplState.activeHoursStart !== undefined) {
+        const v = parseInt(tmplState.activeHoursStart, 10);
+        state.activeHoursStart = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 16;
+    }
+    if (tmplState.activeHoursEnd !== undefined) {
+        const v = parseInt(tmplState.activeHoursEnd, 10);
+        state.activeHoursEnd = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 92;
+    }
     // sync sliders/toggles to loaded state
     document.getElementById('ledRed').value = state.ledRed;
     document.getElementById('ledRedVal').textContent = state.ledRed;
@@ -1253,6 +1324,10 @@ function loadTemplate(tmplState) {
     document.getElementById('signalTune').value = state.signalTune;
     setToggle('toggle24h', 'label24h', state.clock24h);
     setToggle('toggleBtn', 'labelBtn', state.btnSound);
+    setToggle('toggleAhEn', 'labelAhEn', state.activeHoursEnabled);
+    document.getElementById('ahStart').innerHTML = buildTimeOptions(state.activeHoursStart);
+    document.getElementById('ahEnd').innerHTML = buildTimeOptions(state.activeHoursEnd);
+    updateAhTimeVisibility();
     renderBoards();
     renderDisplays();
     renderActiveFaces();
@@ -1389,6 +1464,26 @@ function playSignalTune(tuneId) {
 }
 
 // ============================================================
+// ACTIVE HOURS HELPERS
+// ============================================================
+function buildTimeOptions(selectedVal) {
+    let html = '';
+    for (let i = 0; i < 96; i++) {
+        const h = String(Math.floor(i / 4)).padStart(2, '0');
+        const m = String((i % 4) * 15).padStart(2, '0');
+        const sel = i === selectedVal ? ' selected' : '';
+        html += '<option value="' + i + '"' + sel + '>' + h + ':' + m + '</option>';
+    }
+    return html;
+}
+
+function updateAhTimeVisibility() {
+    const show = state.activeHoursEnabled;
+    document.getElementById('ahStartRow').style.display = show ? '' : 'none';
+    document.getElementById('ahEndRow').style.display = show ? '' : 'none';
+}
+
+// ============================================================
 // INIT
 // ============================================================
 async function init() {
@@ -1433,6 +1528,12 @@ async function init() {
     setToggle('toggle24h', 'label24h', state.clock24h);
     setToggle('toggleBtn', 'labelBtn', state.btnSound);
 
+    // restore active hours first-boot defaults
+    setToggle('toggleAhEn', 'labelAhEn', state.activeHoursEnabled);
+    document.getElementById('ahStart').innerHTML = buildTimeOptions(state.activeHoursStart);
+    document.getElementById('ahEnd').innerHTML = buildTimeOptions(state.activeHoursEnd);
+    updateAhTimeVisibility();
+
     renderBoards();
     renderDisplays();
     renderActiveFaces();
@@ -1470,6 +1571,22 @@ async function init() {
     document.getElementById('toggleBtn').addEventListener('click', () => {
         state.btnSound = !state.btnSound;
         setToggle('toggleBtn', 'labelBtn', state.btnSound);
+        updateHash();
+    });
+    document.getElementById('toggleAhEn').addEventListener('click', () => {
+        state.activeHoursEnabled = !state.activeHoursEnabled;
+        setToggle('toggleAhEn', 'labelAhEn', state.activeHoursEnabled);
+        updateAhTimeVisibility();
+        updateHash();
+    });
+    document.getElementById('ahStart').addEventListener('change', e => {
+        const v = parseInt(e.target.value, 10);
+        state.activeHoursStart = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 16;
+        updateHash();
+    });
+    document.getElementById('ahEnd').addEventListener('change', e => {
+        const v = parseInt(e.target.value, 10);
+        state.activeHoursEnd = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 92;
         updateHash();
     });
 
@@ -1785,7 +1902,10 @@ function updateHash() {
         'led_g=' + state.ledGreen,
         'led_b=' + state.ledBlue,
         'btn=' + state.btnSound,
-        'tune=' + encodeURIComponent(state.signalTune)
+        'tune=' + encodeURIComponent(state.signalTune),
+        'ah_en=' + state.activeHoursEnabled,
+        'ah_start=' + state.activeHoursStart,
+        'ah_end=' + state.activeHoursEnd
     ];
     history.replaceState(null, '', '#' + params.join('&'));
 }
@@ -1834,6 +1954,12 @@ function parseHash() {
     });
     if (clampedSecondary >= faceIds.length) activeFaces.push('__secondary__');
 
+    // Clamp quarter-hour values to valid integer range 0-95
+    const clampQh = (val, def) => {
+        const n = parseInt(val || String(def), 10);
+        return (Number.isFinite(n) && n >= 0 && n <= 95) ? n : def;
+    };
+
     return {
         board,
         display,
@@ -1843,7 +1969,10 @@ function parseHash() {
         ledGreen: clampLed(params.led_g, 15),
         ledBlue: clampLed(params.led_b, 0),
         btnSound: params.btn === 'true',
-        signalTune
+        signalTune,
+        activeHoursEnabled: params.ah_en !== undefined ? params.ah_en === 'true' : true,
+        activeHoursStart: clampQh(params.ah_start, 16),
+        activeHoursEnd: clampQh(params.ah_end, 92)
     };
 }
 
@@ -1900,6 +2029,9 @@ async function triggerBuild() {
         led_blue: String(state.ledBlue),
         button_sound: String(state.btnSound),
         signal_tune: state.signalTune,
+        active_hours_enabled: String(state.activeHoursEnabled),
+        active_hours_start: String(state.activeHoursStart),
+        active_hours_end: String(state.activeHoursEnd),
         build_id: buildId
     };
 
