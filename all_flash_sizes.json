@@ -1,0 +1,90 @@
+{
+  "batch_1": {
+    "clock_face": 2048,
+    "close_enough_face": 3520,
+    "ish_face": 1400,
+    "mars_time_face": 3048,
+    "world_clock_face": 2224,
+    "wyoscan_face": 1024
+  },
+  "batch_2": {
+    "advanced_alarm_face": 2544,
+    "alarm_face": 704,
+    "baby_kicks_face": 1504,
+    "breathing_face": 848,
+    "circadian_score_face": 1472,
+    "countdown_face": 2144,
+    "counter_face": 464,
+    "days_since_face": 1304
+  },
+  "batch_3": {
+    "deadline_face": 0,
+    "fast_stopwatch_face": 6892,
+    "interval_face": 10628,
+    "kitchen_conversions_face": 4324,
+    "moon_phase_face": 844,
+    "periodic_table_face": 5384,
+    "ping_face": 2028,
+    "probability_face": 3792
+  },
+  "batch_4": {
+    "pulsometer_face": 2828,
+    "simple_coin_flip_face": 3452,
+    "sleep_score_face": 356,
+    "sleep_tracker_face": 109424,
+    "smart_alarm_face": 109424,
+    "stopwatch_face": 1292,
+    "sunrise_sunset_face": 15016,
+    "tally_face": 580
+  },
+  "batch_5": {
+    "tarot_face": 2928,
+    "wareki_face": 788
+  },
+  "batch_6": {
+    "peek_memory_face": 6892,
+    "rtccount_face": 436,
+    "blackjack_face": 8,
+    "endless_runner_face": 8,
+    "higher_lower_game_face": 8,
+    "lander_face": 10628,
+    "simon_face": 4324,
+    "squash_face": 844
+  },
+  "batch_7": {
+    "wordle_face": 19516,
+    "chirpy_demo_face": 1748,
+    "comms_face": 3176,
+    "accelerometer_status_face": 2564,
+    "lis2dw_monitor_face": 0
+  },
+  "batch_8": {
+    "voltage_face": 0,
+    "set_time_face": 109424,
+    "settings_face": 109424
+  },
+  "failed": [
+    "beats_face",
+    "ke_decimal_time_face",
+    "fesk_demo_lite_face",
+    "irda_upload_face",
+    "activity_logging_face",
+    "timer_face",
+    "totp_face",
+    "totp_lfs_face",
+    "all_segments_face",
+    "character_set_face",
+    "light_sensor_face",
+    "temperature_display_face",
+    "temperature_logging_face",
+    "finetune_face",
+    "nanosec_face"
+  ],
+  "baseline_faces": [
+    "sleep_tracker_face",
+    "smart_alarm_face",
+    "set_time_face",
+    "settings_face"
+  ],
+  "baseline_size_bytes": 109424
+}
