@@ -12,7 +12,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 5888
+      "estimated_flash_bytes": 5888,
+      "actual_flash_bytes": 820
     },
     {
       "id": "clock_face",
@@ -25,7 +26,7 @@
       "default": true,
       "default_position": 1,
       "estimated_flash_bytes": 2048,
-      "actual_flash_bytes": 2048,
+      "actual_flash_bytes": 2060,
       "is_baseline": false
     },
     {
@@ -39,7 +40,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 3520,
-      "actual_flash_bytes": 3520,
+      "actual_flash_bytes": 3488,
       "is_baseline": false
     },
     {
@@ -53,7 +54,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 1400,
-      "actual_flash_bytes": 1400,
+      "actual_flash_bytes": 1304,
       "is_baseline": false
     },
     {
@@ -66,7 +67,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 7936
+      "estimated_flash_bytes": 7936,
+      "actual_flash_bytes": 1152
     },
     {
       "id": "mars_time_face",
@@ -79,7 +81,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 3048,
-      "actual_flash_bytes": 3048,
+      "actual_flash_bytes": 2776,
       "is_baseline": false
     },
     {
@@ -93,7 +95,7 @@
       "default": true,
       "default_position": 5,
       "estimated_flash_bytes": 2224,
-      "actual_flash_bytes": 2224,
+      "actual_flash_bytes": 2096,
       "is_baseline": false
     },
     {
@@ -107,7 +109,7 @@
       "default": true,
       "default_position": 0,
       "estimated_flash_bytes": 1024,
-      "actual_flash_bytes": 1024,
+      "actual_flash_bytes": 936,
       "is_baseline": false
     },
     {
@@ -121,7 +123,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 2544,
-      "actual_flash_bytes": 2544,
+      "actual_flash_bytes": 2444,
       "is_baseline": false
     },
     {
@@ -135,7 +137,7 @@
       "default": true,
       "default_position": 10,
       "estimated_flash_bytes": 704,
-      "actual_flash_bytes": 704,
+      "actual_flash_bytes": 612,
       "is_baseline": false
     },
     {
@@ -149,7 +151,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 1504,
-      "actual_flash_bytes": 1504,
+      "actual_flash_bytes": 1420,
       "is_baseline": false
     },
     {
@@ -163,7 +165,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 848,
-      "actual_flash_bytes": 848,
+      "actual_flash_bytes": 764,
       "is_baseline": false
     },
     {
@@ -177,7 +179,7 @@
       "default": true,
       "default_position": 3,
       "estimated_flash_bytes": 1472,
-      "actual_flash_bytes": 1472,
+      "actual_flash_bytes": 1228,
       "is_baseline": false
     },
     {
@@ -191,7 +193,7 @@
       "default": true,
       "default_position": 9,
       "estimated_flash_bytes": 2144,
-      "actual_flash_bytes": 2144,
+      "actual_flash_bytes": 2092,
       "is_baseline": false
     },
     {
@@ -205,7 +207,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 464,
-      "actual_flash_bytes": 464,
+      "actual_flash_bytes": 380,
       "is_baseline": false
     },
     {
@@ -219,7 +221,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 1304,
-      "actual_flash_bytes": 1304,
+      "actual_flash_bytes": 1220,
       "is_baseline": false
     },
     {
@@ -233,7 +235,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 0,
-      "actual_flash_bytes": 0,
+      "actual_flash_bytes": 2100,
       "is_baseline": false
     },
     {
@@ -247,7 +249,7 @@
       "default": true,
       "default_position": 8,
       "estimated_flash_bytes": 6892,
-      "actual_flash_bytes": 6892,
+      "actual_flash_bytes": 852,
       "is_baseline": false
     },
     {
@@ -261,7 +263,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 10628,
-      "actual_flash_bytes": 10628,
+      "actual_flash_bytes": 3332,
       "is_baseline": false
     },
     {
@@ -275,7 +277,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 4324,
-      "actual_flash_bytes": 4324,
+      "actual_flash_bytes": 2216,
       "is_baseline": false
     },
     {
@@ -289,7 +291,7 @@
       "default": true,
       "default_position": 7,
       "estimated_flash_bytes": 844,
-      "actual_flash_bytes": 844,
+      "actual_flash_bytes": 2592,
       "is_baseline": false
     },
     {
@@ -387,7 +389,7 @@
       "default": true,
       "default_position": 2,
       "estimated_flash_bytes": 0,
-      "actual_flash_bytes": 0,
+      "actual_flash_bytes": 109424,
       "is_baseline": true
     },
     {
@@ -401,7 +403,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 0,
-      "actual_flash_bytes": 0,
+      "actual_flash_bytes": 109424,
       "is_baseline": true
     },
     {
@@ -457,7 +459,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 2928,
-      "actual_flash_bytes": 2928,
+      "actual_flash_bytes": 4780,
       "is_baseline": false
     },
     {
@@ -470,7 +472,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 18944
+      "estimated_flash_bytes": 18944,
+      "actual_flash_bytes": 1964
     },
     {
       "id": "totp_face",
@@ -482,7 +485,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 9984
+      "estimated_flash_bytes": 9984,
+      "actual_flash_bytes": 15020
     },
     {
       "id": "totp_lfs_face",
@@ -494,7 +498,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 14336
+      "estimated_flash_bytes": 14336,
+      "actual_flash_bytes": 16948
     },
     {
       "id": "wareki_face",
@@ -520,7 +525,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 2816
+      "estimated_flash_bytes": 2816,
+      "actual_flash_bytes": 60
     },
     {
       "id": "character_set_face",
@@ -532,7 +538,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 3328
+      "estimated_flash_bytes": 3328,
+      "actual_flash_bytes": 164
     },
     {
       "id": "light_sensor_face",
@@ -557,7 +564,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 6892,
-      "actual_flash_bytes": 6892,
+      "actual_flash_bytes": 332,
       "is_baseline": false
     },
     {
@@ -571,7 +578,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 436,
-      "actual_flash_bytes": 436,
+      "actual_flash_bytes": 428,
       "is_baseline": false
     },
     {
@@ -585,7 +592,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 8,
-      "actual_flash_bytes": 8,
+      "actual_flash_bytes": 4864,
       "is_baseline": false
     },
     {
@@ -599,7 +606,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 8,
-      "actual_flash_bytes": 8,
+      "actual_flash_bytes": 6452,
       "is_baseline": false
     },
     {
@@ -613,7 +620,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 8,
-      "actual_flash_bytes": 8,
+      "actual_flash_bytes": 4280,
       "is_baseline": false
     },
     {
@@ -710,7 +717,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 3328
+      "estimated_flash_bytes": 3328,
+      "actual_flash_bytes": 2004
     },
     {
       "id": "irda_upload_face",
@@ -735,7 +743,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 2564,
-      "actual_flash_bytes": 2564,
+      "actual_flash_bytes": 2596,
       "is_baseline": false
     },
     {
@@ -748,7 +756,8 @@
       "requires_sensor": "sensor",
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 8960
+      "estimated_flash_bytes": 8960,
+      "actual_flash_bytes": 1060
     },
     {
       "id": "lis2dw_monitor_face",
@@ -761,7 +770,7 @@
       "default": false,
       "default_position": null,
       "estimated_flash_bytes": 0,
-      "actual_flash_bytes": 0,
+      "actual_flash_bytes": 4308,
       "is_baseline": false
     },
     {
@@ -774,7 +783,8 @@
       "requires_sensor": "sensor",
       "default": true,
       "default_position": 11,
-      "estimated_flash_bytes": 5632
+      "estimated_flash_bytes": 5632,
+      "actual_flash_bytes": 5964
     },
     {
       "id": "temperature_logging_face",
@@ -786,7 +796,8 @@
       "requires_sensor": "sensor",
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 8704
+      "estimated_flash_bytes": 8704,
+      "actual_flash_bytes": 5732
     },
     {
       "id": "voltage_face",
@@ -799,7 +810,7 @@
       "default": true,
       "default_position": 12,
       "estimated_flash_bytes": 0,
-      "actual_flash_bytes": 0,
+      "actual_flash_bytes": 2900,
       "is_baseline": false
     },
     {
@@ -812,7 +823,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 11520
+      "estimated_flash_bytes": 11520,
+      "actual_flash_bytes": 9672
     },
     {
       "id": "nanosec_face",
@@ -824,7 +836,8 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 19456
+      "estimated_flash_bytes": 19456,
+      "actual_flash_bytes": 6892
     },
     {
       "id": "set_time_face",
@@ -837,7 +850,7 @@
       "default": true,
       "default_position": 14,
       "estimated_flash_bytes": 0,
-      "actual_flash_bytes": 0,
+      "actual_flash_bytes": 109424,
       "is_baseline": true
     },
     {
@@ -851,7 +864,7 @@
       "default": true,
       "default_position": 13,
       "estimated_flash_bytes": 0,
-      "actual_flash_bytes": 0,
+      "actual_flash_bytes": 109424,
       "is_baseline": true
     }
   ],
