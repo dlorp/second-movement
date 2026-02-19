@@ -920,7 +920,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // Manchester encoding: 0 = HIGH->LOW (white->black), 1 = LOW->HIGH (black->white)
 async function flashBit(bit) {
-    const h = 50; // 50ms half-bit => 100ms/bit => 10bps
+    const h = 31.25; // 31.25ms half-bit => 62.5ms/bit => 16bps
     if (bit === 0) {
         txFlashArea.style.background = '#FFFFFF';
         txFlashArea.classList.add('light-phase');
