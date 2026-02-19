@@ -59,12 +59,12 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* CRT scan texture overlay - authentic scan lines */
+        /* CRT scan texture overlay - authentic scan lines (WebP optimized) */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background: url('assets/textures/scan-01.png') repeat;
+            background: url('assets/textures/scan-01.webp') repeat;
             background-size: 100% auto;
             opacity: 0.12;
             pointer-events: none;
@@ -243,7 +243,7 @@
         .face-icon {
             width: 32px;
             height: 32px;
-            opacity: 0.6;
+            opacity: 0.75;
             filter: brightness(1.2) sepia(1) hue-rotate(15deg) saturate(3);
             flex-shrink: 0;
         }
