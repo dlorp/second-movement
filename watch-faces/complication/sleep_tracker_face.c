@@ -229,10 +229,6 @@ void sleep_tracker_update_metrics(sleep_tracker_state_t *state, bool is_asleep) 
         // Check if previous AWAKENING_THRESHOLD_MIN epochs were wake
         bool is_awakening = true;
         for (int i = 1; i <= AWAKENING_THRESHOLD_MIN; i++) {
-            if (state->current_epoch < i) {
-                is_awakening = false;
-                break;
-            }
             if (sleep_tracker_get_sleep_bit(state, state->current_epoch - i)) {
                 is_awakening = false;
                 break;
