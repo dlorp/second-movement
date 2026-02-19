@@ -1201,6 +1201,18 @@ function getToken() {
     return document.getElementById('githubToken').value.trim();
 }
 
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 async function validateToken(token) {
     if (!token || token.length === 0) {
         return { valid: false, message: 'NO TOKEN' };
@@ -1722,17 +1734,20 @@ async function init() {
         state.signalTune = e.target.value;
         updateHash();
     });
-    document.getElementById('githubToken').addEventListener('input', async e => {
-        const token = e.target.value.trim();
-        sessionStorage.setItem('sm_github_token', e.target.value);
-        
+    // Debounced token validation (500ms delay to prevent API rate limiting)
+    const debouncedTokenValidation = debounce(async (token) => {
         if (token.length === 0) {
             document.getElementById('tokenStatus').style.display = 'none';
             return;
         }
-        
         const result = await validateToken(token);
         updateTokenStatus(result);
+    }, 500);
+
+    document.getElementById('githubToken').addEventListener('input', e => {
+        const token = e.target.value.trim();
+        sessionStorage.setItem('sm_github_token', e.target.value);
+        debouncedTokenValidation(token);
     });
     document.getElementById('toggle24h').addEventListener('click', () => {
         state.clock24h = !state.clock24h;
