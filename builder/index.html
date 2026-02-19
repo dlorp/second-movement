@@ -1819,7 +1819,7 @@ function renderAvailFaces() {
             const btn = document.createElement('button');
             btn.className = 'avail-face-btn' + (alreadyAdded ? ' already-added' : '');
             btn.setAttribute('aria-label', (alreadyAdded ? 'Already added: ' : 'Add: ') + face.name);
-            btn.setAttribute('disabled', alreadyAdded ? 'true' : 'false');
+            if (alreadyAdded) btn.setAttribute('disabled', '');
             const iconSpan = document.createElement('span');
             iconSpan.className = 'avail-add-icon';
             iconSpan.textContent = alreadyAdded ? '*' : '[+]';
