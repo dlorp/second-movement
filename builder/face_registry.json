@@ -24,7 +24,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 1,
-      "estimated_flash_bytes": 12544
+      "estimated_flash_bytes": 2048,
+      "actual_flash_bytes": 2048,
+      "is_baseline": false
     },
     {
       "id": "close_enough_face",
@@ -36,7 +38,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 11008
+      "estimated_flash_bytes": 3520,
+      "actual_flash_bytes": 3520,
+      "is_baseline": false
     },
     {
       "id": "ish_face",
@@ -48,7 +52,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 9472
+      "estimated_flash_bytes": 1400,
+      "actual_flash_bytes": 1400,
+      "is_baseline": false
     },
     {
       "id": "ke_decimal_time_face",
@@ -72,7 +78,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 7936
+      "estimated_flash_bytes": 3048,
+      "actual_flash_bytes": 3048,
+      "is_baseline": false
     },
     {
       "id": "world_clock_face",
@@ -84,7 +92,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 5,
-      "estimated_flash_bytes": 16384
+      "estimated_flash_bytes": 2224,
+      "actual_flash_bytes": 2224,
+      "is_baseline": false
     },
     {
       "id": "wyoscan_face",
@@ -96,7 +106,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 0,
-      "estimated_flash_bytes": 11520
+      "estimated_flash_bytes": 1024,
+      "actual_flash_bytes": 1024,
+      "is_baseline": false
     },
     {
       "id": "advanced_alarm_face",
@@ -108,7 +120,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 25600
+      "estimated_flash_bytes": 2544,
+      "actual_flash_bytes": 2544,
+      "is_baseline": false
     },
     {
       "id": "alarm_face",
@@ -120,7 +134,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 10,
-      "estimated_flash_bytes": 10752
+      "estimated_flash_bytes": 704,
+      "actual_flash_bytes": 704,
+      "is_baseline": false
     },
     {
       "id": "baby_kicks_face",
@@ -132,7 +148,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 19200
+      "estimated_flash_bytes": 1504,
+      "actual_flash_bytes": 1504,
+      "is_baseline": false
     },
     {
       "id": "breathing_face",
@@ -144,7 +162,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 10752
+      "estimated_flash_bytes": 848,
+      "actual_flash_bytes": 848,
+      "is_baseline": false
     },
     {
       "id": "circadian_score_face",
@@ -156,7 +176,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 3,
-      "estimated_flash_bytes": 6912
+      "estimated_flash_bytes": 1472,
+      "actual_flash_bytes": 1472,
+      "is_baseline": false
     },
     {
       "id": "countdown_face",
@@ -168,7 +190,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 9,
-      "estimated_flash_bytes": 18688
+      "estimated_flash_bytes": 2144,
+      "actual_flash_bytes": 2144,
+      "is_baseline": false
     },
     {
       "id": "counter_face",
@@ -180,7 +204,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 6400
+      "estimated_flash_bytes": 464,
+      "actual_flash_bytes": 464,
+      "is_baseline": false
     },
     {
       "id": "days_since_face",
@@ -192,7 +218,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 16896
+      "estimated_flash_bytes": 1304,
+      "actual_flash_bytes": 1304,
+      "is_baseline": false
     },
     {
       "id": "deadline_face",
@@ -204,7 +232,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 23808
+      "estimated_flash_bytes": 0,
+      "actual_flash_bytes": 0,
+      "is_baseline": false
     },
     {
       "id": "fast_stopwatch_face",
@@ -216,7 +246,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 8,
-      "estimated_flash_bytes": 15360
+      "estimated_flash_bytes": 6892,
+      "actual_flash_bytes": 6892,
+      "is_baseline": false
     },
     {
       "id": "interval_face",
@@ -228,7 +260,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 37632
+      "estimated_flash_bytes": 10628,
+      "actual_flash_bytes": 10628,
+      "is_baseline": false
     },
     {
       "id": "kitchen_conversions_face",
@@ -240,7 +274,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 19200
+      "estimated_flash_bytes": 4324,
+      "actual_flash_bytes": 4324,
+      "is_baseline": false
     },
     {
       "id": "moon_phase_face",
@@ -252,7 +288,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 7,
-      "estimated_flash_bytes": 11776
+      "estimated_flash_bytes": 844,
+      "actual_flash_bytes": 844,
+      "is_baseline": false
     },
     {
       "id": "periodic_table_face",
@@ -264,7 +302,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 40960
+      "estimated_flash_bytes": 5384,
+      "actual_flash_bytes": 5384,
+      "is_baseline": false
     },
     {
       "id": "ping_face",
@@ -276,7 +316,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 23040
+      "estimated_flash_bytes": 2028,
+      "actual_flash_bytes": 2028,
+      "is_baseline": false
     },
     {
       "id": "probability_face",
@@ -288,7 +330,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 12544
+      "estimated_flash_bytes": 3792,
+      "actual_flash_bytes": 3792,
+      "is_baseline": false
     },
     {
       "id": "pulsometer_face",
@@ -300,7 +344,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 8960
+      "estimated_flash_bytes": 2828,
+      "actual_flash_bytes": 2828,
+      "is_baseline": false
     },
     {
       "id": "simple_coin_flip_face",
@@ -312,7 +358,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 6912
+      "estimated_flash_bytes": 3452,
+      "actual_flash_bytes": 3452,
+      "is_baseline": false
     },
     {
       "id": "sleep_score_face",
@@ -324,7 +372,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 4352
+      "estimated_flash_bytes": 356,
+      "actual_flash_bytes": 356,
+      "is_baseline": false
     },
     {
       "id": "sleep_tracker_face",
@@ -336,7 +386,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 2,
-      "estimated_flash_bytes": 19200
+      "estimated_flash_bytes": 0,
+      "actual_flash_bytes": 0,
+      "is_baseline": true
     },
     {
       "id": "smart_alarm_face",
@@ -348,7 +400,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 24576
+      "estimated_flash_bytes": 0,
+      "actual_flash_bytes": 0,
+      "is_baseline": true
     },
     {
       "id": "stopwatch_face",
@@ -360,7 +414,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 10240
+      "estimated_flash_bytes": 1292,
+      "actual_flash_bytes": 1292,
+      "is_baseline": false
     },
     {
       "id": "sunrise_sunset_face",
@@ -372,7 +428,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 6,
-      "estimated_flash_bytes": 36864
+      "estimated_flash_bytes": 15016,
+      "actual_flash_bytes": 15016,
+      "is_baseline": false
     },
     {
       "id": "tally_face",
@@ -384,7 +442,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 10240
+      "estimated_flash_bytes": 580,
+      "actual_flash_bytes": 580,
+      "is_baseline": false
     },
     {
       "id": "tarot_face",
@@ -396,7 +456,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 15360
+      "estimated_flash_bytes": 2928,
+      "actual_flash_bytes": 2928,
+      "is_baseline": false
     },
     {
       "id": "timer_face",
@@ -444,7 +506,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 13056
+      "estimated_flash_bytes": 788,
+      "actual_flash_bytes": 788,
+      "is_baseline": false
     },
     {
       "id": "all_segments_face",
@@ -492,7 +556,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 5376
+      "estimated_flash_bytes": 6892,
+      "actual_flash_bytes": 6892,
+      "is_baseline": false
     },
     {
       "id": "rtccount_face",
@@ -504,7 +570,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 8448
+      "estimated_flash_bytes": 436,
+      "actual_flash_bytes": 436,
+      "is_baseline": false
     },
     {
       "id": "blackjack_face",
@@ -516,7 +584,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 19200
+      "estimated_flash_bytes": 8,
+      "actual_flash_bytes": 8,
+      "is_baseline": false
     },
     {
       "id": "endless_runner_face",
@@ -528,7 +598,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 32768
+      "estimated_flash_bytes": 8,
+      "actual_flash_bytes": 8,
+      "is_baseline": false
     },
     {
       "id": "higher_lower_game_face",
@@ -540,7 +612,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 18944
+      "estimated_flash_bytes": 8,
+      "actual_flash_bytes": 8,
+      "is_baseline": false
     },
     {
       "id": "lander_face",
@@ -552,7 +626,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 40448
+      "estimated_flash_bytes": 10628,
+      "actual_flash_bytes": 10628,
+      "is_baseline": false
     },
     {
       "id": "simon_face",
@@ -564,7 +640,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 14848
+      "estimated_flash_bytes": 4324,
+      "actual_flash_bytes": 4324,
+      "is_baseline": false
     },
     {
       "id": "squash_face",
@@ -576,7 +654,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 7168
+      "estimated_flash_bytes": 844,
+      "actual_flash_bytes": 844,
+      "is_baseline": false
     },
     {
       "id": "wordle_face",
@@ -588,7 +668,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 30208
+      "estimated_flash_bytes": 19516,
+      "actual_flash_bytes": 19516,
+      "is_baseline": false
     },
     {
       "id": "chirpy_demo_face",
@@ -600,7 +682,9 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 11776
+      "estimated_flash_bytes": 1748,
+      "actual_flash_bytes": 1748,
+      "is_baseline": false
     },
     {
       "id": "comms_face",
@@ -612,7 +696,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 4,
-      "estimated_flash_bytes": 16896
+      "estimated_flash_bytes": 3176,
+      "actual_flash_bytes": 3176,
+      "is_baseline": false
     },
     {
       "id": "fesk_demo_lite_face",
@@ -648,7 +734,9 @@
       "requires_sensor": "sensor",
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 6912
+      "estimated_flash_bytes": 2564,
+      "actual_flash_bytes": 2564,
+      "is_baseline": false
     },
     {
       "id": "activity_logging_face",
@@ -672,7 +760,9 @@
       "requires_sensor": "sensor",
       "default": false,
       "default_position": null,
-      "estimated_flash_bytes": 25600
+      "estimated_flash_bytes": 0,
+      "actual_flash_bytes": 0,
+      "is_baseline": false
     },
     {
       "id": "temperature_display_face",
@@ -708,7 +798,9 @@
       "requires_sensor": "sensor",
       "default": true,
       "default_position": 12,
-      "estimated_flash_bytes": 4352
+      "estimated_flash_bytes": 0,
+      "actual_flash_bytes": 0,
+      "is_baseline": false
     },
     {
       "id": "finetune_face",
@@ -744,7 +836,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 14,
-      "estimated_flash_bytes": 9472
+      "estimated_flash_bytes": 0,
+      "actual_flash_bytes": 0,
+      "is_baseline": true
     },
     {
       "id": "settings_face",
@@ -756,7 +850,9 @@
       "requires_sensor": null,
       "default": true,
       "default_position": 13,
-      "estimated_flash_bytes": 26112
+      "estimated_flash_bytes": 0,
+      "actual_flash_bytes": 0,
+      "is_baseline": true
     }
   ],
   "categories": [
