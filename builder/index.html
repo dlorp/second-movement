@@ -17,6 +17,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js" integrity="sha384-/jkFGhPVLS9HIUzX09xB5W3coE5q1X5NXZA/PuOAdOaRxUPczlZmKzYEq9QcJnW0" crossorigin="anonymous"></script>
     <style>
+        /* Heritage Display font - pixel blackletter */
+        @font-face {
+            font-family: 'Heritage Display';
+            src: url('assets/fonts/Heritage-Display.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
         :root {
             --color-bg: #0B0900;
             --color-bg-elevated: #130F07;
@@ -31,6 +40,7 @@
             --color-border: #7A5200;
             --color-border-active: #FFB000;
             --font-mono: 'Share Tech Mono', 'IBM Plex Mono', 'Courier New', monospace;
+            --font-display: 'Heritage Display', serif;
             --line-height-dense: 1.25;
             --touch-min: 44px;
         }
@@ -49,19 +59,17 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* scanline overlay */
+        /* CRT scan texture overlay - authentic scan lines */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background: repeating-linear-gradient(
-                to bottom,
-                transparent 0 2px,
-                rgba(0,0,0,0.15) 2px 4px
-            );
-            opacity: 0.3;
+            background: url('assets/textures/scan-01.png') repeat;
+            background-size: 100% auto;
+            opacity: 0.12;
             pointer-events: none;
             z-index: 100;
+            mix-blend-mode: overlay;
         }
 
         button, input, select, textarea {
@@ -230,6 +238,14 @@
             color: var(--color-amber-trace);
             font-size: 12px;
             letter-spacing: -2px;
+        }
+
+        .face-icon {
+            width: 32px;
+            height: 32px;
+            opacity: 0.6;
+            filter: brightness(1.2) sepia(1) hue-rotate(15deg) saturate(3);
+            flex-shrink: 0;
         }
 
         .face-name {
@@ -838,10 +854,11 @@
         }
 
         .app-title-main {
-            font-size: 18px;
-            letter-spacing: 0.2em;
+            font-family: var(--font-display);
+            font-size: 22px;
+            letter-spacing: 0.15em;
             color: var(--color-amber-bright);
-            text-shadow: 0 0 10px rgba(255,176,0,0.4);
+            text-shadow: 0 0 12px rgba(255,176,0,0.5);
             text-transform: uppercase;
         }
 
@@ -1900,6 +1917,13 @@ function renderActiveFaces() {
             const handleSpan = document.createElement('span');
             handleSpan.className = 'face-handle';
             handleSpan.textContent = ':::::';
+            // Wireframe icon (hash face ID to wireframe 1-32)
+            const wireframeNum = (id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 32) + 1;
+            const iconImg = document.createElement('img');
+            iconImg.className = 'face-icon';
+            iconImg.src = `assets/wireframes/${wireframeNum}.png`;
+            iconImg.alt = '';
+            iconImg.loading = 'lazy';
             const nameSpan = document.createElement('span');
             nameSpan.className = 'face-name';
             nameSpan.textContent = name;
@@ -1910,6 +1934,7 @@ function renderActiveFaces() {
             removeBtn.textContent = 'x';
             li.appendChild(numSpan);
             li.appendChild(handleSpan);
+            li.appendChild(iconImg);
             li.appendChild(nameSpan);
             li.appendChild(removeBtn);
             faceNum++;
