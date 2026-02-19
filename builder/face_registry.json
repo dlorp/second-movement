@@ -11,7 +11,8 @@
       "description": "Swatch Internet Time \u2014 decimal time (0\u2013999 beats/day) centered on Switzerland.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 5888
     },
     {
       "id": "clock_face",
@@ -22,7 +23,8 @@
       "description": "Standard clock with date. Long-press ALARM to toggle hourly chime.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 1
+      "default_position": 1,
+      "estimated_flash_bytes": 12544
     },
     {
       "id": "close_enough_face",
@@ -33,7 +35,8 @@
       "description": "Fuzzy clock. Displays time rounded to nearest 5 minutes.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 11008
     },
     {
       "id": "ish_face",
@@ -44,7 +47,8 @@
       "description": "Even fuzzier clock. Shows approximate time like \"about half nine\".",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 9472
     },
     {
       "id": "ke_decimal_time_face",
@@ -55,7 +59,8 @@
       "description": "Chinese decimal time (ke). Divides the day into 100 equal ke units.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 7936
     },
     {
       "id": "mars_time_face",
@@ -66,7 +71,8 @@
       "description": "Mars Standard Time plus local solar time for active NASA mission sites.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 7936
     },
     {
       "id": "world_clock_face",
@@ -77,7 +83,8 @@
       "description": "Configurable second timezone. Long-press ALARM to set city code and UTC offset.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 5
+      "default_position": 5,
+      "estimated_flash_bytes": 16384
     },
     {
       "id": "wyoscan_face",
@@ -88,7 +95,8 @@
       "description": "Recreation of the Wyoscan watch (2014). Displays time at 0.5 Hz pulse rate.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 0
+      "default_position": 0,
+      "estimated_flash_bytes": 11520
     },
     {
       "id": "advanced_alarm_face",
@@ -99,7 +107,8 @@
       "description": "Up to 4 independent alarms with day-of-week scheduling.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 25600
     },
     {
       "id": "alarm_face",
@@ -110,7 +119,8 @@
       "description": "Basic daily alarm. Short-press ALARM to set; fires at the same time each day.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 10
+      "default_position": 10,
+      "estimated_flash_bytes": 10752
     },
     {
       "id": "baby_kicks_face",
@@ -121,7 +131,8 @@
       "description": "Fetal kick counter. Tracks kick sessions and calculates kicks per hour.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 19200
     },
     {
       "id": "breathing_face",
@@ -132,7 +143,8 @@
       "description": "Guided 4-7-8 breathing exercise. Visual cue paces inhale, hold, exhale.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 10752
     },
     {
       "id": "circadian_score_face",
@@ -143,7 +155,8 @@
       "description": "7-day circadian health score with 5 subscores: timing, duration, efficiency, active hours, light.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 3
+      "default_position": 3,
+      "estimated_flash_bytes": 6912
     },
     {
       "id": "countdown_face",
@@ -154,7 +167,8 @@
       "description": "Configurable countdown timer with buzzer alert on completion.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 9
+      "default_position": 9,
+      "estimated_flash_bytes": 18688
     },
     {
       "id": "counter_face",
@@ -165,7 +179,8 @@
       "description": "Simple tally counter. Press ALARM to increment; long-press to reset.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 6400
     },
     {
       "id": "days_since_face",
@@ -176,7 +191,8 @@
       "description": "Counts elapsed days from a configurable start date. Good for streaks or anniversaries.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 16896
     },
     {
       "id": "deadline_face",
@@ -187,7 +203,8 @@
       "description": "Counts down days to a configurable deadline.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 23808
     },
     {
       "id": "fast_stopwatch_face",
@@ -198,7 +215,8 @@
       "description": "High-resolution stopwatch with centisecond precision.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 8
+      "default_position": 8,
+      "estimated_flash_bytes": 15360
     },
     {
       "id": "interval_face",
@@ -209,7 +227,8 @@
       "description": "HIIT interval timer. Configurable work/rest periods and round count.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 37632
     },
     {
       "id": "kitchen_conversions_face",
@@ -220,7 +239,8 @@
       "description": "Unit converter for common cooking measurements (cups, oz, ml, tbsp, tsp).",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 19200
     },
     {
       "id": "moon_phase_face",
@@ -231,7 +251,8 @@
       "description": "Tonight's moon phase. Press ALARM to see future phases.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 7
+      "default_position": 7,
+      "estimated_flash_bytes": 11776
     },
     {
       "id": "periodic_table_face",
@@ -242,7 +263,8 @@
       "description": "Periodic table browser. Scroll by atomic number; shows symbol and atomic weight.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 40960
     },
     {
       "id": "ping_face",
@@ -253,7 +275,8 @@
       "description": "Periodic chime reminder. Configurable interval \u2014 good for mindfulness or hydration.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 23040
     },
     {
       "id": "probability_face",
@@ -264,7 +287,8 @@
       "description": "Probability calculator. Enter numerator and denominator; shows percentage.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 12544
     },
     {
       "id": "pulsometer_face",
@@ -275,7 +299,8 @@
       "description": "Heart rate estimator. Hold ALARM while counting 30 pulse beats, then release.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 8960
     },
     {
       "id": "simple_coin_flip_face",
@@ -286,7 +311,8 @@
       "description": "Single-press coin flip. Heads or tails.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 6912
     },
     {
       "id": "sleep_score_face",
@@ -297,7 +323,8 @@
       "description": "Single-night sleep score (0\u2013100). Drill down: duration, efficiency, WASO, awakenings.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 4352
     },
     {
       "id": "sleep_tracker_face",
@@ -308,7 +335,8 @@
       "description": "Cole-Kripke sleep detection using accelerometer + light. Tracks duration, efficiency, WASO, and awakenings.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 2
+      "default_position": 2,
+      "estimated_flash_bytes": 19200
     },
     {
       "id": "smart_alarm_face",
@@ -319,7 +347,8 @@
       "description": "Light-sleep-aware alarm. Wakes you in a lighter sleep phase within a 30-min window.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 24576
     },
     {
       "id": "stopwatch_face",
@@ -330,7 +359,8 @@
       "description": "Standard stopwatch with one-second resolution and lap support.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 10240
     },
     {
       "id": "sunrise_sunset_face",
@@ -341,7 +371,8 @@
       "description": "Local sunrise and sunset times. Requires latitude/longitude set in settings.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 6
+      "default_position": 6,
+      "estimated_flash_bytes": 36864
     },
     {
       "id": "tally_face",
@@ -352,7 +383,8 @@
       "description": "Tally counter with persistence across face changes.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 10240
     },
     {
       "id": "tarot_face",
@@ -363,7 +395,8 @@
       "description": "Daily tarot draw. Press ALARM for a random card from the Major Arcana.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 15360
     },
     {
       "id": "timer_face",
@@ -374,7 +407,8 @@
       "description": "Simple countdown timer. Press ALARM to start/stop; long-press to reset.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 18944
     },
     {
       "id": "totp_face",
@@ -385,7 +419,8 @@
       "description": "TOTP two-factor authentication codes. Keys stored in firmware at compile time.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 9984
     },
     {
       "id": "totp_lfs_face",
@@ -396,7 +431,8 @@
       "description": "TOTP 2FA codes with LittleFS storage \u2014 keys persist without recompile.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 14336
     },
     {
       "id": "wareki_face",
@@ -407,7 +443,8 @@
       "description": "Japanese imperial era date display (Reiwa / Heisei / Showa).",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 13056
     },
     {
       "id": "all_segments_face",
@@ -418,7 +455,8 @@
       "description": "Energizes all LCD segments at once. Useful for testing display continuity.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 2816
     },
     {
       "id": "character_set_face",
@@ -429,7 +467,8 @@
       "description": "Cycles through every character in the Sensor Watch character set.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 3328
     },
     {
       "id": "light_sensor_face",
@@ -440,7 +479,8 @@
       "description": "Raw ambient light sensor readout. May conflict with temperature logger ADC.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 3584
     },
     {
       "id": "peek_memory_face",
@@ -451,7 +491,8 @@
       "description": "Displays a raw memory address. Debug only; custom LCD required.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 5376
     },
     {
       "id": "rtccount_face",
@@ -462,7 +503,8 @@
       "description": "Raw RTC counter value. Debug face for testing RTC-counter32 mode.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 8448
     },
     {
       "id": "blackjack_face",
@@ -473,7 +515,8 @@
       "description": "Blackjack card game. Press ALARM to hit; long-press to stand.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 19200
     },
     {
       "id": "endless_runner_face",
@@ -484,7 +527,8 @@
       "description": "Infinite side-scroller. Press ALARM to jump over obstacles.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 32768
     },
     {
       "id": "higher_lower_game_face",
@@ -495,7 +539,8 @@
       "description": "Guess if the next card is higher or lower.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 18944
     },
     {
       "id": "lander_face",
@@ -506,7 +551,8 @@
       "description": "Lunar lander \u2014 manage thrust and fuel to touch down safely.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 40448
     },
     {
       "id": "simon_face",
@@ -517,7 +563,8 @@
       "description": "Simon memory game. Watch the pattern; repeat it back.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 14848
     },
     {
       "id": "squash_face",
@@ -528,7 +575,8 @@
       "description": "Squash/racquetball rally timer and score tracker.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 7168
     },
     {
       "id": "wordle_face",
@@ -539,7 +587,8 @@
       "description": "6-letter Wordle on a 10-segment display. Daily word puzzle.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 30208
     },
     {
       "id": "chirpy_demo_face",
@@ -550,7 +599,8 @@
       "description": "Demo for Chirpy-TX acoustic data library. Transmits sensor data as audible chirps.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 11776
     },
     {
       "id": "comms_face",
@@ -561,7 +611,8 @@
       "description": "Bidirectional data transfer. RX: optical receive via light sensor. TX: acoustic FESK transmit.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 4
+      "default_position": 4,
+      "estimated_flash_bytes": 16896
     },
     {
       "id": "fesk_demo_lite_face",
@@ -572,7 +623,8 @@
       "description": "Simplest FESK acoustic TX demo. Press ALARM to transmit the text \"TEST\".",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 3328
     },
     {
       "id": "irda_upload_face",
@@ -583,7 +635,8 @@
       "description": "IrDA data upload via light sensor. Temporary / experimental.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 8448
     },
     {
       "id": "accelerometer_status_face",
@@ -594,7 +647,8 @@
       "description": "Live accelerometer state \u2014 shows whether wearer is still or active.",
       "requires_sensor": "sensor",
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 6912
     },
     {
       "id": "activity_logging_face",
@@ -605,7 +659,8 @@
       "description": "14-day active minutes log. Flags 2+ consecutive minutes over threshold as active.",
       "requires_sensor": "sensor",
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 8960
     },
     {
       "id": "lis2dw_monitor_face",
@@ -616,7 +671,8 @@
       "description": "Raw LIS2DW accelerometer debug face \u2014 shows X/Y/Z and orientation register.",
       "requires_sensor": "sensor",
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 25600
     },
     {
       "id": "temperature_display_face",
@@ -627,7 +683,8 @@
       "description": "Current temperature from the on-board thermistor. Press ALARM to toggle \u00b0C/\u00b0F.",
       "requires_sensor": "sensor",
       "default": true,
-      "default_position": 11
+      "default_position": 11,
+      "estimated_flash_bytes": 5632
     },
     {
       "id": "temperature_logging_face",
@@ -638,7 +695,8 @@
       "description": "36-hour temperature log sampled every 30 min. Good for overnight readings.",
       "requires_sensor": "sensor",
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 8704
     },
     {
       "id": "voltage_face",
@@ -649,7 +707,8 @@
       "description": "Battery voltage monitor. Useful for gauging remaining battery life.",
       "requires_sensor": "sensor",
       "default": true,
-      "default_position": 12
+      "default_position": 12,
+      "estimated_flash_bytes": 4352
     },
     {
       "id": "finetune_face",
@@ -660,7 +719,8 @@
       "description": "Sub-second time alignment with 25ms precision. Counts ticks since last finetune.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 11520
     },
     {
       "id": "nanosec_face",
@@ -671,7 +731,8 @@
       "description": "Nanosecond-level RTC calibration via drift measurement.",
       "requires_sensor": null,
       "default": false,
-      "default_position": null
+      "default_position": null,
+      "estimated_flash_bytes": 19456
     },
     {
       "id": "set_time_face",
@@ -682,7 +743,8 @@
       "description": "Set year, month, day, timezone, hour, minute, and second.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 14
+      "default_position": 14,
+      "estimated_flash_bytes": 9472
     },
     {
       "id": "settings_face",
@@ -693,7 +755,8 @@
       "description": "Main settings: clock mode (12/24h), button volume, timeouts, LED color and duration.",
       "requires_sensor": null,
       "default": true,
-      "default_position": 13
+      "default_position": 13,
+      "estimated_flash_bytes": 26112
     }
   ],
   "categories": [

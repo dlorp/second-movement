@@ -1942,6 +1942,41 @@ function renderActiveFaces() {
             updateHash();
         }
     });
+
+    // Calculate flash usage
+    updateFlashUsage();
+}
+
+function updateFlashUsage() {
+    const faceIds = state.activeFaces.filter(id => id !== '__secondary__');
+    const totalBytes = faceIds.reduce((sum, id) => {
+        const face = registry.faces.find(f => f.id === id);
+        return sum + (face?.estimated_flash_bytes || 2048);
+    }, 0);
+
+    const totalKB = Math.ceil(totalBytes / 1024);
+    const limitKB = 230; // Conservative limit (256KB flash - bootloader - margins)
+    const warningKB = 210; // 90% threshold warning
+    
+    const buildBtn = document.getElementById('buildBtn');
+    const statusEl = document.getElementById('buildStatus');
+    
+    if (totalKB > limitKB) {
+        // Over limit - disable build
+        buildBtn.disabled = true;
+        statusEl.textContent = `⚠️ TOO MANY FACES: ${totalKB} KB / ${limitKB} KB LIMIT - REMOVE ${Math.ceil((totalKB - limitKB) / 15)} FACES`;
+        statusEl.className = 'build-status error active';
+    } else if (totalKB > warningKB) {
+        // Near limit - warn but allow
+        buildBtn.disabled = false;
+        statusEl.textContent = `⚠️ NEAR FLASH LIMIT: ${totalKB} KB / ${limitKB} KB - BUILD MAY FAIL`;
+        statusEl.className = 'build-status error active';
+    } else {
+        // Normal - clear warning if not building
+        if (!statusEl.textContent.includes('BUILDING') && !statusEl.textContent.includes('QUEUED')) {
+            statusEl.className = 'build-status';
+        }
+    }
 }
 
 function removeFace(idx) {
@@ -1949,6 +1984,7 @@ function removeFace(idx) {
     renderActiveFaces();
     renderAvailFaces();
     updateHash();
+    updateFlashUsage();
 }
 
 function addFace(id) {
@@ -1962,6 +1998,7 @@ function addFace(id) {
     renderActiveFaces();
     renderAvailFaces();
     updateHash();
+    updateFlashUsage();
 }
 
 // ============================================================
