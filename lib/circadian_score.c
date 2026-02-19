@@ -229,7 +229,7 @@ bool circadian_data_load_from_flash(circadian_data_t *data) {
 
     // Get current time for timestamp validation
     uint32_t now = watch_utility_date_time_to_unix_time(watch_rtc_get_date_time(), 0);
-    uint32_t one_year_future = now + (365 * 24 * 60 * 60);
+    uint32_t one_year_future = (uint32_t)((uint64_t)now + (365UL * 24 * 60 * 60));
     
     // Validate each night's data
     for (uint8_t i = 0; i < 7; i++) {
@@ -245,8 +245,21 @@ bool circadian_data_load_from_flash(circadian_data_t *data) {
             continue;
         }
         
+        // Validate timestamp ordering: offset must be after onset
+        if (night->offset_timestamp <= night->onset_timestamp) {
+            night->valid = false;
+            continue;
+        }
+        
         // Validate duration: must be in range 0-1440 minutes (24 hours)
         if (night->duration_min > MINUTES_PER_DAY) {
+            night->valid = false;
+            continue;
+        }
+        
+        // Validate duration consistency: should match timestamp delta within tolerance
+        uint16_t calculated_duration = (night->offset_timestamp - night->onset_timestamp) / 60;
+        if (abs(calculated_duration - night->duration_min) > 5) {  // 5-min tolerance
             night->valid = false;
             continue;
         }
