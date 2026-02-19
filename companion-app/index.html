@@ -677,9 +677,6 @@
                         <button onclick="exportCSV()">CSV</button>
                         <button onclick="exportJSON()">JSON</button>
                     </div>
-                    <div class="rx-export-row" style="margin-top: 6px;">
-                        <button onclick="viewHistory()">HISTORY</button>
-                    </div>
                 </div>
             </div>
 
@@ -986,7 +983,7 @@ async function sendTimeSync() {
     packet.push(crc8(packet));
 
     const totalBytes       = packet.length + 1; // +1 for SYNC
-    const estimatedSeconds = Math.ceil(totalBytes * 0.8);
+    const estimatedSeconds = Math.ceil(totalBytes * 0.5);
     let remainingSeconds = estimatedSeconds;
     txStatusEl.textContent = `TRANSMITTING... ${remainingSeconds}s REMAINING`;
     if (txCountdownTimer) clearInterval(txCountdownTimer);
