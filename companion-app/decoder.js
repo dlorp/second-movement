@@ -31,24 +31,24 @@ class FESKDecoder {
     // Hex string → byte array
     hexToBytes(hex) {
         const clean = hex.replace(/[^0-9A-Fa-f]/g, '');
-        if (clean.length !== 574) {
-            throw new Error(`Invalid hex length: ${clean.length} (expected 574)`);
+        if (clean.length !== 224) {
+            throw new Error(`Invalid hex length: ${clean.length} (expected 224)`);
         }
         
-        const bytes = new Uint8Array(287);
-        for (let i = 0; i < 287; i++) {
+        const bytes = new Uint8Array(112);
+        for (let i = 0; i < 112; i++) {
             bytes[i] = parseInt(clean.substr(i * 2, 2), 16);
         }
         return bytes;
     }
 
-    // Parse 7 nights from 287 bytes
+    // Parse 7 nights from 112 bytes (16 bytes per night)
     parseNights(bytes) {
         const nights = [];
         const view = new DataView(bytes.buffer);
         
         for (let i = 0; i < 7; i++) {
-            const offset = i * 41;
+            const offset = i * 16;
             
             const night = {
                 onset: view.getUint32(offset, true),           // Little-endian
