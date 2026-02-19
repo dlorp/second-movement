@@ -16,6 +16,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <title>UNIFIED COMMS</title>
     <style>
+        /* Heritage Display font - pixel blackletter */
+        @font-face {
+            font-family: 'Heritage Display';
+            src: url('assets/fonts/Heritage-Display.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
         :root {
             --color-bg: #0B0900;
             --color-bg-elevated: #130F07;
@@ -30,6 +39,7 @@
             --color-border: #7A5200;
             --color-border-active: #FFB000;
             --font-mono: 'Share Tech Mono', 'IBM Plex Mono', 'Courier New', monospace;
+            --font-display: 'Heritage Display', serif;
             --line-height-dense: 1.25;
         }
 
@@ -47,14 +57,17 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* CRT scan texture overlay - authentic scan lines (WebP optimized) */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.15) 2px 4px);
-            opacity: 0.3;
+            background: url('assets/textures/scan-01.webp') repeat;
+            background-size: 100% auto;
+            opacity: 0.12;
             pointer-events: none;
             z-index: 100;
+            mix-blend-mode: overlay;
         }
 
         button, input, textarea {
@@ -232,10 +245,11 @@
         }
 
         .home-title {
-            font-size: 20px;
-            letter-spacing: 0.2em;
+            font-family: var(--font-display);
+            font-size: 22px;
+            letter-spacing: 0.15em;
             color: var(--color-amber-bright);
-            text-shadow: 0 0 8px rgba(255, 176, 0, 0.4);
+            text-shadow: 0 0 12px rgba(255, 176, 0, 0.5);
             text-transform: uppercase;
         }
 
