@@ -14,6 +14,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Three.js via importmap for RetroPass integration -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+    </script>
+    
     <title>UNIFIED COMMS</title>
     <style>
         /* Heritage Display font - pixel blackletter */
@@ -55,6 +66,18 @@
             line-height: var(--line-height-dense);
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        /* RetroPass background canvas layer */
+        #retro-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            background: var(--color-bg);
         }
 
         /* CRT scan texture overlay - authentic scan lines (WebP optimized) */
@@ -538,6 +561,8 @@
     </style>
 </head>
 <body>
+<!-- RetroPass 3D Background Canvas (layered behind UI) -->
+<canvas id="retro-canvas"></canvas>
 
 <div id="view-home" class="view">
     <div class="terminal-app home-screen">
@@ -1255,6 +1280,229 @@ document.addEventListener('keydown', e => {
 navigate(location.hash || '#home');
 console.log('UNIFIED COMMS v1.0 - SENSOR WATCH FESK');
 console.log('TX: MANCHESTER OPTICAL @ 10BPS | RX: 7-NIGHT CIRCADIAN DECODER');
+</script>
+
+<!-- RetroPass Background Renderer -->
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+// ============================================================
+// DEVICE TIER DETECTION
+// ============================================================
+function getDeviceTier() {
+    // Check for mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Check for low-end indicators
+    const lowMemory = navigator.deviceMemory && navigator.deviceMemory < 4;
+    const lowCores = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4;
+    
+    if (isMobile || lowMemory || lowCores) {
+        return 'low';
+    }
+    
+    return 'high';
+}
+
+// ============================================================
+// RETROPASS SHADER (Amber CRT Pixelation)
+// ============================================================
+// Based on RetroPass concept: pixelation + dithering + palette reduction
+const RetroShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'resolution': { value: new THREE.Vector2(320, 200) },
+        'pixelSize': { value: 2.0 },
+        'time': { value: 0.0 },
+        'amberBright': { value: new THREE.Color(0xFFB000) },
+        'amberMid': { value: new THREE.Color(0xCC8800) },
+        'amberDim': { value: new THREE.Color(0x7A5200) },
+        'bgColor': { value: new THREE.Color(0x0B0900) }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform float pixelSize;
+        uniform float time;
+        uniform vec3 amberBright;
+        uniform vec3 amberMid;
+        uniform vec3 amberDim;
+        uniform vec3 bgColor;
+        varying vec2 vUv;
+        
+        // Simple dithering pattern (Bayer 2x2)
+        float bayerDither2x2(vec2 pixelPos) {
+            int x = int(mod(pixelPos.x, 2.0));
+            int y = int(mod(pixelPos.y, 2.0));
+            int index = x + y * 2;
+            float dither[4];
+            dither[0] = 0.0;
+            dither[1] = 0.5;
+            dither[2] = 0.75;
+            dither[3] = 0.25;
+            return dither[index];
+        }
+        
+        void main() {
+            // Pixelation
+            vec2 pixelatedUV = floor(vUv * resolution / pixelSize) * pixelSize / resolution;
+            vec4 texColor = texture2D(tDiffuse, pixelatedUV);
+            
+            // Convert to grayscale (luminance)
+            float lum = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+            
+            // Apply dithering
+            vec2 pixelPos = vUv * resolution;
+            float dither = bayerDither2x2(pixelPos);
+            lum += (dither - 0.5) * 0.1;
+            
+            // Map to amber monochrome palette (4 colors)
+            vec3 finalColor;
+            if (lum > 0.75) {
+                finalColor = amberBright;
+            } else if (lum > 0.4) {
+                finalColor = amberMid;
+            } else if (lum > 0.15) {
+                finalColor = amberDim;
+            } else {
+                finalColor = bgColor;
+            }
+            
+            // Subtle CRT scanline effect
+            float scanline = sin(pixelPos.y * 2.0 + time * 0.5) * 0.03;
+            finalColor *= (1.0 - scanline);
+            
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    `
+};
+
+// ============================================================
+// SCENE SETUP
+// ============================================================
+let scene, camera, renderer, composer, retroPass;
+let wireframeMesh;
+let animationFrameId;
+
+function initRetroScene() {
+    const canvas = document.getElementById('retro-canvas');
+    const deviceTier = getDeviceTier();
+    
+    // Skip on low-tier devices
+    if (deviceTier === 'low') {
+        console.log('[RetroPass] Low-tier device detected - fallback mode (no 3D background)');
+        canvas.style.display = 'none';
+        return;
+    }
+    
+    // Scene setup
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0B0900);
+    
+    // Camera
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 5;
+    
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ 
+        canvas: canvas,
+        antialias: false,  // Retro style - no AA
+        alpha: false
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(1);  // Force 1:1 for retro aesthetic
+    
+    // Simple wireframe geometry (torus for variety)
+    const geometry = new THREE.TorusGeometry(1.2, 0.4, 8, 16);
+    const material = new THREE.MeshBasicMaterial({
+        color: 0xFFB000,
+        wireframe: true,
+        wireframeLinewidth: 1
+    });
+    wireframeMesh = new THREE.Mesh(geometry, material);
+    scene.add(wireframeMesh);
+    
+    // Ambient light (subtle)
+    const ambientLight = new THREE.AmbientLight(0xFFB000, 0.5);
+    scene.add(ambientLight);
+    
+    // Post-processing: EffectComposer + RetroPass
+    composer = new EffectComposer(renderer);
+    
+    // Render pass
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+    
+    // Custom RetroPass shader
+    retroPass = new ShaderPass(RetroShader);
+    retroPass.uniforms['resolution'].value.set(640, 400);  // Retro resolution
+    retroPass.uniforms['pixelSize'].value = 2.0;
+    composer.addPass(retroPass);
+    
+    // Handle window resize
+    window.addEventListener('resize', onWindowResize);
+    
+    // Start animation loop
+    animate();
+    
+    console.log('[RetroPass] Initialized successfully - amber CRT mode active');
+}
+
+function onWindowResize() {
+    if (!camera || !renderer || !composer) return;
+    
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+    animationFrameId = requestAnimationFrame(animate);
+    
+    // Slow rotation (1-2 RPM)
+    if (wireframeMesh) {
+        wireframeMesh.rotation.x += 0.003;
+        wireframeMesh.rotation.y += 0.002;
+    }
+    
+    // Update shader time uniform for scanline animation
+    if (retroPass) {
+        retroPass.uniforms['time'].value = performance.now() * 0.001;
+    }
+    
+    // Render through composer (applies RetroPass)
+    if (composer) {
+        composer.render();
+    }
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRetroScene);
+} else {
+    initRetroScene();
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+    }
+});
 </script>
 </body>
 </html>
