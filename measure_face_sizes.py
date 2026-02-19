@@ -20,6 +20,17 @@ ESSENTIAL_FACES = [
     'smart_alarm_face',
 ]
 
+# Face dependencies - some faces require other faces to be included
+FACE_DEPENDENCIES = {
+    'finetune_face': ['nanosec_face'],  # finetune_face calls nanosec_* functions
+}
+
+# Faces that require hardware feature flags
+HARDWARE_DEPENDENT_FACES = {
+    'irda_upload_face': ['HAS_IR_SENSOR'],
+    'light_sensor_face': ['HAS_IR_SENSOR'],
+}
+
 def load_registry():
     """Load face registry."""
     with open('builder/face_registry.json', 'r') as f:
@@ -32,8 +43,19 @@ def generate_config(target_face_id, registry):
     if not target_face:
         raise ValueError(f"Face not found: {target_face_id}")
     
-    # Build face list: target + essentials
-    face_ids = [target_face_id] + [f for f in ESSENTIAL_FACES if f != target_face_id]
+    # Build face list: target + dependencies + essentials
+    face_ids = [target_face_id]
+    
+    # Add any required dependencies
+    if target_face_id in FACE_DEPENDENCIES:
+        for dep in FACE_DEPENDENCIES[target_face_id]:
+            if dep not in face_ids:
+                face_ids.append(dep)
+    
+    # Add essentials
+    for essential in ESSENTIAL_FACES:
+        if essential not in face_ids:
+            face_ids.append(essential)
     
     # Generate movement_config.h
     config = """#ifndef MOVEMENT_CONFIG_H_
@@ -94,14 +116,25 @@ const watch_face_t watch_faces[] = {
     # Remove trailing backslash
     faces_mk = faces_mk.rstrip(" \\\n") + "\n"
     
-    return config, faces_h, faces_mk
+    # Determine if we need hardware flags
+    hardware_flags = []
+    for face_id in face_ids:
+        if face_id in HARDWARE_DEPENDENT_FACES:
+            hardware_flags.extend(HARDWARE_DEPENDENT_FACES[face_id])
+    
+    return config, faces_h, faces_mk, list(set(hardware_flags))
 
-def build_firmware(board='sensorwatch_red', display='classic'):
+def build_firmware(board='sensorwatch_red', display='classic', extra_cflags=None):
     """Build firmware and return flash size."""
     try:
         # Prepare environment with PATH
         env = os.environ.copy()
         env['PATH'] = '/usr/local/opt/arm-none-eabi-gcc@9/bin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:' + env.get('PATH', '')
+        
+        # Add extra CFLAGS if needed (for hardware flags)
+        if extra_cflags:
+            cflags = ' '.join(f'-D{flag}' for flag in extra_cflags)
+            env['CFLAGS'] = env.get('CFLAGS', '') + ' ' + cflags
         
         # Manually remove build directory to ensure clean state
         # (avoids issues with make clean and parallel build .d dependency race conditions)
@@ -168,8 +201,8 @@ def measure_face_size(face_id, registry):
     """Measure flash size for a single face."""
     print(f"Measuring {face_id}...", file=sys.stderr)
     
-    # Generate config with just this face + essentials
-    config, faces_h, faces_mk = generate_config(face_id, registry)
+    # Generate config with just this face + essentials + dependencies
+    config, faces_h, faces_mk, hardware_flags = generate_config(face_id, registry)
     
     # Write config
     with open('movement_config.h', 'w') as f:
@@ -183,8 +216,8 @@ def measure_face_size(face_id, registry):
     with open('watch-faces.mk', 'w') as f:
         f.write(faces_mk)
     
-    # Build and get size
-    size = build_firmware()
+    # Build and get size (with hardware flags if needed)
+    size = build_firmware(extra_cflags=hardware_flags if hardware_flags else None)
     
     if size is None:
         print(f"  FAILED", file=sys.stderr)
@@ -291,7 +324,15 @@ def main():
             total_size = measure_face_size(face_id, registry)
             if total_size is not None:
                 # Face size = total - baseline
+                # BUT if the face has dependencies, we need to subtract those too
                 face_size = total_size - baseline
+                
+                # If this face required dependencies, subtract their sizes too
+                if face_id in FACE_DEPENDENCIES:
+                    for dep_id in FACE_DEPENDENCIES[face_id]:
+                        if dep_id in results:
+                            face_size -= results[dep_id]
+                
                 results[face_id] = face_size
     
     # Output JSON results
