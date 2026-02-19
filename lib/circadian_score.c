@@ -227,10 +227,46 @@ bool circadian_data_load_from_flash(circadian_data_t *data) {
         return false;
     }
 
-    // Clamp percentage fields to valid range to guard against flash corruption
+    // Get current time for timestamp validation
+    uint32_t now = watch_utility_date_time_to_unix_time(watch_rtc_get_date_time(), 0);
+    uint32_t one_year_future = (uint32_t)((uint64_t)now + (365UL * 24 * 60 * 60));
+    
+    // Validate each night's data
     for (uint8_t i = 0; i < 7; i++) {
-        if (data->nights[i].efficiency > 100) data->nights[i].efficiency = 100;
-        if (data->nights[i].light_quality > 100) data->nights[i].light_quality = 100;
+        circadian_sleep_night_t *night = &data->nights[i];
+        
+        // Skip already-invalid nights
+        if (!night->valid) continue;
+        
+        // Validate timestamps: must be non-zero and not wildly in the future
+        if (night->onset_timestamp == 0 || night->offset_timestamp == 0 ||
+            night->onset_timestamp > one_year_future || night->offset_timestamp > one_year_future) {
+            night->valid = false;
+            continue;
+        }
+        
+        // Validate timestamp ordering: offset must be after onset
+        if (night->offset_timestamp <= night->onset_timestamp) {
+            night->valid = false;
+            continue;
+        }
+        
+        // Validate duration: must be in range 0-1440 minutes (24 hours)
+        if (night->duration_min > MINUTES_PER_DAY) {
+            night->valid = false;
+            continue;
+        }
+        
+        // Validate duration consistency: should match timestamp delta within tolerance
+        uint16_t calculated_duration = (night->offset_timestamp - night->onset_timestamp) / 60;
+        if (abs(calculated_duration - night->duration_min) > 5) {  // 5-min tolerance
+            night->valid = false;
+            continue;
+        }
+        
+        // Clamp percentage fields to valid range
+        if (night->efficiency > 100) night->efficiency = 100;
+        if (night->light_quality > 100) night->light_quality = 100;
     }
 
     return true;
