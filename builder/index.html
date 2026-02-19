@@ -1767,8 +1767,8 @@ function updateFlashUsage() {
     }, 0);
 
     const totalKB = Math.ceil(totalBytes / 1024);
-    const limitKB = 200; // Conservative limit (256KB total - bootloader - margins)
-    const warningKB = 180; // 90% of limit
+    const limitKB = 230; // Conservative limit (256KB flash - bootloader - margins)
+    const warningKB = 210; // 90% threshold warning
     
     const buildBtn = document.getElementById('buildBtn');
     const statusEl = document.getElementById('buildStatus');
