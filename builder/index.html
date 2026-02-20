@@ -2575,8 +2575,8 @@ function renderActiveFaces() {
             const handleSpan = document.createElement('span');
             handleSpan.className = 'face-handle';
             handleSpan.textContent = ':::::';
-            // Wireframe icon (hash face ID to wireframe 1-32)
-            const wireframeNum = (id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 32) + 1;
+            // Wireframe icon (hash face ID to wireframe 1-30)
+            const wireframeNum = (id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 30) + 1;
             const iconImg = document.createElement('img');
             iconImg.className = 'face-icon';
             iconImg.src = `assets/wireframes/${wireframeNum}.png`;
