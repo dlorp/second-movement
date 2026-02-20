@@ -29,8 +29,7 @@
 
 #ifdef PHASE_ENGINE_ENABLED
 
-// Forward declaration
-typedef struct homebase_entry_t homebase_entry_t;
+#include "phase_engine.h"
 
 /**
  * Comfort Metric

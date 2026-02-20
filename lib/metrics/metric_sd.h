@@ -29,8 +29,7 @@
 
 #ifdef PHASE_ENGINE_ENABLED
 
-// Forward declaration
-typedef struct circadian_data_t circadian_data_t;
+#include "circadian_score.h"
 
 /**
  * SD (Sleep Debt) Metric

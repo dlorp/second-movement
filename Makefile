@@ -59,6 +59,10 @@ ifdef NOSLEEP
     DEFINES += -DMOVEMENT_LOW_ENERGY_MODE_FORBIDDEN
 endif
 
+ifdef PHASE_ENGINE_ENABLED
+    DEFINES += -DPHASE_ENGINE_ENABLED
+endif
+
 # Emscripten targets are now handled in rules.mk in gossamer
 
 # Add your include directories here.

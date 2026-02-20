@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 echo "Test 1: Compiling WITHOUT PHASE_ENGINE_ENABLED..."
 make clean > /dev/null 2>&1 || true
 if make BOARD=sensorwatch_pro DISPLAY=classic > /dev/null 2>&1; then
-    SIZE_DISABLED=$(arm-none-eabi-size build/watch.elf | tail -n 1 | awk '{print $1}')
+    SIZE_DISABLED=$(arm-none-eabi-size build/firmware.elf | tail -n 1 | awk '{print $1}')
     echo -e "${GREEN}✓ Build succeeded (phase disabled)${NC}"
     echo "  Flash size: $SIZE_DISABLED bytes"
 else
@@ -32,7 +32,7 @@ echo
 echo "Test 2: Compiling WITH PHASE_ENGINE_ENABLED..."
 make clean > /dev/null 2>&1 || true
 if make BOARD=sensorwatch_pro DISPLAY=classic PHASE_ENGINE_ENABLED=1 > /dev/null 2>&1; then
-    SIZE_ENABLED=$(arm-none-eabi-size build/watch.elf | tail -n 1 | awk '{print $1}')
+    SIZE_ENABLED=$(arm-none-eabi-size build/firmware.elf | tail -n 1 | awk '{print $1}')
     echo -e "${GREEN}✓ Build succeeded (phase enabled)${NC}"
     echo "  Flash size: $SIZE_ENABLED bytes"
 else

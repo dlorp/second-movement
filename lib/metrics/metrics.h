@@ -30,9 +30,8 @@
 
 #ifdef PHASE_ENGINE_ENABLED
 
-// Forward declarations
-typedef struct circadian_data_t circadian_data_t;
-typedef struct homebase_entry_t homebase_entry_t;
+#include "circadian_score.h"
+#include "phase_engine.h"
 
 /**
  * Metric Engine: Compute biological state metrics from sensors and sleep data
