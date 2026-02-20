@@ -59,6 +59,10 @@ ifdef NOSLEEP
     DEFINES += -DMOVEMENT_LOW_ENERGY_MODE_FORBIDDEN
 endif
 
+ifdef PHASE_ENGINE_ENABLED
+    DEFINES += -DPHASE_ENGINE_ENABLED
+endif
+
 # Emscripten targets are now handled in rules.mk in gossamer
 
 # Add your include directories here.
@@ -81,6 +85,7 @@ INCLUDES += \
   -I./lib/fesk_tx \
   -I./lib \
   -I./lib/phase \
+  -I./lib/metrics \
   -I./watch-library/shared/watch \
   -I./watch-library/shared/driver \
   -I./watch-faces/clock \
@@ -112,6 +117,9 @@ SRCS += \
   ./lib/fesk_tx/fesk_tx.c \
   ./lib/fesk_tx/fesk_session.c \
   ./lib/phase/phase_engine.c \
+  ./lib/metrics/metrics.c \
+  ./lib/metrics/metric_sd.c \
+  ./lib/metrics/metric_comfort.c \
   ./watch-library/shared/driver/thermistor_driver.c \
   ./watch-library/shared/watch/watch_common_buzzer.c \
   ./watch-library/shared/watch/watch_common_display.c \
