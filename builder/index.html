@@ -1094,7 +1094,6 @@
                 <button class="setting-option" data-crt-quality="off">OFF</button>
                 <button class="setting-option" data-crt-quality="minimal">MINIMAL</button>
                 <button class="setting-option" data-crt-quality="medium">MEDIUM</button>
-                <button class="setting-option" data-crt-quality="high">HIGH</button>
             </div>
         </details>
 
@@ -1594,14 +1593,14 @@ let scene, camera, renderer, composer, retroPass;
 let scanlinesPass, barrelPass, chromaticPass, vignettePass, bloomPass;
 let wireframeMesh;
 let animationFrameId;
-let crtQuality = 'high'; // high, medium, low
+let crtQuality = 'medium'; // medium, minimal, off
 
 function initRetroScene() {
     const canvas = document.getElementById('retro-canvas');
     const deviceTier = getDeviceTier();
     
     // Get saved quality preference with allowlist validation
-    const VALID_QUALITIES = ['auto', 'off', 'minimal', 'medium', 'high'];
+    const VALID_QUALITIES = ['auto', 'off', 'minimal', 'medium'];
     const savedQualityRaw = localStorage.getItem('crt-quality');
     const savedQuality = VALID_QUALITIES.includes(savedQualityRaw) ? savedQualityRaw : 'auto';
     
@@ -1611,12 +1610,10 @@ function initRetroScene() {
         if (deviceTier === 'low') {
             crtQuality = 'minimal';
             console.log('[CRT] Auto mode - Low-tier device: MINIMAL quality (mobile-first)');
-        } else if (deviceTier === 'medium') {
-            crtQuality = 'medium';
-            console.log('[CRT] Auto mode - Medium-tier device: MEDIUM quality');
         } else {
-            crtQuality = 'high';
-            console.log('[CRT] Auto mode - High-tier device: HIGH quality');
+            // Medium and high-tier devices both get MEDIUM quality (best look)
+            crtQuality = 'medium';
+            console.log('[CRT] Auto mode - Medium/High-tier device: MEDIUM quality');
         }
     } else if (savedQuality === 'off') {
         // User explicitly disabled effects
@@ -1694,11 +1691,10 @@ function initRetroScene() {
             composer.addPass(barrelPass);
         }
         
-        // 4. Chromatic aberration (MEDIUM and HIGH, tuned for each)
-        if (crtQuality === 'medium' || crtQuality === 'high') {
+        // 4. Chromatic aberration (MEDIUM only, subtle at 0.4)
+        if (crtQuality === 'medium') {
             chromaticPass = new ShaderPass(ChromaticAberrationShader);
-            // MEDIUM: subtle 0.4, HIGH: very subtle 0.5 (was 0.8, originally 1.5)
-            chromaticPass.uniforms['aberration'].value = crtQuality === 'medium' ? 0.4 : 0.5;
+            chromaticPass.uniforms['aberration'].value = 0.4;
             composer.addPass(chromaticPass);
         }
         
@@ -1713,17 +1709,6 @@ function initRetroScene() {
         vignettePass = new ShaderPass(VignetteShader);
         vignettePass.uniforms['strength'].value = crtParams.vignetteStrength;
         composer.addPass(vignettePass);
-        
-        // 7. Bloom/Glow (HIGH only) - amber phosphor glow
-        if (crtQuality === 'high') {
-            bloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight),
-                crtParams.bloomIntensity,
-                0.4,  // radius
-                crtParams.bloomThreshold
-            );
-            composer.addPass(bloomPass);
-        }
         
         // Handle window resize
         window.addEventListener('resize', onWindowResize);
