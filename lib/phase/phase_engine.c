@@ -3,11 +3,11 @@
  *
  * Copyright (c) 2026 Diego Perez
  *
- * Phase Engine implementation (stub version for Phase 1)
+ * Phase Engine implementation
  * 
- * This file contains stub implementations that will be replaced
- * in Phase 2 (metrics computation). Current functions return
- * safe default values to verify zero-cost compilation when disabled.
+ * Real circadian rhythm computation using integer math.
+ * Tracks alignment with natural cycles based on time, season,
+ * and environmental inputs.
  */
 
 #include "phase_engine.h"
@@ -16,6 +16,39 @@
 
 #include "homebase.h"
 #include <string.h>
+
+/*
+ * Integer cosine lookup table (24 entries, one per hour)
+ * Values scaled to ±1000 to preserve precision
+ * cos(2π * hour / 24) * 1000
+ * Peak at hour 14 (2 PM), trough at hour 2 (2 AM)
+ */
+static const int16_t cosine_lut_24[24] = {
+    866,   // 00:00
+    707,   // 01:00
+    500,   // 02:00
+    259,   // 03:00
+    0,     // 04:00
+    -259,  // 05:00
+    -500,  // 06:00
+    -707,  // 07:00
+    -866,  // 08:00
+    -966,  // 09:00
+    -1000, // 10:00
+    -966,  // 11:00
+    -866,  // 12:00
+    -707,  // 13:00
+    -500,  // 14:00
+    -259,  // 15:00
+    0,     // 16:00
+    259,   // 17:00
+    500,   // 18:00
+    707,   // 19:00
+    866,   // 20:00
+    966,   // 21:00
+    1000,  // 22:00
+    966    // 23:00
+};
 
 void phase_engine_init(phase_state_t *state) {
     // Clear all state
@@ -29,65 +62,169 @@ uint16_t phase_compute(phase_state_t *state,
                        uint16_t activity_level,
                        int16_t temp_c10,
                        uint16_t light_lux) {
-    // Stub implementation - returns neutral score
-    // Phase 2 will implement actual computation using:
-    // 1. homebase_get_entry(day_of_year) for seasonal baseline
-    // 2. Circadian curve (cosine approximation via LUT)
-    // 3. Activity/temp/light deviation scoring
-    
-    (void)activity_level;  // Suppress unused warnings
-    (void)temp_c10;
-    (void)light_lux;
     
     if (!state->initialized) {
         phase_engine_init(state);
     }
     
-    // Validate inputs
-    if (day_of_year < 1 || day_of_year > 366) {
-        return 0;  // Invalid input - return error score
-    }
-    if (hour > 23) {
-        return 0;  // Invalid hour
+    // Input validation (from PR #56)
+    if (hour > 23 || day_of_year < 1 || day_of_year > 366) {
+        return 0;  // Invalid input
     }
     
+    // Get seasonal baseline
+    const homebase_entry_t* baseline = homebase_get_entry(day_of_year);
+    
+    // Calculate circadian curve (expected activity level at this hour)
+    // Peak at 14:00 (afternoon), trough at 02:00 (night)
+    int16_t circadian_curve = cosine_lut_24[hour];
+    
+    // Expected activity: baseline * circadian_curve
+    // baseline.seasonal_baseline is 0-100
+    // circadian_curve is -1000 to +1000
+    // Result scaled to 0-100 range
+    int16_t expected_activity = ((int32_t)baseline->seasonal_baseline * 
+                                 (1000 + circadian_curve)) / 2000;
+    
+    // Activity deviation (scaled to 0-100 range)
+    // activity_level is 0-1000, scale to 0-100
+    int16_t actual_activity = activity_level / 10;
+    int16_t activity_dev = (actual_activity > expected_activity) 
+                          ? (actual_activity - expected_activity)
+                          : (expected_activity - actual_activity);
+    
+    // Temperature deviation (scaled to 0-30 range)
+    // Both are in celsius * 10
+    int16_t temp_dev = (temp_c10 > baseline->avg_temp_c10)
+                      ? (temp_c10 - baseline->avg_temp_c10)
+                      : (baseline->avg_temp_c10 - temp_c10);
+    // Scale to penalty (max penalty ~30 for 30°C deviation)
+    temp_dev = (temp_dev > 300) ? 30 : (temp_dev / 10);
+    
+    // Light deviation (simplified scoring)
+    // Expected light during day (6-18), darkness at night
+    uint16_t expected_light = (hour >= 6 && hour < 18) ? 500 : 50;
+    int16_t light_dev = (light_lux > expected_light)
+                       ? (light_lux - expected_light)
+                       : (expected_light - light_lux);
+    // Scale to penalty (max ~20)
+    light_dev = (light_dev > 1000) ? 20 : (light_dev / 50);
+    
+    // Compute final phase score
+    // Start at 100, subtract deviations
+    int16_t score = 100 - (activity_dev / 2) - temp_dev - light_dev;
+    
+    // Clamp to valid range
+    if (score < 0) score = 0;
+    if (score > 100) score = 100;
+    
+    state->last_phase_score = (uint16_t)score;
     state->last_hour = hour;
     state->last_day_of_year = day_of_year;
-    state->last_phase_score = 50;  // Neutral score
     
     // Update circular buffer
-    state->phase_history[state->history_index] = 50;
+    uint8_t old_score = state->phase_history[state->history_index];
+    state->phase_history[state->history_index] = (uint8_t)score;
     state->history_index = (state->history_index + 1) % 24;
     
     // Update cumulative sum with overflow protection
-    // Prevent overflow: if adding new score would exceed UINT16_MAX,
-    // subtract oldest score first to make room
-    uint8_t oldest_score = state->phase_history[state->history_index];
-    if (state->cumulative_phase > UINT16_MAX - state->last_phase_score) {
-        // Would overflow - subtract old value first
-        if (state->cumulative_phase >= oldest_score) {
-            state->cumulative_phase -= oldest_score;
-        } else {
-            state->cumulative_phase = 0;  // Safety reset on underflow
-        }
+    if (state->cumulative_phase >= old_score) {
+        state->cumulative_phase -= old_score;
+    } else {
+        state->cumulative_phase = 0;
     }
-    state->cumulative_phase += state->last_phase_score;
     
-    return 50;
+    if (state->cumulative_phase <= UINT16_MAX - score) {
+        state->cumulative_phase += score;
+    } else {
+        state->cumulative_phase = UINT16_MAX;
+    }
+    
+    return (uint16_t)score;
 }
 
 int16_t phase_get_trend(const phase_state_t *state, uint8_t hours) {
-    // Stub implementation - returns no trend
-    (void)state;
-    (void)hours;
-    return 0;
+    if (hours == 0 || hours > 24) {
+        return 0;
+    }
+    
+    // Calculate average of first half vs second half
+    uint8_t half = hours / 2;
+    if (half == 0) half = 1;
+    
+    // Sum recent half (more recent)
+    int32_t recent_sum = 0;
+    uint8_t recent_count = 0;
+    
+    // Sum older half (earlier)
+    int32_t older_sum = 0;
+    uint8_t older_count = 0;
+    
+    // Work backwards from current position
+    int8_t idx = state->history_index - 1;
+    if (idx < 0) idx = 23;
+    
+    for (uint8_t i = 0; i < hours; i++) {
+        if (i < half) {
+            recent_sum += state->phase_history[idx];
+            recent_count++;
+        } else {
+            older_sum += state->phase_history[idx];
+            older_count++;
+        }
+        
+        idx--;
+        if (idx < 0) idx = 23;
+    }
+    
+    if (recent_count == 0 || older_count == 0) {
+        return 0;
+    }
+    
+    // Calculate averages
+    int16_t recent_avg = recent_sum / recent_count;
+    int16_t older_avg = older_sum / older_count;
+    
+    // Trend is difference (scaled to -100 to +100)
+    int16_t trend = recent_avg - older_avg;
+    
+    // Amplify small trends for better resolution
+    trend = trend * 2;
+    
+    // Clamp to valid range
+    if (trend < -100) trend = -100;
+    if (trend > 100) trend = 100;
+    
+    return trend;
 }
 
 uint8_t phase_get_recommendation(uint16_t phase_score, uint8_t hour) {
-    // Stub implementation - returns moderate activity
-    (void)phase_score;
-    (void)hour;
-    return 1;  // Moderate activity
+    // Recommendation codes:
+    // 0 = rest
+    // 1 = moderate activity
+    // 2 = active
+    // 3 = peak performance
+    
+    // Night hours (22-5): prefer rest/moderate
+    if (hour >= 22 || hour <= 5) {
+        if (phase_score < 30) return 0;  // Rest
+        if (phase_score < 70) return 1;  // Moderate
+        return 1;  // Even high scores -> moderate at night
+    }
+    
+    // Early morning (6-11): gradual ramp
+    if (hour >= 6 && hour <= 11) {
+        if (phase_score < 30) return 0;
+        if (phase_score < 50) return 1;
+        if (phase_score < 70) return 2;
+        return 3;
+    }
+    
+    // Afternoon/evening (12-21): peak activity window
+    if (phase_score < 30) return 0;
+    if (phase_score < 50) return 1;
+    if (phase_score < 70) return 2;
+    return 3;
 }
 
 #endif // PHASE_ENGINE_ENABLED
