@@ -84,4 +84,12 @@
 #include "sleep_tracker_face.h"
 #include "circadian_score_face.h"
 #include "comms_face.h"
+
+#ifdef PHASE_ENGINE_ENABLED
+#include "emergence_face.h"
+#include "momentum_face.h"
+#include "active_face.h"
+#include "descent_face.h"
+#endif
+
 // New includes go above this line.
