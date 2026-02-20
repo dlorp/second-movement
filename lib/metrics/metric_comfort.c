@@ -27,9 +27,9 @@
 #include "metric_comfort.h"
 #include "phase_engine.h"
 
-// Helper: absolute value (stdlib abs() may not be available)
-static inline int16_t abs16(int16_t x) {
-    return (x < 0) ? -x : x;
+// Safe absolute value wrapper to handle INT16_MIN edge case
+static inline int16_t safe_abs16(int16_t x) {
+    return (x == INT16_MIN) ? INT16_MAX : ((x < 0) ? -x : x);
 }
 
 // Helper: min function
@@ -48,7 +48,7 @@ uint8_t metric_comfort_compute(int16_t temp_c10,
     
     // Temp comfort (60%): deviation from seasonal baseline
     // Lower deviation = higher comfort
-    int16_t temp_dev = abs16(temp_c10 - baseline->avg_temp_c10);
+    int16_t temp_dev = safe_abs16(temp_c10 - baseline->avg_temp_c10);
     // Penalty: divide by 3 to convert temp deviation (in 0.1°C) to comfort penalty
     // Example: 30 units (3°C) deviation → 10 point penalty → 90 comfort
     uint8_t temp_comfort = 100;
@@ -75,8 +75,8 @@ uint8_t metric_comfort_compute(int16_t temp_c10,
         } else {
             // Penalty for bright nighttime: scale above 50 lux
             // Example: 150 lux at night → 100 lux over threshold → 50 point penalty → 50 comfort
-            uint16_t excess = light_lux - 50;
-            uint16_t penalty = min16(100, excess / 2);
+            // Cast to uint32_t to prevent overflow when light_lux is near UINT16_MAX
+            uint16_t penalty = min16(100, ((uint32_t)(light_lux - 50)) / 2);
             light_comfort = 100 - (uint8_t)penalty;
         }
     }

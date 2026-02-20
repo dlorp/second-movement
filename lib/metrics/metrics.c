@@ -26,10 +26,18 @@
 
 #include "metrics.h"
 #include "metric_sd.h"
+#include "metric_em.h"
+#include "metric_wk.h"
+#include "metric_energy.h"
 #include "metric_comfort.h"
 #include "circadian_score.h"
 #include "phase_engine.h"
 #include "watch.h"
+
+// Safe absolute value wrapper to handle INT16_MIN edge case
+static inline int16_t safe_abs16(int16_t x) {
+    return (x == INT16_MIN) ? INT16_MAX : ((x < 0) ? -x : x);
+}
 
 // Forward declaration from movement (defined in movement.c)
 extern uint8_t movement_claim_backup_register(void);
@@ -73,10 +81,12 @@ void metrics_update(metrics_engine_t *engine,
                     uint16_t day_of_year,
                     uint8_t phase_score,
                     uint16_t activity_level,
+                    uint16_t cumulative_activity,
                     int16_t temp_c10,
                     uint16_t light_lux,
                     const circadian_data_t *sleep_data,
-                    const homebase_entry_t *homebase) {
+                    const homebase_entry_t *homebase,
+                    bool has_accelerometer) {
     
     if (!engine || !engine->initialized) return;
     
@@ -92,16 +102,36 @@ void metrics_update(metrics_engine_t *engine,
     _current_metrics.comfort = metric_comfort_compute(temp_c10, light_lux, hour, homebase);
     
     // --- Emotional (EM) ---
-    // Phase 3A PR 1: Stub (implement in PR 2)
-    _current_metrics.em = 50;  // Neutral for now
+    // Compute from circadian cycle, lunar cycle, and activity variance
+    // (activity_variance placeholder = activity_level for now)
+    _current_metrics.em = metric_em_compute(hour, day_of_year, activity_level);
     
     // --- Wake Momentum (WK) ---
-    // Phase 3A PR 1: Stub (implement in PR 2)
-    _current_metrics.wk = 50;  // Neutral for now
+    // Calculate minutes awake from wake onset time
+    uint16_t minutes_awake = 0;
+    if (hour >= engine->wake_onset_hour) {
+        minutes_awake = (hour - engine->wake_onset_hour) * 60;
+        if (minute >= engine->wake_onset_minute) {
+            minutes_awake += (minute - engine->wake_onset_minute);
+        } else {
+            minutes_awake -= (engine->wake_onset_minute - minute);
+        }
+    } else {
+        // Wrapped past midnight
+        uint16_t hours_til_midnight = (24 - engine->wake_onset_hour);
+        minutes_awake = hours_til_midnight * 60 + hour * 60;
+        if (minute >= engine->wake_onset_minute) {
+            minutes_awake += (minute - engine->wake_onset_minute);
+        } else {
+            minutes_awake -= (engine->wake_onset_minute - minute);
+        }
+    }
+    _current_metrics.wk = metric_wk_compute(minutes_awake, cumulative_activity, has_accelerometer);
     
     // --- Energy ---
-    // Phase 3A PR 1: Stub (implement in PR 2)
-    _current_metrics.energy = 50;  // Neutral for now
+    // Derived from phase score, sleep debt, and activity/circadian bonus
+    _current_metrics.energy = metric_energy_compute(phase_score, _current_metrics.sd, 
+                                                     activity_level, hour, has_accelerometer);
     
     // Auto-save to BKUP on hourly boundary
     // (Only save SD and WK state, other metrics are derived)
@@ -149,6 +179,26 @@ void metrics_load_bkup(metrics_engine_t *engine) {
     uint32_t wk_data = watch_get_backup_data(engine->bkup_reg_wk);
     engine->wake_onset_hour = (uint8_t)(wk_data & 0xFF);
     engine->wake_onset_minute = (uint8_t)((wk_data >> 8) & 0xFF);
+}
+
+void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute) {
+    if (!engine) return;
+    
+    // Validate and clamp inputs
+    if (hour >= 24) hour = 0;
+    if (minute >= 60) minute = 0;
+    
+    // Update wake onset time
+    engine->wake_onset_hour = hour;
+    engine->wake_onset_minute = minute;
+    
+    // Save to BKUP immediately (important for WK metric persistence)
+    if (engine->bkup_reg_wk != 0) {
+        uint32_t wk_data = 0;
+        wk_data |= (uint32_t)engine->wake_onset_hour;
+        wk_data |= ((uint32_t)engine->wake_onset_minute) << 8;
+        watch_store_backup_data(wk_data, engine->bkup_reg_wk);
+    }
 }
 
 #endif // PHASE_ENGINE_ENABLED

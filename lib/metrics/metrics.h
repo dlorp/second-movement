@@ -89,10 +89,12 @@ void metrics_init(metrics_engine_t *engine);
  * @param day_of_year Current day (1-365)
  * @param phase_score Current phase score from phase_engine (0-100)
  * @param activity_level Recent activity (0-1000, arbitrary units)
+ * @param cumulative_activity Cumulative activity since wake (0-65535, for WK bonus)
  * @param temp_c10 Current temperature (celsius * 10)
  * @param light_lux Current light level (lux)
  * @param sleep_data Circadian sleep history (7-night buffer)
  * @param homebase Homebase entry for current day (seasonal baseline)
+ * @param has_accelerometer True if LIS2DW accelerometer is available
  */
 void metrics_update(metrics_engine_t *engine,
                     uint8_t hour,
@@ -100,10 +102,12 @@ void metrics_update(metrics_engine_t *engine,
                     uint16_t day_of_year,
                     uint8_t phase_score,
                     uint16_t activity_level,
+                    uint16_t cumulative_activity,
                     int16_t temp_c10,
                     uint16_t light_lux,
                     const circadian_data_t *sleep_data,
-                    const homebase_entry_t *homebase);
+                    const homebase_entry_t *homebase,
+                    bool has_accelerometer);
 
 /**
  * Get current metric values.
@@ -128,6 +132,16 @@ void metrics_save_bkup(const metrics_engine_t *engine);
  * @param engine Engine state
  */
 void metrics_load_bkup(metrics_engine_t *engine);
+
+/**
+ * Set wake onset time (for WK metric calculation).
+ * Call when user wakes up or at sleep->wake transition.
+ * 
+ * @param engine Engine state
+ * @param hour Wake onset hour (0-23)
+ * @param minute Wake onset minute (0-59)
+ */
+void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute);
 
 #endif // PHASE_ENGINE_ENABLED
 

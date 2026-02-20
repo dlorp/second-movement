@@ -31,6 +31,11 @@
 #define SD_TARGET_MINUTES 480
 
 uint8_t metric_sd_compute(const circadian_data_t *sleep_data, uint8_t deficits[3]) {
+    // Null check for deficits array - return neutral if missing
+    if (deficits == NULL) {
+        return 50;
+    }
+    
     if (!sleep_data) {
         // No sleep data - return neutral score
         deficits[0] = deficits[1] = deficits[2] = 0;
@@ -49,8 +54,11 @@ uint8_t metric_sd_compute(const circadian_data_t *sleep_data, uint8_t deficits[3
             deficit[i] = 0;
         } else {
             int16_t duration = sleep_data->nights[night_idx].duration_min;
+            // Calculate deficit: positive when under-slept, zero when target met or exceeded
+            // If duration >= target (well-rested), deficit = 0 (no penalty)
+            // If duration < target (sleep-deprived), deficit = how many minutes short
             deficit[i] = (SD_TARGET_MINUTES - duration);
-            if (deficit[i] < 0) deficit[i] = 0;  // No "credit" for oversleeping
+            if (deficit[i] < 0) deficit[i] = 0;  // No credit for oversleeping, just zero deficit
         }
         
         // Store packed deficit (divide by 4 to fit in 0-100 range, max deficit = 480/4 = 120)
