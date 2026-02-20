@@ -55,6 +55,7 @@ TEMPLATE = """\
 
 #include "movement_faces.h"
 
+{phase_engine_define}
 const watch_face_t watch_faces[] = {{
 {face_list}
 }};
@@ -280,6 +281,11 @@ def main():
         help="Active hours enabled first-boot default (true/false).",
     )
     parser.add_argument(
+        "--phase-engine",
+        default="false",
+        help="Enable phase engine (true/false).",
+    )
+    parser.add_argument(
         "--output",
         default="movement_config.h",
         help="Output file path.",
@@ -385,9 +391,16 @@ def main():
         sys.exit(1)
 
     active_hours_enabled = parse_bool(args.active_hours_enabled)
+    phase_engine_enabled = parse_bool(args.phase_engine)
+
+    # Generate phase engine define if enabled
+    phase_engine_define = ""
+    if phase_engine_enabled:
+        phase_engine_define = "#define PHASE_ENGINE_ENABLED\n"
 
     # Render template
     output = TEMPLATE.format(
+        phase_engine_define=phase_engine_define,
         face_list=face_list,
         secondary_index=secondary_index,
         signal_tune=signal_tune,
