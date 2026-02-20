@@ -26,7 +26,7 @@
 typedef struct {
     uint16_t last_phase_score;      // Most recent phase score (0-100)
     uint8_t last_hour;              // Last computed hour (0-23)
-    uint8_t last_day_of_year;       // Last computed day (1-365)
+    uint16_t last_day_of_year;      // Last computed day (1-365), requires 9 bits
     uint16_t cumulative_phase;      // Rolling 24h sum for trends
     uint8_t phase_history[24];      // Hourly phase scores (circular buffer)
     uint8_t history_index;          // Current position in circular buffer

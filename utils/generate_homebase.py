@@ -296,7 +296,7 @@ Examples:
     parser.add_argument('--tz', type=str, required=True,
                         help='Timezone (PST, EST, UTC+X, or minutes offset)')
     parser.add_argument('--year', type=int, default=2026,
-                        help='Year for generation (default: 2026)')
+                        help='Year for generation (default: 2026, range: 2000-2099)')
     parser.add_argument('--output', type=Path,
                         default=Path(__file__).parent.parent / 'lib' / 'phase' / 'homebase_table.h',
                         help='Output path (default: lib/phase/homebase_table.h)')
@@ -304,6 +304,14 @@ Examples:
     args = parser.parse_args()
     
     # Validate inputs
+    # Note: Year range limitation is due to watch-library date handling
+    # which uses uint16_t for year storage. The valid range 2000-2099
+    # matches the century digits stored in RTC BCD registers (SAM L22).
+    if not 2000 <= args.year <= 2099:
+        print(f"Error: Year must be in range [2000, 2099], got {args.year}", file=sys.stderr)
+        print("Note: This limitation is due to Sensor Watch RTC hardware constraints.", file=sys.stderr)
+        return 1
+    
     if not -90 <= args.lat <= 90:
         print(f"Error: Latitude must be in range [-90, 90], got {args.lat}", file=sys.stderr)
         return 1
