@@ -72,8 +72,15 @@ uint16_t phase_compute(phase_state_t *state,
         return 0;  // Invalid input
     }
     
+    if (activity_level > 1000) {
+        return 0;  // Invalid input
+    }
+    
     // Get seasonal baseline
     const homebase_entry_t* baseline = homebase_get_entry(day_of_year);
+    if (baseline == NULL) {
+        return 0;  // Error - no baseline data
+    }
     
     // Calculate circadian curve (expected activity level at this hour)
     // Peak at 14:00 (afternoon), trough at 02:00 (night)
@@ -125,7 +132,6 @@ uint16_t phase_compute(phase_state_t *state,
     // Update circular buffer
     uint8_t old_score = state->phase_history[state->history_index];
     state->phase_history[state->history_index] = (uint8_t)score;
-    state->history_index = (state->history_index + 1) % 24;
     
     // Update cumulative sum with overflow protection
     if (state->cumulative_phase >= old_score) {
@@ -139,6 +145,9 @@ uint16_t phase_compute(phase_state_t *state,
     } else {
         state->cumulative_phase = UINT16_MAX;
     }
+    
+    // THEN increment index
+    state->history_index = (state->history_index + 1) % 24;
     
     return (uint16_t)score;
 }
