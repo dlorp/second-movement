@@ -549,6 +549,35 @@
 
         .setting-group:last-child { border-bottom: none; }
 
+        /* Collapsible settings */
+        .setting-collapsible {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--color-amber-trace);
+        }
+
+        .setting-summary {
+            color: var(--color-amber-mid);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 11px;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .setting-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .setting-summary #crtQualityLabel {
+            color: var(--color-amber-bright);
+        }
+
+        .setting-collapsible[open] .setting-summary {
+            margin-bottom: 8px;
+        }
+
         .setting-group .setting-label {
             color: var(--color-amber-mid);
             letter-spacing: 0.08em;
@@ -1031,11 +1060,10 @@
         </div>
 
         <!-- CRT EFFECTS QUALITY -->
-        <div class="setting-group">
-            <label class="setting-label">
-                CRT EFFECTS
-                <span class="setting-help">Retro terminal visual effects</span>
-            </label>
+        <details class="setting-collapsible">
+            <summary class="setting-summary">
+                CRT EFFECTS <span id="crtQualityLabel">▸ AUTO</span>
+            </summary>
             <div class="setting-options" id="crtQualityOptions">
                 <button class="setting-option active" data-crt-quality="auto">AUTO</button>
                 <button class="setting-option" data-crt-quality="off">OFF</button>
@@ -1043,7 +1071,7 @@
                 <button class="setting-option" data-crt-quality="medium">MEDIUM</button>
                 <button class="setting-option" data-crt-quality="high">HIGH</button>
             </div>
-        </div>
+        </details>
 
         <!-- LED RED -->
         <div class="setting-row">
@@ -1593,8 +1621,18 @@ function initRetroScene() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(1);  // Force 1:1 for retro aesthetic
     
-    // Simple wireframe geometry (icosahedron for classic look)
-    const geometry = new THREE.IcosahedronGeometry(1.5, 0);
+    // Random wireframe geometry from pool of 7 shapes
+    const wireframeShapes = [
+        () => new THREE.IcosahedronGeometry(1.5, 0),
+        () => new THREE.OctahedronGeometry(1.5, 0),
+        () => new THREE.DodecahedronGeometry(1.5, 0),
+        () => new THREE.TetrahedronGeometry(1.5, 0),
+        () => new THREE.TorusGeometry(1.2, 0.4, 16, 100),
+        () => new THREE.TorusKnotGeometry(1, 0.3, 100, 16),
+        () => new THREE.BoxGeometry(2, 2, 2)
+    ];
+    const randomShape = wireframeShapes[Math.floor(Math.random() * wireframeShapes.length)];
+    const geometry = randomShape();
     const material = new THREE.MeshBasicMaterial({
         color: 0xFFB000,
         wireframe: true,
@@ -1631,10 +1669,11 @@ function initRetroScene() {
             composer.addPass(barrelPass);
         }
         
-        // 4. Chromatic aberration (HIGH only)
-        if (crtQuality === 'high') {
+        // 4. Chromatic aberration (MEDIUM and HIGH, tuned for each)
+        if (crtQuality === 'medium' || crtQuality === 'high') {
             chromaticPass = new ShaderPass(ChromaticAberrationShader);
-            chromaticPass.uniforms['aberration'].value = crtParams.chromaticAberration;
+            // MEDIUM: subtle 0.4, HIGH: reduced to 0.8 (was 1.5)
+            chromaticPass.uniforms['aberration'].value = crtQuality === 'medium' ? 0.4 : 0.8;
             composer.addPass(chromaticPass);
         }
         
@@ -2413,9 +2452,11 @@ async function init() {
             crtQualityOptions.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             
-            // Notify user to reload
+            // Update label
+            document.getElementById('crtQualityLabel').textContent = '▸ ' + quality.toUpperCase();
+            
+            // Notify user to reload (console only, no alert)
             console.log('[CRT] Quality changed to:', quality.toUpperCase(), '- reload page to apply');
-            alert('CRT quality updated! Reload the page to see changes.');
         });
     });
     
@@ -2428,6 +2469,9 @@ async function init() {
             button.classList.remove('active');
         }
     });
+    
+    // Initialize label with saved quality
+    document.getElementById('crtQualityLabel').textContent = '▸ ' + savedCrtQuality.toUpperCase();
     
     document.getElementById('toggleBtn').addEventListener('click', () => {
         state.btnSound = !state.btnSound;
