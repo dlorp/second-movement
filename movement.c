@@ -518,6 +518,61 @@ static void _movement_handle_top_of_minute(void) {
     }
     
     was_in_sleep_window = now_in_sleep_window;
+
+#ifdef PHASE_ENGINE_ENABLED
+    // Phase 3: Update metrics engine every 15 minutes
+    movement_state.metric_tick_count++;
+    if (movement_state.metric_tick_count >= 15) {
+        movement_state.metric_tick_count = 0;
+        
+        // Gather current sensor readings
+        uint8_t hour = date_time.unit.hour;
+        uint8_t minute = date_time.unit.minute;
+        uint16_t day_of_year = date_time.unit.day;  // Simplified; actual day_of_year calculation needed
+        
+        // Get phase score from phase engine (stubbed for now - requires Phase 1-2 integration)
+        uint16_t phase_score = 50;  // Default midpoint; replace with phase_compute() when available
+        
+        // Get activity level from accelerometer (if available)
+        uint16_t activity_level = 0;
+        if (movement_state.has_lis2dw) {
+            // Stub: would read from accelerometer data structure
+            // activity_level = get_recent_activity_level();
+        }
+        
+        // Get temperature
+        int16_t temp_c10 = 0;
+        if (movement_state.has_thermistor) {
+            float temp_c = movement_get_temperature();
+            if (temp_c != 0xFFFFFFFF) {
+                temp_c10 = (int16_t)(temp_c * 10.0f);
+            }
+        }
+        
+        // Get light level (stub - requires light sensor integration)
+        uint16_t light_lux = 0;
+        
+        // Update metrics engine
+        metrics_update(&movement_state.metrics,
+                      hour, minute, day_of_year,
+                      (uint8_t)phase_score,
+                      activity_level,
+                      movement_state.cumulative_activity,
+                      temp_c10,
+                      light_lux,
+                      &global_circadian_data,
+                      NULL,  // homebase - requires Phase 2 homebase integration
+                      movement_state.has_lis2dw);
+        
+        // Update playlist controller
+        metrics_snapshot_t snapshot;
+        metrics_get(&movement_state.metrics, &snapshot);
+        playlist_update(&movement_state.playlist, phase_score, &snapshot);
+        
+        // If playlist mode is active, switch to the recommended face
+        // (This will be implemented in zone face integration)
+    }
+#endif
 }
 
 static void _movement_handle_scheduled_tasks(void) {
@@ -627,12 +682,44 @@ bool movement_default_loop_handler(movement_event_t event) {
                 movement_move_to_face(0);
             }
             break;
+#ifdef PHASE_ENGINE_ENABLED
+        case EVENT_ALARM_BUTTON_UP:
+            // Phase 3: If playlist mode is active, advance to next face in rotation
+            if (movement_state.playlist_mode_active) {
+                playlist_advance(&movement_state.playlist);
+                // The face will be updated in the next tick cycle
+                // TODO: Implement zone face dispatch to switch to playlist-selected face
+            }
+            break;
+#endif
         default:
             break;
     }
 
     return true;
 }
+
+#ifdef PHASE_ENGINE_ENABLED
+/**
+ * Get the watch face index for a given metric and zone.
+ * Maps metric indices (0-4: SD, EM, WK, Energy, Comfort) to actual watch face indices.
+ * Returns 0 (default face) if the zone face is not available.
+ */
+static uint8_t _movement_get_zone_face_index(uint8_t metric_index, phase_zone_t zone) {
+    // TODO: This mapping needs to be configured based on which zone faces are included
+    // in the build. For now, return the default face as a safe fallback.
+    // 
+    // When zone faces are integrated, this should map to face indices like:
+    // - ZONE_EMERGENCE -> emergence_face_index (shows SD, EM priority)
+    // - ZONE_MOMENTUM -> momentum_face_index (shows WK, Energy priority)
+    // - ZONE_ACTIVE -> active_face_index (shows Energy, comfort priority)
+    // - ZONE_DESCENT -> descent_face_index (shows comfort, SD priority)
+    
+    (void)metric_index;
+    (void)zone;
+    return 0;  // Default to clock face for now
+}
+#endif
 
 void movement_move_to_face(uint8_t watch_face_index) {
     movement_state.watch_face_changed = true;
@@ -1329,6 +1416,17 @@ void app_setup(void) {
                 lis2dw_set_data_rate(movement_state.accelerometer_background_rate);
             }
         }
+#endif
+
+#ifdef PHASE_ENGINE_ENABLED
+        // Phase 3: Initialize metrics engine and playlist controller
+        memset(&movement_state.metrics, 0, sizeof(metrics_engine_t));
+        memset(&movement_state.playlist, 0, sizeof(playlist_state_t));
+        metrics_init(&movement_state.metrics);
+        playlist_init(&movement_state.playlist);
+        movement_state.metric_tick_count = 0;
+        movement_state.cumulative_activity = 0;
+        movement_state.playlist_mode_active = false;  // Disabled by default; enable via watch face
 #endif
 
         movement_request_tick_frequency(1);
