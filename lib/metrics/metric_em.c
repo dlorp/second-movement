@@ -74,7 +74,7 @@ uint8_t metric_em_compute(uint8_t hour, uint16_t day_of_year, uint16_t activity_
     // 29-day cycle approximation, peaks at half-cycle (day 14.5)
     // Formula: ((day_of_year * 1000) / 29) % 1000
     // This gives a sawtooth 0-999, we want it to peak at 500
-    uint16_t lunar_phase = ((day_of_year * 1000) / 29) % 1000;
+    uint32_t lunar_phase = ((uint32_t)day_of_year * 1000UL / 29) % 1000;
     int16_t lunar_deviation = abs((int16_t)lunar_phase - 500);  // Distance from peak
     uint8_t lunar_score = (uint8_t)(100 - (lunar_deviation / 5));  // Peak at 500 → 100, edges → 0
     
@@ -85,7 +85,9 @@ uint8_t metric_em_compute(uint8_t hour, uint16_t day_of_year, uint16_t activity_
     uint8_t variance_score = 50;
     
     // Blend: 40% circadian + 20% lunar + 40% variance
-    uint16_t em = (circ_score * 40 + lunar_score * 20 + variance_score * 40) / 100;
+    uint16_t em = (uint16_t)(((uint32_t)circ_score * 40 + 
+                              (uint32_t)lunar_score * 20 + 
+                              (uint32_t)variance_score * 40) / 100);
     
     // Safety clamp (should never exceed 100 with proper inputs)
     if (em > 100) em = 100;

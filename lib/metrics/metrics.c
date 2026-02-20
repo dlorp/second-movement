@@ -108,24 +108,16 @@ void metrics_update(metrics_engine_t *engine,
     
     // --- Wake Momentum (WK) ---
     // Calculate minutes awake from wake onset time
-    uint16_t minutes_awake = 0;
-    if (hour >= engine->wake_onset_hour) {
-        minutes_awake = (hour - engine->wake_onset_hour) * 60;
-        if (minute >= engine->wake_onset_minute) {
-            minutes_awake += (minute - engine->wake_onset_minute);
-        } else {
-            minutes_awake -= (engine->wake_onset_minute - minute);
-        }
-    } else {
-        // Wrapped past midnight
-        uint16_t hours_til_midnight = (24 - engine->wake_onset_hour);
-        minutes_awake = hours_til_midnight * 60 + hour * 60;
-        if (minute >= engine->wake_onset_minute) {
-            minutes_awake += (minute - engine->wake_onset_minute);
-        } else {
-            minutes_awake -= (engine->wake_onset_minute - minute);
-        }
+    // Use total minutes from midnight to handle wraparound correctly
+    uint16_t wake_minutes = engine->wake_onset_hour * 60 + engine->wake_onset_minute;
+    uint16_t current_minutes = hour * 60 + minute;
+    
+    // Handle midnight wraparound
+    if (current_minutes < wake_minutes) {
+        current_minutes += 1440;  // Add 24 hours in minutes
     }
+    
+    uint16_t minutes_awake = current_minutes - wake_minutes;
     _current_metrics.wk = metric_wk_compute(minutes_awake, cumulative_activity, has_accelerometer);
     
     // --- Energy ---
