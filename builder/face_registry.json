@@ -694,21 +694,6 @@
       "requires_sensor": null,
       "default": false,
       "default_position": null
-    },
-    {
-      "id": "minimal_phase_face",
-      "name": "Minimal Phase",
-      "source": "./watch-faces/complication/minimal_phase_face.c",
-      "header": "./watch-faces/complication/minimal_phase_face.h",
-      "category": "complication",
-      "description": "Displays real-time circadian phase score (0-100) using location-aware seasonal data. Shows phase score, 6-hour trend, and activity recommendations. Requires homebase configuration.",
-      "requires_homebase": true,
-      "tags": [
-        "circadian",
-        "phase",
-        "wellness",
-        "homebase-required"
-      ]
     }
   ],
   "categories": [
