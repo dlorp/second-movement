@@ -18,7 +18,7 @@ static void _emergence_face_update_display(emergence_face_state_t *state) {
     char buf[11] = {0};
     
     // Get current metrics (engine param unused in current implementation)
-    metrics_snapshot_t metrics;
+    metrics_snapshot_t metrics = {0};  // Zero-initialize
     metrics_get(NULL, &metrics);
     
     // Zone indicator in top-left

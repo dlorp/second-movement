@@ -18,7 +18,7 @@ static void _active_face_update_display(active_face_state_t *state) {
     char buf[11] = {0};
     
     // Get current metrics (engine param unused in current implementation)
-    metrics_snapshot_t metrics;
+    metrics_snapshot_t metrics = {0};  // Zero-initialize
     metrics_get(NULL, &metrics);
     
     // Zone indicator in top-left

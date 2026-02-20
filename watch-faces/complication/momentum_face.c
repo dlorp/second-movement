@@ -6,6 +6,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "momentum_face.h"
 
 #ifdef PHASE_ENGINE_ENABLED
@@ -21,7 +22,7 @@ static void _momentum_face_update_display(momentum_face_state_t *state) {
     char buf[11] = {0};
     
     // Get current metrics (engine param unused in current implementation)
-    metrics_snapshot_t metrics;
+    metrics_snapshot_t metrics = {0};  // Zero-initialize
     metrics_get(NULL, &metrics);
     
     // Zone indicator in top-left
@@ -38,10 +39,15 @@ static void _momentum_face_update_display(momentum_face_state_t *state) {
         case 2: {  // Temperature
             // Get current temperature from movement API
             float temp_c = movement_get_temperature();
-            if (temp_c == 0xFFFFFFFF || !movement_state.has_thermistor) {
-                snprintf(buf, sizeof(buf), "TE  --");
+            if (!isnan(temp_c) && movement_state.has_thermistor) {
+                // Clamp to reasonable range before casting
+                if (temp_c < -100.0f) temp_c = -100.0f;
+                if (temp_c > 100.0f) temp_c = 100.0f;
+                
+                int16_t temp_int = (int16_t)temp_c;
+                snprintf(buf, sizeof(buf), "TE %2dC", temp_int);
             } else {
-                snprintf(buf, sizeof(buf), "TE %2dC", (int8_t)temp_c);
+                snprintf(buf, sizeof(buf), "TE  --");
             }
             break;
         }
