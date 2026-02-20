@@ -1071,11 +1071,35 @@
     <div class="section">
         <div class="section-title">HOMEBASE LOCATION</div>
 
+        <!-- What is this? Collapsible section -->
+        <div style="margin-bottom: 16px;">
+            <details style="background: var(--color-bg-recessed); border: 1px solid var(--color-border); padding: 12px; border-radius: 3px;">
+                <summary style="cursor: pointer; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--color-amber); user-select: none;">
+                    ℹ️ WHAT IS HOMEBASE?
+                </summary>
+                <div style="margin-top: 12px; font-family: var(--font-mono); font-size: 9px; line-height: 1.6; color: var(--color-text-dim); border-top: 1px solid var(--color-border); padding-top: 12px;">
+                    <p style="margin: 0 0 8px 0;"><strong style="color: var(--color-amber);">Homebase</strong> is your primary location for circadian-aware features.</p>
+                    <p style="margin: 0 0 8px 0;">The watch uses your coordinates to generate a seasonal table with:</p>
+                    <ul style="margin: 4px 0 8px 20px; padding: 0;">
+                        <li>Expected daylight hours for each day</li>
+                        <li>Typical temperatures by season</li>
+                        <li>Circadian energy baselines</li>
+                    </ul>
+                    <p style="margin: 0 0 8px 0;">This enables <strong style="color: var(--color-amber);">phase engine</strong> watch faces to track your natural rhythms and provide context-aware recommendations.</p>
+                    <p style="margin: 0; font-style: italic; color: var(--color-text-dimmer);">Only needed for phase-aware faces. Leave blank if not using circadian features (~2KB flash saved).</p>
+                </div>
+            </details>
+        </div>
+
         <div class="setting-row">
             <span class="setting-label">LATITUDE</span>
             <div class="setting-control">
                 <input type="text" id="homebase-lat" placeholder="e.g. 47.6062" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
             </div>
+        </div>
+        <div style="margin: 4px 0 12px 0; padding-left: 8px; font-family: var(--font-mono); font-size: 9px; color: var(--color-text-dimmer); line-height: 1.4;">
+            Your location's north-south position (-90 to +90)<br>
+            <span style="color: var(--color-text-dim);">Examples:</span> Anchorage: 61.2181 • Seattle: 47.6062 • NYC: 40.7128
         </div>
 
         <div class="setting-row">
@@ -1084,12 +1108,21 @@
                 <input type="text" id="homebase-lon" placeholder="e.g. -122.3321" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
             </div>
         </div>
+        <div style="margin: 4px 0 12px 0; padding-left: 8px; font-family: var(--font-mono); font-size: 9px; color: var(--color-text-dimmer); line-height: 1.4;">
+            Your location's east-west position (-180 to +180)<br>
+            <span style="color: var(--color-text-dim);">Examples:</span> Anchorage: -149.9003 • Seattle: -122.3321 • NYC: -74.0060
+        </div>
 
         <div class="setting-row">
             <span class="setting-label">TIMEZONE</span>
             <div class="setting-control">
-                <input type="text" id="homebase-tz" placeholder="PST, UTC+8, -480" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
+                <input type="text" id="homebase-tz" placeholder="AKST, PST, UTC-9, -540" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
             </div>
+        </div>
+        <div style="margin: 4px 0 12px 0; padding-left: 8px; font-family: var(--font-mono); font-size: 9px; color: var(--color-text-dimmer); line-height: 1.4;">
+            Standard timezone code or UTC offset<br>
+            <span style="color: var(--color-text-dim);">Formats:</span> AKST, PST, EST, HST, UTC-9, UTC+3, or -540 (minutes from UTC)<br>
+            <span style="color: var(--color-amber); font-weight: bold;">⚠ Use standard time (not daylight saving)</span>
         </div>
 
         <div class="setting-row">
