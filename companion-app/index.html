@@ -136,7 +136,7 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            background: var(--color-bg);
+            background: transparent;
             border-left: 1px solid var(--color-amber-trace);
             border-right: 1px solid var(--color-amber-trace);
             position: relative;
@@ -1352,25 +1352,37 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // User can override via quality toggle at any time.
 // Detection data is not sent to any server.
 function getDeviceTier() {
-    // Check for mobile devices
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isTablet = /iPad|Android(?!.*Mobile)/i.test(navigator.userAgent);
+    const ua = navigator.userAgent;
     
-    // Hardware capabilities
-    const memory = navigator.deviceMemory || 4;
-    const cores = navigator.hardwareConcurrency || 4;
+    // MOBILE-FIRST: Prioritize user agent over hardware specs
+    // Modern phones have powerful specs but still need battery-friendly effects
+    const isMobile = /iPhone|iPod|Android(?!.*Tablet)/i.test(ua);
+    const isTablet = /iPad|Android.*Tablet/i.test(ua);
     
-    // Low-tier: Mobile phones or very low-end devices
-    if ((isMobile && !isTablet) || memory < 2 || cores < 2) {
+    // MOBILE PHONES = LOW TIER (regardless of hardware specs)
+    // Battery life and thermal management matter more than raw power
+    if (isMobile) {
+        console.log('🔍 Device Detection: Mobile phone → LOW tier (battery-friendly)');
         return 'low';
     }
     
-    // Medium-tier: Tablets or mid-range laptops
-    if (isTablet || memory < 4 || cores < 4) {
+    // TABLETS = MEDIUM TIER
+    // Larger screens, better cooling, but still mobile devices
+    if (isTablet) {
+        console.log('🔍 Device Detection: Tablet → MEDIUM tier');
         return 'medium';
     }
     
-    // High-tier: Desktop or high-end laptops
+    // DESKTOP = check hardware capabilities
+    const memory = navigator.deviceMemory || 4;
+    const cores = navigator.hardwareConcurrency || 4;
+    
+    if (memory < 4 || cores < 4) {
+        console.log('🔍 Device Detection: Desktop (low-spec) → MEDIUM tier');
+        return 'medium';
+    }
+    
+    console.log('🔍 Device Detection: Desktop (high-spec) → HIGH tier');
     return 'high';
 }
 
