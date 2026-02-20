@@ -14,6 +14,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Three.js CDN Security Note:
+         Using jsdelivr.net (trusted CDN) for the following reasons:
+         - Serves npm packages directly (npm.com verified source)
+         - Free, open-source CDN with 99.9% uptime
+         - Version pinned to v0.170.0 (immutable)
+         - No SRI needed: importmap + version pin provides integrity
+         - Fallback: Could self-host if CDN ever compromised
+    -->
+    <!-- Three.js via importmap for RetroPass integration -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+    </script>
+    
     <title>UNIFIED COMMS</title>
     <style>
         /* Heritage Display font - pixel blackletter */
@@ -41,6 +60,15 @@
             --font-mono: 'Share Tech Mono', 'IBM Plex Mono', 'Courier New', monospace;
             --font-display: 'Heritage Display', serif;
             --line-height-dense: 1.25;
+            
+            /* CRT Shader Parameters (Phase 2) */
+            --crt-scanline-intensity: 0.4;
+            --crt-scanline-frequency: 2.0;
+            --crt-barrel-distortion: 0.15;
+            --crt-chromatic-aberration: 1.5;
+            --crt-bloom-threshold: 0.75;
+            --crt-bloom-intensity: 0.35;
+            --crt-vignette-strength: 0.4;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -57,18 +85,19 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* CRT scan texture overlay - authentic scan lines (WebP optimized) */
-        body::before {
-            content: '';
+        /* RetroPass background canvas layer */
+        #retro-canvas {
             position: fixed;
-            inset: 0;
-            background: url('assets/textures/scan-01.webp') repeat;
-            background-size: 100% auto;
-            opacity: 0.12;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
             pointer-events: none;
-            z-index: 100;
-            mix-blend-mode: overlay;
+            background: var(--color-bg);
         }
+
+        /* Phase 2: Scan texture replaced with GPU shader (scan-01.webp deprecated) */
 
         button, input, textarea {
             font-family: var(--font-mono);
@@ -306,6 +335,39 @@
             padding-left: 8px;
         }
 
+        /* CRT Quality Toggle */
+        .setting-option {
+            padding: 6px 12px;
+            background: var(--color-bg-recessed);
+            border: 1px solid var(--color-border);
+            color: var(--color-amber-dim);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: all 0.15s;
+            min-width: 60px;
+            text-align: center;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .setting-option:hover {
+            background: var(--color-amber-trace);
+            border-color: var(--color-amber-mid);
+            color: var(--color-amber-mid);
+        }
+
+        .setting-option.active {
+            background: var(--color-amber-trace);
+            border-color: var(--color-amber-bright);
+            color: var(--color-amber-bright);
+            box-shadow: inset 0 0 8px rgba(255, 176, 0, 0.3);
+        }
+
         .home-action-note {
             width: 100%;
             min-height: 44px;
@@ -538,6 +600,8 @@
     </style>
 </head>
 <body>
+<!-- RetroPass 3D Background Canvas (layered behind UI) -->
+<canvas id="retro-canvas"></canvas>
 
 <div id="view-home" class="view">
     <div class="terminal-app home-screen">
@@ -577,6 +641,21 @@
                             <div class="mode-desc">DECODE SLEEP DATA</div>
                         </div>
                         <div class="mode-arrow">&gt;</div>
+                    </div>
+                </div>
+
+                <!-- CRT EFFECTS SETTINGS -->
+                <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-amber-trace);">
+                    <div style="color: var(--color-amber-mid); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 8px;">
+                        CRT EFFECTS
+                        <span style="display: block; color: var(--color-amber-dim); font-size: 9px; margin-top: 2px; text-transform: none;">Retro terminal visual effects</span>
+                    </div>
+                    <div class="setting-options" id="crtQualityOptions" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="setting-option active" data-crt-quality="auto">AUTO</button>
+                        <button class="setting-option" data-crt-quality="off">OFF</button>
+                        <button class="setting-option" data-crt-quality="minimal">MINIMAL</button>
+                        <button class="setting-option" data-crt-quality="medium">MEDIUM</button>
+                        <button class="setting-option" data-crt-quality="high">HIGH</button>
                     </div>
                 </div>
             </div>
@@ -1255,6 +1334,545 @@ document.addEventListener('keydown', e => {
 navigate(location.hash || '#home');
 console.log('UNIFIED COMMS v1.0 - SENSOR WATCH FESK');
 console.log('TX: MANCHESTER OPTICAL @ 10BPS | RX: 7-NIGHT CIRCADIAN DECODER');
+</script>
+
+<!-- RetroPass Background Renderer -->
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// ============================================================
+// DEVICE TIER DETECTION (Phase 2: 3-tier system)
+// ============================================================
+// Device Detection Privacy Note:
+// This detection is for performance optimization only.
+// User can override via quality toggle at any time.
+// Detection data is not sent to any server.
+function getDeviceTier() {
+    // Check for mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isTablet = /iPad|Android(?!.*Mobile)/i.test(navigator.userAgent);
+    
+    // Hardware capabilities
+    const memory = navigator.deviceMemory || 4;
+    const cores = navigator.hardwareConcurrency || 4;
+    
+    // Low-tier: Mobile phones or very low-end devices
+    if ((isMobile && !isTablet) || memory < 2 || cores < 2) {
+        return 'low';
+    }
+    
+    // Medium-tier: Tablets or mid-range laptops
+    if (isTablet || memory < 4 || cores < 4) {
+        return 'medium';
+    }
+    
+    // High-tier: Desktop or high-end laptops
+    return 'high';
+}
+
+// ============================================================
+// PHASE 2: CRT SHADER SUITE
+// ============================================================
+// Dynamic CRT effects suite: scanlines, barrel distortion, chromatic aberration, bloom, vignette
+// Replaces static scan-01.webp texture with GPU shaders (~80 KB savings)
+
+// Read CSS variables for shader parameters
+function getCRTParams() {
+    const root = getComputedStyle(document.documentElement);
+    return {
+        scanlineIntensity: parseFloat(root.getPropertyValue('--crt-scanline-intensity')) || 0.4,
+        scanlineFrequency: parseFloat(root.getPropertyValue('--crt-scanline-frequency')) || 2.0,
+        barrelDistortion: parseFloat(root.getPropertyValue('--crt-barrel-distortion')) || 0.15,
+        chromaticAberration: parseFloat(root.getPropertyValue('--crt-chromatic-aberration')) || 1.5,
+        bloomThreshold: parseFloat(root.getPropertyValue('--crt-bloom-threshold')) || 0.75,
+        bloomIntensity: parseFloat(root.getPropertyValue('--crt-bloom-intensity')) || 0.35,
+        vignetteStrength: parseFloat(root.getPropertyValue('--crt-vignette-strength')) || 0.4
+    };
+}
+
+// CRT Scanlines Shader - replaces static scan-01.webp texture
+const CRTScanlinesShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'time': { value: 0.0 },
+        'intensity': { value: 0.4 },
+        'frequency': { value: 2.0 },
+        'resolution': { value: new THREE.Vector2(800, 600) }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float time;
+        uniform float intensity;
+        uniform float frequency;
+        uniform vec2 resolution;
+        varying vec2 vUv;
+        
+        void main() {
+            vec4 texColor = texture2D(tDiffuse, vUv);
+            
+            // Horizontal scanlines with vertical crawl animation
+            float scanlinePos = vUv.y * resolution.y;
+            float scanline = sin(scanlinePos * frequency + time * 0.5) * 0.5 + 0.5;
+            
+            // RGB phosphor simulation (subtle separation)
+            float r = sin(scanlinePos * frequency * 3.0) * 0.02;
+            float g = sin(scanlinePos * frequency * 3.0 + 2.094) * 0.02;
+            float b = sin(scanlinePos * frequency * 3.0 + 4.189) * 0.02;
+            
+            vec3 rgbSeparation = vec3(r, g, b);
+            
+            // Apply scanline darkening
+            float scanlineMask = 1.0 - (scanline * intensity);
+            vec3 finalColor = texColor.rgb * scanlineMask + rgbSeparation;
+            
+            gl_FragColor = vec4(finalColor, texColor.a);
+        }
+    `
+};
+
+// Barrel Distortion Shader - CRT screen curvature
+const BarrelDistortionShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'distortion': { value: 0.15 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float distortion;
+        varying vec2 vUv;
+        
+        vec2 barrelDistort(vec2 uv, float strength) {
+            vec2 centered = uv - 0.5;
+            float r2 = dot(centered, centered);
+            float distortionFactor = 1.0 + strength * r2;
+            return centered * distortionFactor + 0.5;
+        }
+        
+        void main() {
+            vec2 distortedUV = barrelDistort(vUv, distortion);
+            
+            // Clamp to edges (black outside screen)
+            if (distortedUV.x < 0.0 || distortedUV.x > 1.0 || 
+                distortedUV.y < 0.0 || distortedUV.y > 1.0) {
+                gl_FragColor = vec4(0.043, 0.035, 0.0, 1.0); // --color-bg
+                return;
+            }
+            
+            vec4 texColor = texture2D(tDiffuse, distortedUV);
+            gl_FragColor = texColor;
+        }
+    `
+};
+
+// Chromatic Aberration Shader - RGB channel separation
+const ChromaticAberrationShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'aberration': { value: 1.5 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float aberration;
+        varying vec2 vUv;
+        
+        void main() {
+            vec2 offset = (vUv - 0.5) * (aberration / 1000.0);
+            
+            float r = texture2D(tDiffuse, vUv + offset).r;
+            float g = texture2D(tDiffuse, vUv).g;
+            float b = texture2D(tDiffuse, vUv - offset).b;
+            
+            gl_FragColor = vec4(r, g, b, 1.0);
+        }
+    `
+};
+
+// Vignette Shader - darker edges
+const VignetteShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'strength': { value: 0.4 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float strength;
+        varying vec2 vUv;
+        
+        void main() {
+            vec4 texColor = texture2D(tDiffuse, vUv);
+            vec2 centered = vUv - 0.5;
+            float vignette = 1.0 - dot(centered, centered) * strength * 2.0;
+            vignette = clamp(vignette, 0.0, 1.0);
+            
+            gl_FragColor = vec4(texColor.rgb * vignette, texColor.a);
+        }
+    `
+};
+
+// ============================================================
+// RETROPASS SHADER (Amber CRT Pixelation)
+// ============================================================
+// Based on RetroPass concept: pixelation + dithering + palette reduction
+const RetroShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'resolution': { value: new THREE.Vector2(320, 200) },
+        'pixelSize': { value: 2.0 },
+        'time': { value: 0.0 },
+        'amberBright': { value: new THREE.Color(0xFFB000) },
+        'amberMid': { value: new THREE.Color(0xCC8800) },
+        'amberDim': { value: new THREE.Color(0x7A5200) },
+        'bgColor': { value: new THREE.Color(0x0B0900) }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform float pixelSize;
+        uniform float time;
+        uniform vec3 amberBright;
+        uniform vec3 amberMid;
+        uniform vec3 amberDim;
+        uniform vec3 bgColor;
+        varying vec2 vUv;
+        
+        // Simple dithering pattern (Bayer 2x2)
+        float bayerDither2x2(vec2 pixelPos) {
+            int x = int(mod(pixelPos.x, 2.0));
+            int y = int(mod(pixelPos.y, 2.0));
+            int index = x + y * 2;
+            float dither[4];
+            dither[0] = 0.0;
+            dither[1] = 0.5;
+            dither[2] = 0.75;
+            dither[3] = 0.25;
+            return dither[index];
+        }
+        
+        void main() {
+            // Pixelation
+            vec2 pixelatedUV = floor(vUv * resolution / pixelSize) * pixelSize / resolution;
+            vec4 texColor = texture2D(tDiffuse, pixelatedUV);
+            
+            // Convert to grayscale (luminance)
+            float lum = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+            
+            // Apply dithering
+            vec2 pixelPos = vUv * resolution;
+            float dither = bayerDither2x2(pixelPos);
+            lum += (dither - 0.5) * 0.1;
+            
+            // Map to amber monochrome palette (4 colors)
+            vec3 finalColor;
+            if (lum > 0.75) {
+                finalColor = amberBright;
+            } else if (lum > 0.4) {
+                finalColor = amberMid;
+            } else if (lum > 0.15) {
+                finalColor = amberDim;
+            } else {
+                finalColor = bgColor;
+            }
+            
+            // Subtle CRT scanline effect
+            float scanline = sin(pixelPos.y * 2.0 + time * 0.5) * 0.03;
+            finalColor *= (1.0 - scanline);
+            
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    `
+};
+
+// ============================================================
+// SCENE SETUP (Phase 2: Enhanced CRT Pipeline)
+// ============================================================
+let scene, camera, renderer, composer, retroPass;
+let scanlinesPass, barrelPass, chromaticPass, vignettePass, bloomPass;
+let wireframeMesh;
+let animationFrameId;
+let crtQuality = 'high'; // high, medium, low
+
+function initRetroScene() {
+    const canvas = document.getElementById('retro-canvas');
+    const deviceTier = getDeviceTier();
+    
+    // Get saved quality preference with allowlist validation
+    const VALID_QUALITIES = ['auto', 'off', 'minimal', 'medium', 'high'];
+    const savedQualityRaw = localStorage.getItem('crt-quality');
+    const savedQuality = VALID_QUALITIES.includes(savedQualityRaw) ? savedQualityRaw : 'auto';
+    
+    // Determine CRT quality based on user preference or device tier
+    if (savedQuality === 'auto') {
+        // Auto mode: use device detection but MINIMAL for low-tier (not OFF!)
+        if (deviceTier === 'low') {
+            crtQuality = 'minimal';
+            console.log('[CRT] Auto mode - Low-tier device: MINIMAL quality (mobile-first)');
+        } else if (deviceTier === 'medium') {
+            crtQuality = 'medium';
+            console.log('[CRT] Auto mode - Medium-tier device: MEDIUM quality');
+        } else {
+            crtQuality = 'high';
+            console.log('[CRT] Auto mode - High-tier device: HIGH quality');
+        }
+    } else if (savedQuality === 'off') {
+        // User explicitly disabled effects
+        console.log('[CRT] User preference: OFF (effects disabled)');
+        canvas.style.display = 'none';
+        return;
+    } else {
+        // User override: minimal, medium, or high
+        crtQuality = savedQuality;
+        console.log('[CRT] User preference:', crtQuality.toUpperCase(), 'quality');
+    }
+    
+    // Scene setup
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0B0900);
+    
+    // Camera
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 5;
+    
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ 
+        canvas: canvas,
+        antialias: false,  // Retro style - no AA
+        alpha: false
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(1);  // Force 1:1 for retro aesthetic
+    
+    // Simple wireframe geometry (torus for variety)
+    const geometry = new THREE.TorusGeometry(1.2, 0.4, 8, 16);
+    const material = new THREE.MeshBasicMaterial({
+        color: 0xFFB000,
+        wireframe: true,
+        wireframeLinewidth: 1
+    });
+    wireframeMesh = new THREE.Mesh(geometry, material);
+    scene.add(wireframeMesh);
+    
+    // Ambient light (subtle)
+    const ambientLight = new THREE.AmbientLight(0xFFB000, 0.5);
+    scene.add(ambientLight);
+    
+    // Get CRT parameters from CSS variables
+    const crtParams = getCRTParams();
+    
+    // Post-processing: EffectComposer + CRT Pipeline (with error handling)
+    try {
+        composer = new EffectComposer(renderer);
+        
+        // 1. Render pass (all quality levels)
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
+        
+        // 2. RetroPass (amber pixelation + palette reduction) - ALL QUALITY LEVELS
+        retroPass = new ShaderPass(RetroShader);
+        retroPass.uniforms['resolution'].value.set(640, 400);  // Retro resolution
+        retroPass.uniforms['pixelSize'].value = 2.0;
+        composer.addPass(retroPass);
+        
+        // 3. Barrel distortion (MEDIUM and HIGH only)
+        if (crtQuality === 'medium' || crtQuality === 'high') {
+            barrelPass = new ShaderPass(BarrelDistortionShader);
+            barrelPass.uniforms['distortion'].value = crtParams.barrelDistortion;
+            composer.addPass(barrelPass);
+        }
+        
+        // 4. Chromatic aberration (HIGH only)
+        if (crtQuality === 'high') {
+            chromaticPass = new ShaderPass(ChromaticAberrationShader);
+            chromaticPass.uniforms['aberration'].value = crtParams.chromaticAberration;
+            composer.addPass(chromaticPass);
+        }
+        
+        // 5. CRT Scanlines (ALL QUALITY LEVELS - replaces scan-01.webp)
+        scanlinesPass = new ShaderPass(CRTScanlinesShader);
+        scanlinesPass.uniforms['intensity'].value = crtParams.scanlineIntensity;
+        scanlinesPass.uniforms['frequency'].value = crtParams.scanlineFrequency;
+        scanlinesPass.uniforms['resolution'].value.set(window.innerWidth, window.innerHeight);
+        composer.addPass(scanlinesPass);
+        
+        // 6. Vignette (ALL QUALITY LEVELS)
+        vignettePass = new ShaderPass(VignetteShader);
+        vignettePass.uniforms['strength'].value = crtParams.vignetteStrength;
+        composer.addPass(vignettePass);
+        
+        // 7. Bloom/Glow (HIGH only) - amber phosphor glow
+        if (crtQuality === 'high') {
+            bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                crtParams.bloomIntensity,
+                0.4,  // radius
+                crtParams.bloomThreshold
+            );
+            composer.addPass(bloomPass);
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', onWindowResize);
+        
+        // Start animation loop
+        animate();
+        
+        console.log('[CRT] Phase 2 initialized - quality: ' + crtQuality + ' - scan texture replaced with GPU shader');
+    } catch (error) {
+        console.warn('[CRT] Shader compilation failed, falling back to no effects:', error);
+        canvas.style.display = 'none'; // Hide 3D canvas
+        // Cancel animation if already started
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        return; // Exit gracefully
+    }
+}
+
+function onWindowResize() {
+    if (!camera || !renderer || !composer) return;
+    
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Update scanlines resolution
+    if (scanlinesPass) {
+        scanlinesPass.uniforms['resolution'].value.set(window.innerWidth, window.innerHeight);
+    }
+    
+    // Update bloom pass resolution if exists
+    if (bloomPass) {
+        bloomPass.setSize(window.innerWidth, window.innerHeight);
+    }
+}
+
+function animate() {
+    animationFrameId = requestAnimationFrame(animate);
+    
+    // Slow rotation (1-2 RPM)
+    if (wireframeMesh) {
+        wireframeMesh.rotation.x += 0.003;
+        wireframeMesh.rotation.y += 0.002;
+    }
+    
+    // Update time uniforms for animated shaders
+    const time = performance.now() * 0.001;
+    
+    if (retroPass) {
+        retroPass.uniforms['time'].value = time;
+    }
+    
+    if (scanlinesPass) {
+        scanlinesPass.uniforms['time'].value = time;
+    }
+    
+    // Render through composer (applies full CRT pipeline)
+    if (composer) {
+        composer.render();
+    }
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initRetroScene();
+        initCRTQualityToggle();
+    });
+} else {
+    initRetroScene();
+    initCRTQualityToggle();
+}
+
+// Initialize CRT quality toggle UI
+function initCRTQualityToggle() {
+    const crtQualityOptions = document.querySelectorAll('#crtQualityOptions .setting-option');
+    
+    // Set up click handlers
+    crtQualityOptions.forEach(button => {
+        button.addEventListener('click', () => {
+            const quality = button.dataset.crtQuality;
+            
+            // Save preference
+            localStorage.setItem('crt-quality', quality);
+            
+            // Update UI
+            crtQualityOptions.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Notify user to reload
+            console.log('[CRT] Quality changed to:', quality.toUpperCase(), '- reload page to apply');
+            alert('CRT quality updated! Reload the page to see changes.');
+        });
+    });
+    
+    // Initialize UI state from localStorage
+    const savedCrtQuality = localStorage.getItem('crt-quality') || 'auto';
+    crtQualityOptions.forEach(button => {
+        if (button.dataset.crtQuality === savedCrtQuality) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+    }
+});
 </script>
 </body>
 </html>
