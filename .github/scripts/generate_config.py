@@ -55,6 +55,7 @@ TEMPLATE = """\
 
 #include "movement_faces.h"
 
+{phase_engine_define}
 const watch_face_t watch_faces[] = {{
 {face_list}
 }};
@@ -182,6 +183,10 @@ def validate_face(face_id, registry):
     if registry is None:
         return True
     faces = registry.get("faces", registry)
+    # faces is a list of dicts, check if face_id is in any dict's 'id' field
+    if isinstance(faces, list):
+        return any(f.get("id") == face_id for f in faces)
+    # fallback for old registry format (dict of face_id: face_data)
     return face_id in faces
 
 
@@ -278,6 +283,11 @@ def main():
         "--active-hours-enabled",
         default="true",
         help="Active hours enabled first-boot default (true/false).",
+    )
+    parser.add_argument(
+        "--phase-engine",
+        default="false",
+        help="Enable phase engine (true/false).",
     )
     parser.add_argument(
         "--output",
@@ -385,9 +395,16 @@ def main():
         sys.exit(1)
 
     active_hours_enabled = parse_bool(args.active_hours_enabled)
+    phase_engine_enabled = parse_bool(args.phase_engine)
+
+    # Generate phase engine define if enabled
+    phase_engine_define = ""
+    if phase_engine_enabled:
+        phase_engine_define = "#define PHASE_ENGINE_ENABLED\n"
 
     # Render template
     output = TEMPLATE.format(
+        phase_engine_define=phase_engine_define,
         face_list=face_list,
         secondary_index=secondary_index,
         signal_tune=signal_tune,
