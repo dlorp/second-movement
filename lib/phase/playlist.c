@@ -100,14 +100,17 @@ static void rebuild_rotation(playlist_state_t *state,
     }
     
     // Bubble sort by relevance (descending)
-    for (uint8_t i = 0; i < state->face_count - 1; i++) {
-        for (uint8_t j = i + 1; j < state->face_count; j++) {
-            uint8_t idx_i = state->face_indices[i];
-            uint8_t idx_j = state->face_indices[j];
-            if (relevances[idx_j] > relevances[idx_i]) {
-                // Swap - metric j is more relevant than metric i
-                state->face_indices[i] = idx_j;
-                state->face_indices[j] = idx_i;
+    // Guard against underflow when face_count is 0
+    if (state->face_count > 1) {
+        for (uint8_t i = 0; i < state->face_count - 1; i++) {
+            for (uint8_t j = i + 1; j < state->face_count; j++) {
+                uint8_t idx_i = state->face_indices[i];
+                uint8_t idx_j = state->face_indices[j];
+                if (relevances[idx_j] > relevances[idx_i]) {
+                    // Swap - metric j is more relevant than metric i
+                    state->face_indices[i] = idx_j;
+                    state->face_indices[j] = idx_i;
+                }
             }
         }
     }
