@@ -25,7 +25,7 @@ void phase_engine_init(phase_state_t *state) {
 
 uint16_t phase_compute(phase_state_t *state,
                        uint8_t hour,
-                       uint8_t day_of_year,
+                       uint16_t day_of_year,
                        uint16_t activity_level,
                        int16_t temp_c10,
                        uint16_t light_lux) {
@@ -41,6 +41,14 @@ uint16_t phase_compute(phase_state_t *state,
     
     if (!state->initialized) {
         phase_engine_init(state);
+    }
+    
+    // Validate inputs
+    if (day_of_year < 1 || day_of_year > 366) {
+        return 0;  // Invalid input - return error score
+    }
+    if (hour > 23) {
+        return 0;  // Invalid hour
     }
     
     state->last_hour = hour;

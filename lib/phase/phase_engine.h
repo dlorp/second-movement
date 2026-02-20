@@ -59,7 +59,7 @@ void phase_engine_init(phase_state_t *state);
  */
 uint16_t phase_compute(phase_state_t *state,
                        uint8_t hour,
-                       uint8_t day_of_year,
+                       uint16_t day_of_year,
                        uint16_t activity_level,
                        int16_t temp_c10,
                        uint16_t light_lux);
