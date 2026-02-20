@@ -1067,6 +1067,39 @@
         <div id="availList"></div>
     </div>
 
+    <!-- HOMEBASE LOCATION -->
+    <div class="section">
+        <div class="section-title">HOMEBASE LOCATION</div>
+
+        <div class="setting-row">
+            <span class="setting-label">LATITUDE</span>
+            <div class="setting-control">
+                <input type="text" id="homebase-lat" placeholder="e.g. 47.6062" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
+            </div>
+        </div>
+
+        <div class="setting-row">
+            <span class="setting-label">LONGITUDE</span>
+            <div class="setting-control">
+                <input type="text" id="homebase-lon" placeholder="e.g. -122.3321" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
+            </div>
+        </div>
+
+        <div class="setting-row">
+            <span class="setting-label">TIMEZONE</span>
+            <div class="setting-control">
+                <input type="text" id="homebase-tz" placeholder="PST, UTC+8, -480" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
+            </div>
+        </div>
+
+        <div class="setting-row">
+            <span class="setting-label"></span>
+            <div class="setting-control">
+                <button id="use-browser-location" style="flex: 1; min-height: 44px;">[USE BROWSER LOCATION]</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SETTINGS -->
     <div class="section">
         <div class="section-title">SETTINGS</div>
@@ -2113,6 +2146,17 @@ function loadTemplate(tmplState) {
         const v = parseInt(tmplState.activeHoursEnd, 10);
         state.activeHoursEnd = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 92;
     }
+    if (tmplState.homebaseLat !== undefined) {
+        const lat = parseFloat(tmplState.homebaseLat);
+        state.homebaseLat = (Number.isFinite(lat) && lat >= -90 && lat <= 90) ? lat : null;
+    }
+    if (tmplState.homebaseLon !== undefined) {
+        const lon = parseFloat(tmplState.homebaseLon);
+        state.homebaseLon = (Number.isFinite(lon) && lon >= -180 && lon <= 180) ? lon : null;
+    }
+    if (tmplState.homebaseTz !== undefined) {
+        state.homebaseTz = tmplState.homebaseTz ? String(tmplState.homebaseTz).trim() : null;
+    }
     // sync sliders/toggles to loaded state
     document.getElementById('ledRed').value = state.ledRed;
     document.getElementById('ledRedVal').textContent = state.ledRed;
@@ -2127,6 +2171,9 @@ function loadTemplate(tmplState) {
     document.getElementById('ahStart').innerHTML = buildTimeOptions(state.activeHoursStart);
     document.getElementById('ahEnd').innerHTML = buildTimeOptions(state.activeHoursEnd);
     updateAhTimeVisibility();
+    document.getElementById('homebase-lat').value = state.homebaseLat !== null ? state.homebaseLat : '';
+    document.getElementById('homebase-lon').value = state.homebaseLon !== null ? state.homebaseLon : '';
+    document.getElementById('homebase-tz').value = state.homebaseTz !== null ? state.homebaseTz : '';
     renderBoards();
     renderDisplays();
     renderActiveFaces();
@@ -2402,6 +2449,17 @@ async function init() {
     document.getElementById('ahEnd').innerHTML = buildTimeOptions(state.activeHoursEnd);
     updateAhTimeVisibility();
 
+    // restore homebase configuration
+    if (state.homebaseLat !== null) {
+        document.getElementById('homebase-lat').value = state.homebaseLat;
+    }
+    if (state.homebaseLon !== null) {
+        document.getElementById('homebase-lon').value = state.homebaseLon;
+    }
+    if (state.homebaseTz !== null) {
+        document.getElementById('homebase-tz').value = state.homebaseTz;
+    }
+
     renderBoards();
     renderDisplays();
     renderActiveFaces();
@@ -2505,6 +2563,63 @@ async function init() {
         state.activeHoursEnd = (Number.isFinite(v) && v >= 0 && v <= 95) ? v : 92;
         updateAhVisualBar();
         updateHash();
+    });
+
+    // Homebase location inputs
+    document.getElementById('homebase-lat').addEventListener('input', e => {
+        const lat = parseFloat(e.target.value);
+        state.homebaseLat = (Number.isFinite(lat) && lat >= -90 && lat <= 90) ? lat : null;
+        updateHash();
+    });
+    
+    document.getElementById('homebase-lon').addEventListener('input', e => {
+        const lon = parseFloat(e.target.value);
+        state.homebaseLon = (Number.isFinite(lon) && lon >= -180 && lon <= 180) ? lon : null;
+        updateHash();
+    });
+    
+    // Timezone validation with regex
+    document.getElementById('homebase-tz').addEventListener('input', e => {
+        const tz = e.target.value.trim();
+        // Validate timezone format: PST, UTC+8, UTC-5, -480, +330, etc.
+        const tzRegex = /^([A-Z]{3,4}|UTC[+-]?\d{1,2}|[+-]?\d{1,4})$/i;
+        if (tz === '' || tzRegex.test(tz)) {
+            state.homebaseTz = tz || null;
+            e.target.style.borderColor = 'var(--color-border)';
+            updateHash();
+        } else {
+            e.target.style.borderColor = 'var(--color-critical)';
+        }
+    });
+    
+    // Use browser location button
+    document.getElementById('use-browser-location').addEventListener('click', function() {
+        if (!navigator.geolocation) {
+            alert('Geolocation not supported by your browser');
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude.toFixed(4);
+            const lon = position.coords.longitude.toFixed(4);
+            
+            document.getElementById('homebase-lat').value = lat;
+            document.getElementById('homebase-lon').value = lon;
+            
+            // Update state
+            state.homebaseLat = parseFloat(lat);
+            state.homebaseLon = parseFloat(lon);
+            
+            // Auto-estimate timezone from longitude
+            const tzOffset = Math.round(position.coords.longitude / 15);
+            const tzString = `UTC${tzOffset >= 0 ? '+' : ''}${tzOffset}`;
+            document.getElementById('homebase-tz').value = tzString;
+            state.homebaseTz = tzString;
+            
+            updateHash();
+        }, function(error) {
+            alert('Geolocation failed: ' + error.message);
+        });
     });
 
     // Signal tune panel toggle
@@ -2869,6 +2984,17 @@ function updateHash() {
         'ah_start=' + state.activeHoursStart,
         'ah_end=' + state.activeHoursEnd
     ];
+    
+    // Add homebase params if set
+    if (state.homebaseLat !== null) {
+        params.push('hb_lat=' + encodeURIComponent(state.homebaseLat));
+    }
+    if (state.homebaseLon !== null) {
+        params.push('hb_lon=' + encodeURIComponent(state.homebaseLon));
+    }
+    if (state.homebaseTz !== null) {
+        params.push('hb_tz=' + encodeURIComponent(state.homebaseTz));
+    }
     history.replaceState(null, '', '#' + params.join('&'));
 }
 
@@ -2922,6 +3048,34 @@ function parseHash() {
         return (Number.isFinite(n) && n >= 0 && n <= 95) ? n : def;
     };
 
+    // Parse and validate homebase params
+    let homebaseLat = null;
+    let homebaseLon = null;
+    let homebaseTz = null;
+    
+    if (params.hb_lat !== undefined) {
+        const lat = parseFloat(params.hb_lat);
+        if (Number.isFinite(lat) && lat >= -90 && lat <= 90) {
+            homebaseLat = lat;
+        }
+    }
+    
+    if (params.hb_lon !== undefined) {
+        const lon = parseFloat(params.hb_lon);
+        if (Number.isFinite(lon) && lon >= -180 && lon <= 180) {
+            homebaseLon = lon;
+        }
+    }
+    
+    if (params.hb_tz !== undefined && params.hb_tz.trim().length > 0) {
+        const tz = params.hb_tz.trim();
+        // Validate timezone format: PST, UTC+8, UTC-5, -480, +330, etc.
+        const tzRegex = /^([A-Z]{3,4}|UTC[+-]?\d{1,2}|[+-]?\d{1,4})$/i;
+        if (tzRegex.test(tz)) {
+            homebaseTz = tz;
+        }
+    }
+
     return {
         board,
         display,
@@ -2934,7 +3088,10 @@ function parseHash() {
         signalTune,
         activeHoursEnabled: params.ah_en !== undefined ? params.ah_en === 'true' : true,
         activeHoursStart: clampQh(params.ah_start, 16),
-        activeHoursEnd: clampQh(params.ah_end, 92)
+        activeHoursEnd: clampQh(params.ah_end, 92),
+        homebaseLat,
+        homebaseLon,
+        homebaseTz
     };
 }
 
@@ -2996,6 +3153,17 @@ async function triggerBuild() {
         active_hours_end: String(state.activeHoursEnd),
         build_id: buildId
     };
+    
+    // Add homebase params if set (optional - for circadian phase tracking)
+    if (state.homebaseLat !== null) {
+        inputs.homebase_lat = String(state.homebaseLat);
+    }
+    if (state.homebaseLon !== null) {
+        inputs.homebase_lon = String(state.homebaseLon);
+    }
+    if (state.homebaseTz !== null) {
+        inputs.homebase_tz = String(state.homebaseTz);
+    }
 
     showStatus('DISPATCHING BUILD ' + buildId + '...', '');
     document.getElementById('buildBtn').disabled = true;
