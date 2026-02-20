@@ -529,6 +529,72 @@
             border-radius: 0;
         }
 
+        /* ---- CRT QUALITY TOGGLE ---- */
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--color-amber-trace);
+        }
+
+        .setting-group:last-child { border-bottom: none; }
+
+        .setting-group .setting-label {
+            color: var(--color-amber-mid);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 11px;
+            display: block;
+        }
+
+        .setting-help {
+            display: block;
+            color: var(--color-amber-dim);
+            font-size: 9px;
+            letter-spacing: 0.04em;
+            margin-top: 2px;
+            text-transform: none;
+        }
+
+        .setting-options {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .setting-option {
+            padding: 6px 12px;
+            background: var(--color-bg-recessed);
+            border: 1px solid var(--color-border);
+            color: var(--color-amber-dim);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: all 0.15s;
+            min-width: 60px;
+            text-align: center;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .setting-option:hover {
+            background: var(--color-amber-trace);
+            border-color: var(--color-amber-mid);
+            color: var(--color-amber-mid);
+        }
+
+        .setting-option.active {
+            background: var(--color-amber-trace);
+            border-color: var(--color-amber-bright);
+            color: var(--color-amber-bright);
+            box-shadow: inset 0 0 8px rgba(255, 176, 0, 0.3);
+        }
+
         /* ---- ACTIVE HOURS VISUAL BAR ---- */
         .ah-visual-container {
             padding: 8px 0;
@@ -952,6 +1018,21 @@
                     </div>
                     <span class="toggle-label" id="label24h">OFF</span>
                 </label>
+            </div>
+        </div>
+
+        <!-- CRT EFFECTS QUALITY -->
+        <div class="setting-group">
+            <label class="setting-label">
+                CRT EFFECTS
+                <span class="setting-help">Retro terminal visual effects</span>
+            </label>
+            <div class="setting-options" id="crtQualityOptions">
+                <button class="setting-option active" data-crt-quality="auto">AUTO</button>
+                <button class="setting-option" data-crt-quality="off">OFF</button>
+                <button class="setting-option" data-crt-quality="minimal">MINIMAL</button>
+                <button class="setting-option" data-crt-quality="medium">MEDIUM</button>
+                <button class="setting-option" data-crt-quality="high">HIGH</button>
             </div>
         </div>
 
@@ -1441,17 +1522,31 @@ function initRetroScene() {
     const canvas = document.getElementById('retro-canvas');
     const deviceTier = getDeviceTier();
     
-    // Determine CRT quality based on device tier
-    if (deviceTier === 'low') {
-        console.log('[CRT] Low-tier device detected - fallback mode (no 3D background)');
+    // Get saved quality preference or default to 'auto'
+    const savedQuality = localStorage.getItem('crt-quality') || 'auto';
+    
+    // Determine CRT quality based on user preference or device tier
+    if (savedQuality === 'auto') {
+        // Auto mode: use device detection but MINIMAL for low-tier (not OFF!)
+        if (deviceTier === 'low') {
+            crtQuality = 'minimal';
+            console.log('[CRT] Auto mode - Low-tier device: MINIMAL quality (mobile-first)');
+        } else if (deviceTier === 'medium') {
+            crtQuality = 'medium';
+            console.log('[CRT] Auto mode - Medium-tier device: MEDIUM quality');
+        } else {
+            crtQuality = 'high';
+            console.log('[CRT] Auto mode - High-tier device: HIGH quality');
+        }
+    } else if (savedQuality === 'off') {
+        // User explicitly disabled effects
+        console.log('[CRT] User preference: OFF (effects disabled)');
         canvas.style.display = 'none';
         return;
-    } else if (deviceTier === 'medium') {
-        crtQuality = 'medium';
-        console.log('[CRT] Medium-tier device - scanlines only mode');
     } else {
-        crtQuality = 'high';
-        console.log('[CRT] High-tier device - full CRT suite enabled');
+        // User override: minimal, medium, or high
+        crtQuality = savedQuality;
+        console.log('[CRT] User preference:', crtQuality.toUpperCase(), 'quality');
     }
     
     // Scene setup
@@ -1491,43 +1586,43 @@ function initRetroScene() {
     // Post-processing: EffectComposer + CRT Pipeline
     composer = new EffectComposer(renderer);
     
-    // 1. Render pass
+    // 1. Render pass (all quality levels)
     const renderPass = new RenderPass(scene, camera);
     composer.addPass(renderPass);
     
-    // 2. RetroPass (amber pixelation + palette reduction)
+    // 2. RetroPass (amber pixelation + palette reduction) - ALL QUALITY LEVELS
     retroPass = new ShaderPass(RetroShader);
     retroPass.uniforms['resolution'].value.set(640, 400);  // Retro resolution
     retroPass.uniforms['pixelSize'].value = 2.0;
     composer.addPass(retroPass);
     
-    // 3. Barrel distortion (high quality only)
-    if (crtQuality === 'high') {
+    // 3. Barrel distortion (MEDIUM and HIGH only)
+    if (crtQuality === 'medium' || crtQuality === 'high') {
         barrelPass = new ShaderPass(BarrelDistortionShader);
         barrelPass.uniforms['distortion'].value = crtParams.barrelDistortion;
         composer.addPass(barrelPass);
     }
     
-    // 4. Chromatic aberration (high quality only)
+    // 4. Chromatic aberration (HIGH only)
     if (crtQuality === 'high') {
         chromaticPass = new ShaderPass(ChromaticAberrationShader);
         chromaticPass.uniforms['aberration'].value = crtParams.chromaticAberration;
         composer.addPass(chromaticPass);
     }
     
-    // 5. CRT Scanlines (all quality tiers - replaces scan-01.webp)
+    // 5. CRT Scanlines (ALL QUALITY LEVELS - replaces scan-01.webp)
     scanlinesPass = new ShaderPass(CRTScanlinesShader);
     scanlinesPass.uniforms['intensity'].value = crtParams.scanlineIntensity;
     scanlinesPass.uniforms['frequency'].value = crtParams.scanlineFrequency;
     scanlinesPass.uniforms['resolution'].value.set(window.innerWidth, window.innerHeight);
     composer.addPass(scanlinesPass);
     
-    // 6. Vignette (all quality tiers)
+    // 6. Vignette (ALL QUALITY LEVELS)
     vignettePass = new ShaderPass(VignetteShader);
     vignettePass.uniforms['strength'].value = crtParams.vignetteStrength;
     composer.addPass(vignettePass);
     
-    // 7. Bloom/Glow (high quality only) - amber phosphor glow
+    // 7. Bloom/Glow (HIGH only) - amber phosphor glow
     if (crtQuality === 'high') {
         bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -2266,6 +2361,36 @@ async function init() {
         setToggle('toggle24h', 'label24h', state.clock24h);
         updateHash();
     });
+    
+    // CRT Quality toggle
+    const crtQualityOptions = document.querySelectorAll('#crtQualityOptions .setting-option');
+    crtQualityOptions.forEach(button => {
+        button.addEventListener('click', () => {
+            const quality = button.dataset.crtQuality;
+            
+            // Save preference
+            localStorage.setItem('crt-quality', quality);
+            
+            // Update UI
+            crtQualityOptions.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Notify user to reload
+            console.log('[CRT] Quality changed to:', quality.toUpperCase(), '- reload page to apply');
+            alert('CRT quality updated! Reload the page to see changes.');
+        });
+    });
+    
+    // Initialize CRT quality UI on load
+    const savedCrtQuality = localStorage.getItem('crt-quality') || 'auto';
+    crtQualityOptions.forEach(button => {
+        if (button.dataset.crtQuality === savedCrtQuality) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+    
     document.getElementById('toggleBtn').addEventListener('click', () => {
         state.btnSound = !state.btnSound;
         setToggle('toggleBtn', 'labelBtn', state.btnSound);
