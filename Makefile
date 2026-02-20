@@ -119,6 +119,9 @@ SRCS += \
   ./lib/phase/phase_engine.c \
   ./lib/metrics/metrics.c \
   ./lib/metrics/metric_sd.c \
+  ./lib/metrics/metric_em.c \
+  ./lib/metrics/metric_wk.c \
+  ./lib/metrics/metric_energy.c \
   ./lib/metrics/metric_comfort.c \
   ./watch-library/shared/driver/thermistor_driver.c \
   ./watch-library/shared/watch/watch_common_buzzer.c \
