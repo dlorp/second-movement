@@ -75,6 +75,21 @@ on:
         description: "Unique build ID from the web UI"
         required: true
         type: string
+      homebase_lat:
+        description: "Homebase latitude (optional, enables phase engine)"
+        required: false
+        type: string
+        default: ""
+      homebase_lon:
+        description: "Homebase longitude (optional, enables phase engine)"
+        required: false
+        type: string
+        default: ""
+      homebase_tz:
+        description: "Homebase timezone (optional, e.g. PST, EST, UTC+2)"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   build:
@@ -95,6 +110,21 @@ jobs:
       - name: Mark workspace as safe for git
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Generate homebase phase tables
+        if: ${{ github.event.inputs.homebase_lat != '' && github.event.inputs.homebase_lon != '' && github.event.inputs.homebase_tz != '' }}
+        env:
+          HOMEBASE_LAT: ${{ github.event.inputs.homebase_lat }}
+          HOMEBASE_LON: ${{ github.event.inputs.homebase_lon }}
+          HOMEBASE_TZ: ${{ github.event.inputs.homebase_tz }}
+        run: |
+          python3 utils/generate_homebase.py \
+            --lat "$HOMEBASE_LAT" \
+            --lon "$HOMEBASE_LON" \
+            --tz "$HOMEBASE_TZ" \
+            --year $(date +%Y) \
+            --output lib/phase/homebase_table.h
+          echo "Generated homebase table for location: $HOMEBASE_LAT, $HOMEBASE_LON (timezone: $HOMEBASE_TZ)"
+
       - name: Generate movement_config.h
         env:
           INPUT_FACES: ${{ github.event.inputs.faces }}
@@ -108,6 +138,7 @@ jobs:
           INPUT_ACTIVE_HOURS_ENABLED: ${{ inputs.active_hours_enabled }}
           INPUT_ACTIVE_HOURS_START: ${{ inputs.active_hours_start }}
           INPUT_ACTIVE_HOURS_END: ${{ inputs.active_hours_end }}
+          INPUT_PHASE_ENGINE: ${{ github.event.inputs.homebase_lat != '' && github.event.inputs.homebase_lon != '' && github.event.inputs.homebase_tz != '' }}
         run: |
           python3 .github/scripts/generate_config.py \
             --faces "$INPUT_FACES" \
@@ -121,6 +152,7 @@ jobs:
             --active-hours-enabled "$INPUT_ACTIVE_HOURS_ENABLED" \
             --active-hours-start "$INPUT_ACTIVE_HOURS_START" \
             --active-hours-end "$INPUT_ACTIVE_HOURS_END" \
+            --phase-engine "$INPUT_PHASE_ENGINE" \
             --output movement_config.h
 
       - name: Generate watch-faces.mk
