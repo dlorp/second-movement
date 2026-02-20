@@ -121,7 +121,7 @@ def calculate_seasonal_baseline(day_of_year, latitude):
     return int(max(0, min(100, baseline)))
 
 
-def generate_homebase_table(latitude, longitude, timezone_offset, year, output_path):
+def generate_homebase_table(latitude, longitude, timezone_offset, year, output_path, tz_string="N/A"):
     """
     Generate homebase_table.h with 365 days of seasonal data.
     
@@ -131,6 +131,7 @@ def generate_homebase_table(latitude, longitude, timezone_offset, year, output_p
         timezone_offset: Timezone offset in minutes (e.g., -480 for PST)
         year: Year for generation (informational only)
         output_path: Path to output .h file
+        tz_string: Original timezone string for display purposes
     """
     # Convert coordinates to scaled integers for metadata
     lat_e6 = int(latitude * 1_000_000)
@@ -219,32 +220,91 @@ const homebase_metadata_t* homebase_get_metadata(void) {
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(header)
     
-    # Print statistics
-    print(f"✓ Generated homebase table: {output_path}")
-    print(f"  Location: {latitude:.4f}°, {longitude:.4f}°")
-    print(f"  Timezone: UTC{timezone_offset//60:+d}")
-    print(f"  Entries: 365")
-    print(f"  Flash size: ~{len(entries) * 5} bytes (table data)")
-    print(f"  Total size: ~{len(header)} bytes (header + code)")
+    # Calculate detailed statistics
+    table_data_bytes = len(entries) * 6  # 3 uint16_t per entry = 6 bytes
+    metadata_bytes = 16  # homebase_metadata_t struct size
+    total_code_bytes = len(header)
+    
+    # Daylight statistics
+    daylight_values = [e[0] for e in entries]
+    min_daylight = min(daylight_values)
+    max_daylight = max(daylight_values)
+    avg_daylight = sum(daylight_values) // len(daylight_values)
+    
+    # Temperature statistics
+    temp_values = [e[1] for e in entries]
+    min_temp = min(temp_values) / 10.0
+    max_temp = max(temp_values) / 10.0
+    avg_temp = sum(temp_values) / len(temp_values) / 10.0
+    
+    # Print enhanced statistics
+    print("=" * 70)
+    print("PHASE ENGINE HOMEBASE TABLE GENERATION COMPLETE")
+    print("=" * 70)
+    print(f"\n📍 LOCATION:")
+    print(f"   Latitude:  {latitude:+8.4f}° {'N' if latitude >= 0 else 'S'}")
+    print(f"   Longitude: {longitude:+8.4f}° {'E' if longitude >= 0 else 'W'}")
+    print(f"   Timezone:  UTC{timezone_offset//60:+d} ({tz_string})")
+    print(f"   Year:      {year}")
+    
+    print(f"\n📊 DAYLIGHT STATISTICS:")
+    print(f"   Shortest day: {min_daylight:3d} minutes ({min_daylight//60:2d}h {min_daylight%60:02d}m)")
+    print(f"   Longest day:  {max_daylight:3d} minutes ({max_daylight//60:2d}h {max_daylight%60:02d}m)")
+    print(f"   Average:      {avg_daylight:3d} minutes ({avg_daylight//60:2d}h {avg_daylight%60:02d}m)")
+    print(f"   Variation:    {max_daylight - min_daylight:3d} minutes")
+    
+    print(f"\n🌡️  TEMPERATURE RANGE:")
+    print(f"   Minimum: {min_temp:5.1f}°C ({min_temp*9/5+32:5.1f}°F)")
+    print(f"   Maximum: {max_temp:5.1f}°C ({max_temp*9/5+32:5.1f}°F)")
+    print(f"   Average: {avg_temp:5.1f}°C ({avg_temp*9/5+32:5.1f}°F)")
+    
+    print(f"\n💾 FLASH MEMORY IMPACT:")
+    print(f"   Table data:   {table_data_bytes:5d} bytes (365 entries × 6 bytes)")
+    print(f"   Metadata:     {metadata_bytes:5d} bytes")
+    print(f"   Total header: {total_code_bytes:5d} bytes (includes accessor functions)")
+    print(f"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"   TOTAL ADDED:  {table_data_bytes + metadata_bytes:5d} bytes to firmware")
+    
+    print(f"\n📄 OUTPUT:")
+    print(f"   File: {output_path}")
+    print(f"   Size: {total_code_bytes:,} bytes")
     
     # Sample data points
-    print(f"\n  Sample data:")
+    print(f"\n📅 SAMPLE DATA POINTS:")
+    print(f"   {'Day':>4} │ {'Daylight':>12} │ {'Temperature':>12} │ {'Baseline':>8}")
+    print(f"   ─────┼──────────────┼──────────────┼──────────")
     for day in [1, 90, 180, 270, 365]:
         daylight, temp, baseline = entries[day - 1]
-        print(f"    Day {day:3d}: {daylight:3d} min daylight, "
-              f"{temp/10:4.1f}°C, baseline {baseline:3d}")
+        hr, mn = divmod(daylight, 60)
+        print(f"   {day:4d} │ {hr:2d}h {mn:02d}m ({daylight:3d}m) │ "
+              f"{temp/10:5.1f}°C ({temp/10*9/5+32:5.1f}°F) │ {baseline:3d}/100")
+    
+    print("\n" + "=" * 70)
+    print("✓ Homebase table ready for build")
+    print("=" * 70)
 
 
 def parse_timezone(tz_string):
     """
     Parse timezone string to offset in minutes.
-    Supports: PST, EST, UTC+X, UTC-X, or raw offset.
+    Supports: PST, EST, AKST, HST, UTC+X, UTC-X, or raw offset.
     """
     tz_map = {
+        # Alaska
+        'AKST': -540, 'AKDT': -480,  # Alaska Standard/Daylight Time
+        # Hawaii-Aleutian
+        'HST': -600, 'HAST': -600, 'HADT': -540,  # Hawaii Standard/Daylight Time
+        # Pacific
         'PST': -480, 'PDT': -420,
+        # Mountain
         'MST': -420, 'MDT': -360,
+        # Central
         'CST': -360, 'CDT': -300,
+        # Eastern
         'EST': -300, 'EDT': -240,
+        # Atlantic
+        'AST': -240, 'ADT': -180,  # Atlantic Standard/Daylight Time
+        # UTC/GMT
         'UTC': 0, 'GMT': 0,
     }
     
@@ -281,6 +341,9 @@ Examples:
   # New York
   python3 generate_homebase.py --lat 40.7128 --lon -74.0060 --tz EST --year 2026
   
+  # Anchorage, Alaska
+  python3 generate_homebase.py --lat 61.2181 --lon -149.9003 --tz AKST --year 2026
+  
   # London
   python3 generate_homebase.py --lat 51.5074 --lon -0.1278 --tz UTC --year 2026
   
@@ -294,7 +357,7 @@ Examples:
     parser.add_argument('--lon', type=float, required=True,
                         help='Longitude in degrees (-180 to 180)')
     parser.add_argument('--tz', type=str, required=True,
-                        help='Timezone (PST, EST, UTC+X, or minutes offset)')
+                        help='Timezone (AKST, PST, EST, HST, UTC+X, or minutes offset)')
     parser.add_argument('--year', type=int, default=2026,
                         help='Year for generation (default: 2026, range: 2000-2099)')
     parser.add_argument('--output', type=Path,
@@ -327,7 +390,7 @@ Examples:
         return 1
     
     # Generate table
-    generate_homebase_table(args.lat, args.lon, tz_offset, args.year, args.output)
+    generate_homebase_table(args.lat, args.lon, tz_offset, args.year, args.output, args.tz)
     
     return 0
 
