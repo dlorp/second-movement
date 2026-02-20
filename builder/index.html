@@ -2771,7 +2771,8 @@ async function init() {
     
     // Zone configuration sliders (Phase 3)
     document.getElementById('zone-emergence-max').addEventListener('input', e => {
-        const val = parseInt(e.target.value, 10);
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val) || val < 15 || val > 35) val = 25;  // Clamp to safe range
         state.zoneEmergenceMax = val;
         document.getElementById('zone-emergence-val').textContent = val;
         updateZonePreview();
@@ -2779,7 +2780,8 @@ async function init() {
     });
     
     document.getElementById('zone-momentum-max').addEventListener('input', e => {
-        const val = parseInt(e.target.value, 10);
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val) || val < 40 || val > 60) val = 50;  // Clamp to safe range
         state.zoneMomentumMax = val;
         document.getElementById('zone-momentum-val').textContent = val;
         updateZonePreview();
@@ -2787,7 +2789,8 @@ async function init() {
     });
     
     document.getElementById('zone-active-max').addEventListener('input', e => {
-        const val = parseInt(e.target.value, 10);
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val) || val < 65 || val > 85) val = 75;  // Clamp to safe range
         state.zoneActiveMax = val;
         document.getElementById('zone-active-val').textContent = val;
         updateZonePreview();
@@ -2795,7 +2798,12 @@ async function init() {
     });
     
     // Zone preview score input
-    document.getElementById('zone-preview-score').addEventListener('input', updateZonePreview);
+    document.getElementById('zone-preview-score').addEventListener('input', e => {
+        let score = parseInt(e.target.value, 10);
+        if (isNaN(score) || score < 0 || score > 100) score = 50;
+        e.target.value = score;  // Clamp input
+        updateZonePreview();
+    });
     
     // Zone reset button
     document.getElementById('zone-reset').addEventListener('click', () => {
@@ -3221,13 +3229,13 @@ function updateHash() {
     
     // Add zone thresholds if non-default (Phase 3)
     if (state.zoneEmergenceMax !== undefined && state.zoneEmergenceMax !== 25) {
-        params.push('zem=' + state.zoneEmergenceMax);
+        params.push('zem=' + encodeURIComponent(state.zoneEmergenceMax));
     }
     if (state.zoneMomentumMax !== undefined && state.zoneMomentumMax !== 50) {
-        params.push('zmm=' + state.zoneMomentumMax);
+        params.push('zmm=' + encodeURIComponent(state.zoneMomentumMax));
     }
     if (state.zoneActiveMax !== undefined && state.zoneActiveMax !== 75) {
-        params.push('zam=' + state.zoneActiveMax);
+        params.push('zam=' + encodeURIComponent(state.zoneActiveMax));
     }
     
     history.replaceState(null, '', '#' + params.join('&'));
@@ -3385,6 +3393,15 @@ async function triggerBuild() {
         ? state.activeFaces.slice(0, secIdx).filter(id => id !== '__secondary__').length
         : faces.length;
 
+    // Re-validate zone inputs before sending (PR #63 security fix)
+    const clampZone = (val, def, min, max) => {
+        const n = parseInt(val, 10);
+        return (Number.isFinite(n) && n >= min && n <= max) ? n : def;
+    };
+    const zem = clampZone(state.zoneEmergenceMax || 25, 25, 15, 35);
+    const zmm = clampZone(state.zoneMomentumMax || 50, 50, 40, 60);
+    const zam = clampZone(state.zoneActiveMax || 75, 75, 65, 85);
+
     const inputs = {
         faces: faces.join(','),
         board: state.board,
@@ -3414,14 +3431,14 @@ async function triggerBuild() {
     }
     
     // Add zone thresholds (Phase 3 - phase engine configuration)
-    if (state.zoneEmergenceMax !== undefined && state.zoneEmergenceMax !== 25) {
-        inputs.zone_emergence_max = String(state.zoneEmergenceMax);
+    if (zem !== 25) {
+        inputs.zone_emergence_max = String(zem);
     }
-    if (state.zoneMomentumMax !== undefined && state.zoneMomentumMax !== 50) {
-        inputs.zone_momentum_max = String(state.zoneMomentumMax);
+    if (zmm !== 50) {
+        inputs.zone_momentum_max = String(zmm);
     }
-    if (state.zoneActiveMax !== undefined && state.zoneActiveMax !== 75) {
-        inputs.zone_active_max = String(state.zoneActiveMax);
+    if (zam !== 75) {
+        inputs.zone_active_max = String(zam);
     }
 
     showStatus('DISPATCHING BUILD ' + buildId + '...', '');
