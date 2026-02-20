@@ -54,7 +54,7 @@ uint16_t phase_compute(phase_state_t *state,
     // Update cumulative sum with overflow protection
     // Prevent overflow: if adding new score would exceed UINT16_MAX,
     // subtract oldest score first to make room
-    uint8_t oldest_score = state->phase_history[(state->history_index + 1) % 24];
+    uint8_t oldest_score = state->phase_history[state->history_index];
     if (state->cumulative_phase > UINT16_MAX - state->last_phase_score) {
         // Would overflow - subtract old value first
         if (state->cumulative_phase >= oldest_score) {
