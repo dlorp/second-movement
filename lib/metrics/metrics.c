@@ -175,10 +175,19 @@ void metrics_load_bkup(metrics_engine_t *engine) {
     engine->sd_deficits[1] = (uint8_t)((sd_data >> 8) & 0xFF);
     engine->sd_deficits[2] = (uint8_t)((sd_data >> 16) & 0xFF);
     
+    // Clamp SD deficits to valid range [0-100]
+    if (engine->sd_deficits[0] > 100) engine->sd_deficits[0] = 0;
+    if (engine->sd_deficits[1] > 100) engine->sd_deficits[1] = 0;
+    if (engine->sd_deficits[2] > 100) engine->sd_deficits[2] = 0;
+    
     // Load WK state from BKUP
     uint32_t wk_data = watch_get_backup_data(engine->bkup_reg_wk);
     engine->wake_onset_hour = (uint8_t)(wk_data & 0xFF);
     engine->wake_onset_minute = (uint8_t)((wk_data >> 8) & 0xFF);
+    
+    // Validate and clamp loaded time values
+    if (engine->wake_onset_hour >= 24) engine->wake_onset_hour = 0;
+    if (engine->wake_onset_minute >= 60) engine->wake_onset_minute = 0;
 }
 
 void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute) {

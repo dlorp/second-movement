@@ -47,12 +47,14 @@ uint8_t metric_comfort_compute(int16_t temp_c10,
     }
     
     // Temp comfort (60%): deviation from seasonal baseline
-    // Lower deviation = higher comfort
-    int16_t temp_dev = safe_abs16(temp_c10 - baseline->avg_temp_c10);
+    // Use int32_t to prevent overflow in subtraction
+    int32_t temp_diff = (int32_t)temp_c10 - (int32_t)baseline->avg_temp_c10;
+    int32_t temp_dev = (temp_diff < 0) ? -temp_diff : temp_diff;
+    
     // Penalty: divide by 3 to convert temp deviation (in 0.1°C) to comfort penalty
-    // Example: 30 units (3°C) deviation → 10 point penalty → 90 comfort
-    uint8_t temp_comfort = 100;
-    if (temp_dev / 3 > 100) {
+    // Cap at 30°C deviation (300 units)
+    uint8_t temp_comfort;
+    if (temp_dev > 300) {
         temp_comfort = 0;
     } else {
         temp_comfort = 100 - (uint8_t)(temp_dev / 3);
