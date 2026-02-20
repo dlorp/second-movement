@@ -1067,6 +1067,39 @@
         <div id="availList"></div>
     </div>
 
+    <!-- HOMEBASE LOCATION -->
+    <div class="section">
+        <div class="section-title">HOMEBASE LOCATION</div>
+
+        <div class="setting-row">
+            <span class="setting-label">LATITUDE</span>
+            <div class="setting-control">
+                <input type="text" id="homebase-lat" placeholder="e.g. 47.6062" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
+            </div>
+        </div>
+
+        <div class="setting-row">
+            <span class="setting-label">LONGITUDE</span>
+            <div class="setting-control">
+                <input type="text" id="homebase-lon" placeholder="e.g. -122.3321" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
+            </div>
+        </div>
+
+        <div class="setting-row">
+            <span class="setting-label">TIMEZONE</span>
+            <div class="setting-control">
+                <input type="text" id="homebase-tz" placeholder="PST, UTC+8, -480" style="flex: 1; min-height: 44px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 6px 8px; letter-spacing: 0.06em; font-family: var(--font-mono); font-size: 11px;">
+            </div>
+        </div>
+
+        <div class="setting-row">
+            <span class="setting-label"></span>
+            <div class="setting-control">
+                <button id="use-browser-location" style="flex: 1; min-height: 44px;">[USE BROWSER LOCATION]</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SETTINGS -->
     <div class="section">
         <div class="section-title">SETTINGS</div>
@@ -2532,6 +2565,63 @@ async function init() {
         updateHash();
     });
 
+    // Homebase location inputs
+    document.getElementById('homebase-lat').addEventListener('input', e => {
+        const lat = parseFloat(e.target.value);
+        state.homebaseLat = (Number.isFinite(lat) && lat >= -90 && lat <= 90) ? lat : null;
+        updateHash();
+    });
+    
+    document.getElementById('homebase-lon').addEventListener('input', e => {
+        const lon = parseFloat(e.target.value);
+        state.homebaseLon = (Number.isFinite(lon) && lon >= -180 && lon <= 180) ? lon : null;
+        updateHash();
+    });
+    
+    // Timezone validation with regex
+    document.getElementById('homebase-tz').addEventListener('input', e => {
+        const tz = e.target.value.trim();
+        // Validate timezone format: PST, UTC+8, UTC-5, -480, +330, etc.
+        const tzRegex = /^([A-Z]{3,4}|UTC[+-]?\d{1,2}|[+-]?\d{1,4})$/i;
+        if (tz === '' || tzRegex.test(tz)) {
+            state.homebaseTz = tz || null;
+            e.target.style.borderColor = 'var(--color-border)';
+            updateHash();
+        } else {
+            e.target.style.borderColor = 'var(--color-critical)';
+        }
+    });
+    
+    // Use browser location button
+    document.getElementById('use-browser-location').addEventListener('click', function() {
+        if (!navigator.geolocation) {
+            alert('Geolocation not supported by your browser');
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude.toFixed(4);
+            const lon = position.coords.longitude.toFixed(4);
+            
+            document.getElementById('homebase-lat').value = lat;
+            document.getElementById('homebase-lon').value = lon;
+            
+            // Update state
+            state.homebaseLat = parseFloat(lat);
+            state.homebaseLon = parseFloat(lon);
+            
+            // Auto-estimate timezone from longitude
+            const tzOffset = Math.round(position.coords.longitude / 15);
+            const tzString = `UTC${tzOffset >= 0 ? '+' : ''}${tzOffset}`;
+            document.getElementById('homebase-tz').value = tzString;
+            state.homebaseTz = tzString;
+            
+            updateHash();
+        }, function(error) {
+            alert('Geolocation failed: ' + error.message);
+        });
+    });
+
     // Signal tune panel toggle
     document.getElementById('signalTunePanelBtn').addEventListener('click', function() {
         const body = document.getElementById('signalTunePanelBody');
@@ -2897,10 +2987,10 @@ function updateHash() {
     
     // Add homebase params if set
     if (state.homebaseLat !== null) {
-        params.push('hb_lat=' + state.homebaseLat);
+        params.push('hb_lat=' + encodeURIComponent(state.homebaseLat));
     }
     if (state.homebaseLon !== null) {
-        params.push('hb_lon=' + state.homebaseLon);
+        params.push('hb_lon=' + encodeURIComponent(state.homebaseLon));
     }
     if (state.homebaseTz !== null) {
         params.push('hb_tz=' + encodeURIComponent(state.homebaseTz));
@@ -2978,7 +3068,12 @@ function parseHash() {
     }
     
     if (params.hb_tz !== undefined && params.hb_tz.trim().length > 0) {
-        homebaseTz = params.hb_tz.trim();
+        const tz = params.hb_tz.trim();
+        // Validate timezone format: PST, UTC+8, UTC-5, -480, +330, etc.
+        const tzRegex = /^([A-Z]{3,4}|UTC[+-]?\d{1,2}|[+-]?\d{1,4})$/i;
+        if (tzRegex.test(tz)) {
+            homebaseTz = tz;
+        }
     }
 
     return {
