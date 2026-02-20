@@ -210,4 +210,24 @@ void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minu
     }
 }
 
+void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute) {
+    if (!engine) return;
+    
+    // Validate and clamp inputs
+    if (hour >= 24) hour = 0;
+    if (minute >= 60) minute = 0;
+    
+    // Update wake onset time
+    engine->wake_onset_hour = hour;
+    engine->wake_onset_minute = minute;
+    
+    // Save to BKUP immediately (important for WK metric persistence)
+    if (engine->bkup_reg_wk != 0) {
+        uint32_t wk_data = 0;
+        wk_data |= (uint32_t)engine->wake_onset_hour;
+        wk_data |= ((uint32_t)engine->wake_onset_minute) << 8;
+        watch_store_backup_data(wk_data, engine->bkup_reg_wk);
+    }
+}
+
 #endif // PHASE_ENGINE_ENABLED
