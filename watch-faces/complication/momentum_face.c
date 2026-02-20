@@ -6,17 +6,13 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include "momentum_face.h"
 
 #ifdef PHASE_ENGINE_ENABLED
 #include "../../lib/metrics/metrics.h"
-#include "../../watch-library/shared/watch/watch_slcd.h"
-#include "../../watch-library/shared/watch/watch.h"
 
 // Forward declaration - metrics_get will be called from the metrics module
 extern void metrics_get(const metrics_engine_t *engine, metrics_snapshot_t *out);
-extern movement_state_t movement_state;
 
 static void _momentum_face_update_display(momentum_face_state_t *state) {
     char buf[11] = {0};
@@ -31,29 +27,17 @@ static void _momentum_face_update_display(momentum_face_state_t *state) {
     // Display metric based on current view
     switch (state->view_index) {
         case 0:  // Wake Momentum (primary)
-            snprintf(buf, sizeof(buf), "WK  %2d", metrics.wk);
+            snprintf(buf, sizeof(buf), "WK %3d", metrics.wk);
             break;
         case 1:  // Sleep Debt
-            snprintf(buf, sizeof(buf), "SD  %2d", metrics.sd);
+            snprintf(buf, sizeof(buf), "SD %+3d", metrics.sd);
             break;
-        case 2: {  // Temperature
-            // Get current temperature from movement API
-            float temp_c = movement_get_temperature();
-            if (!isnan(temp_c) && movement_state.has_thermistor) {
-                // Clamp to reasonable range before casting
-                if (temp_c < -100.0f) temp_c = -100.0f;
-                if (temp_c > 100.0f) temp_c = 100.0f;
-                
-                int16_t temp_int = (int16_t)temp_c;
-                snprintf(buf, sizeof(buf), "TE %2dC", temp_int);
-            } else {
-                snprintf(buf, sizeof(buf), "TE  --");
-            }
+        case 2:  // Emotional/Engagement
+            snprintf(buf, sizeof(buf), "EM %3d", metrics.em);
             break;
-        }
         default:
             state->view_index = 0;
-            snprintf(buf, sizeof(buf), "WK  %2d", metrics.wk);
+            snprintf(buf, sizeof(buf), "WK %3d", metrics.wk);
             break;
     }
     

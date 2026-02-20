@@ -27,17 +27,17 @@ static void _active_face_update_display(active_face_state_t *state) {
     // Display metric based on current view
     switch (state->view_index) {
         case 0:  // Energy (primary)
-            snprintf(buf, sizeof(buf), "NRG %2d", metrics.energy);
+            snprintf(buf, sizeof(buf), "EN %3d", metrics.energy);
             break;
         case 1:  // Emotional
-            snprintf(buf, sizeof(buf), "EM  %2d", metrics.em);
+            snprintf(buf, sizeof(buf), "EM %3d", metrics.em);
             break;
         case 2:  // Sleep Debt
-            snprintf(buf, sizeof(buf), "SD  %2d", metrics.sd);
+            snprintf(buf, sizeof(buf), "SD %+3d", metrics.sd);
             break;
         default:
             state->view_index = 0;
-            snprintf(buf, sizeof(buf), "NRG %2d", metrics.energy);
+            snprintf(buf, sizeof(buf), "EN %3d", metrics.energy);
             break;
     }
     

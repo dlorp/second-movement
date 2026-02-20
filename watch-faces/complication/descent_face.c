@@ -27,14 +27,17 @@ static void _descent_face_update_display(descent_face_state_t *state) {
     // Display metric based on current view
     switch (state->view_index) {
         case 0:  // Comfort (primary)
-            snprintf(buf, sizeof(buf), "CMF %2d", metrics.comfort);
+            snprintf(buf, sizeof(buf), "CF %3d", metrics.comfort);
             break;
         case 1:  // Emotional
-            snprintf(buf, sizeof(buf), "EM  %2d", metrics.em);
+            snprintf(buf, sizeof(buf), "EM %3d", metrics.em);
+            break;
+        case 2:  // Sleep Debt
+            snprintf(buf, sizeof(buf), "SD %+3d", metrics.sd);
             break;
         default:
             state->view_index = 0;
-            snprintf(buf, sizeof(buf), "CMF %2d", metrics.comfort);
+            snprintf(buf, sizeof(buf), "CF %3d", metrics.comfort);
             break;
     }
     
@@ -64,8 +67,8 @@ bool descent_face_loop(movement_event_t event, void *context) {
             break;
             
         case EVENT_ALARM_BUTTON_UP:
-            // Cycle through metric views (only 2 views for Descent)
-            state->view_index = (state->view_index + 1) % 2;
+            // Cycle through metric views
+            state->view_index = (state->view_index + 1) % 3;
             _descent_face_update_display(state);
             break;
             

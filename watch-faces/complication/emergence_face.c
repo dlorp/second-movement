@@ -22,22 +22,22 @@ static void _emergence_face_update_display(emergence_face_state_t *state) {
     metrics_get(NULL, &metrics);
     
     // Zone indicator in top-left
-    watch_display_text(WATCH_POSITION_TOP_LEFT, "EM");
+    watch_display_text(WATCH_POSITION_TOP_LEFT, "ER");
     
     // Display metric based on current view
     switch (state->view_index) {
         case 0:  // Sleep Debt (primary)
-            snprintf(buf, sizeof(buf), "SD  %2d", metrics.sd);
+            snprintf(buf, sizeof(buf), "SD %+3d", metrics.sd);
             break;
         case 1:  // Emotional
-            snprintf(buf, sizeof(buf), "EM  %2d", metrics.em);
+            snprintf(buf, sizeof(buf), "EM %3d", metrics.em);
             break;
         case 2:  // Comfort
-            snprintf(buf, sizeof(buf), "CMF %2d", metrics.comfort);
+            snprintf(buf, sizeof(buf), "CF %3d", metrics.comfort);
             break;
         default:
             state->view_index = 0;
-            snprintf(buf, sizeof(buf), "SD  %2d", metrics.sd);
+            snprintf(buf, sizeof(buf), "SD %+3d", metrics.sd);
             break;
     }
     
