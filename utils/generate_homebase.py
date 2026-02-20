@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+"""
+Homebase Table Generator for Phase Watch
+
+Generates a location-specific lookup table (LUT) for seasonal data:
+- Expected daylight duration (sunrise to sunset)
+- Average temperature for each day of year
+- Seasonal energy baseline (0-100 scale)
+
+All values use integer math (no floating point) for embedded efficiency.
+
+Usage:
+    python3 generate_homebase.py --lat 37.7749 --lon -122.4194 --tz PST --year 2026
+    python3 generate_homebase.py --help
+
+Output:
+    lib/phase/homebase_table.h (C header with const arrays)
+"""
+
+import argparse
+import math
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+
+def calculate_daylight_minutes(latitude, day_of_year):
+    """
+    Calculate daylight duration using simplified sunrise equation.
+    Based on NOAA solar calculations, integer-approximated.
+    
+    Args:
+        latitude: Latitude in degrees (-90 to 90)
+        day_of_year: Day of year (1-365)
+    
+    Returns:
+        Daylight duration in minutes (integer)
+    """
+    # Solar declination (degrees)
+    # Approximation: -23.44 * cos(360/365 * (day + 10))
+    declination_deg = -23.44 * math.cos(math.radians(360.0 / 365.0 * (day_of_year + 10)))
+    
+    # Hour angle at sunrise (degrees)
+    # cos(hour_angle) = -tan(latitude) * tan(declination)
+    lat_rad = math.radians(latitude)
+    decl_rad = math.radians(declination_deg)
+    
+    try:
+        cos_hour_angle = -math.tan(lat_rad) * math.tan(decl_rad)
+        # Clamp to [-1, 1] for extreme latitudes
+        cos_hour_angle = max(-1.0, min(1.0, cos_hour_angle))
+        hour_angle_deg = math.degrees(math.acos(cos_hour_angle))
+    except (ValueError, ZeroDivisionError):
+        # Extreme latitude or polar day/night - use reasonable defaults
+        if abs(latitude) > 66.5:  # Arctic/Antarctic circles
+            if -90 <= day_of_year <= 90 or day_of_year >= 270:
+                hour_angle_deg = 0 if latitude > 0 else 180  # Winter
+            else:
+                hour_angle_deg = 180 if latitude > 0 else 0  # Summer
+        else:
+            hour_angle_deg = 90  # ~12 hours as fallback
+    
+    # Daylight duration: 2 * hour_angle / 15 (hours) * 60 (minutes)
+    daylight_hours = 2.0 * hour_angle_deg / 15.0
+    daylight_minutes = int(daylight_hours * 60)
+    
+    return max(0, min(1440, daylight_minutes))  # Clamp to [0, 1440]
+
+
+def calculate_avg_temp_c10(latitude, day_of_year, base_temp_c=15):
+    """
+    Calculate approximate average temperature for a day.
+    Uses simple sinusoidal model with latitude adjustment.
+    
+    Args:
+        latitude: Latitude in degrees (-90 to 90)
+        day_of_year: Day of year (1-365)
+        base_temp_c: Base annual average temperature (celsius)
+    
+    Returns:
+        Temperature * 10 (integer, e.g., 125 = 12.5°C)
+    """
+    # Seasonal variation (peak in summer, trough in winter)
+    # Northern hemisphere: warmest ~day 200 (mid-July)
+    # Southern hemisphere: flip the phase
+    phase_offset = 200 if latitude >= 0 else 20
+    seasonal_swing_c = 10 + abs(latitude) / 3.0  # Higher swing at higher latitudes
+    
+    temp_variation = seasonal_swing_c * math.sin(
+        math.radians(360.0 / 365.0 * (day_of_year - phase_offset))
+    )
+    
+    temp_c = base_temp_c + temp_variation
+    return int(temp_c * 10)
+
+
+def calculate_seasonal_baseline(day_of_year, latitude):
+    """
+    Calculate seasonal energy baseline (0-100).
+    Represents expected circadian energy level based on season.
+    
+    Northern hemisphere: higher in summer, lower in winter.
+    Southern hemisphere: inverted.
+    
+    Args:
+        day_of_year: Day of year (1-365)
+        latitude: Latitude in degrees
+    
+    Returns:
+        Baseline score (0-100)
+    """
+    # Peak energy in summer (longer days), low in winter
+    phase_offset = 172 if latitude >= 0 else 355  # Summer solstice
+    
+    # Sinusoidal variation from 30 (winter) to 100 (summer)
+    variation = 35 * math.sin(
+        math.radians(360.0 / 365.0 * (day_of_year - phase_offset))
+    )
+    
+    baseline = 65 + variation  # Center at 65, swing ±35
+    return int(max(0, min(100, baseline)))
+
+
+def generate_homebase_table(latitude, longitude, timezone_offset, year, output_path):
+    """
+    Generate homebase_table.h with 365 days of seasonal data.
+    
+    Args:
+        latitude: Latitude in degrees (-90 to 90)
+        longitude: Longitude in degrees (-180 to 180)
+        timezone_offset: Timezone offset in minutes (e.g., -480 for PST)
+        year: Year for generation (informational only)
+        output_path: Path to output .h file
+    """
+    # Convert coordinates to scaled integers for metadata
+    lat_e6 = int(latitude * 1_000_000)
+    lon_e6 = int(longitude * 1_000_000)
+    
+    # Estimate base temperature from latitude (rough approximation)
+    # Tropical: ~25°C, Temperate: ~15°C, Polar: ~0°C
+    base_temp = 25 - abs(latitude) * 0.4
+    
+    # Generate 365 entries
+    entries = []
+    for day in range(1, 366):
+        daylight_min = calculate_daylight_minutes(latitude, day)
+        temp_c10 = calculate_avg_temp_c10(latitude, day, base_temp)
+        baseline = calculate_seasonal_baseline(day, latitude)
+        entries.append((daylight_min, temp_c10, baseline))
+    
+    # Generate C header file
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    header = f"""/*
+ * GENERATED FILE - DO NOT EDIT MANUALLY
+ * 
+ * Generated by: utils/generate_homebase.py
+ * Generation time: {timestamp}
+ * 
+ * Homebase configuration:
+ * Latitude: {latitude:.4f}°{'N' if latitude >= 0 else 'S'}
+ * Longitude: {longitude:.4f}°{'E' if longitude >= 0 else 'W'}
+ * Timezone offset: {timezone_offset} minutes (UTC{timezone_offset//60:+d})
+ * Year: {year}
+ */
+
+#ifndef HOMEBASE_TABLE_H_
+#define HOMEBASE_TABLE_H_
+
+#include "phase_engine.h"
+
+#ifdef PHASE_ENGINE_ENABLED
+
+// Homebase metadata
+static const homebase_metadata_t homebase_metadata = {{
+    .latitude_e6 = {lat_e6},
+    .longitude_e6 = {lon_e6},
+    .timezone_offset = {timezone_offset},
+    .year = {year},
+    .entry_count = 365
+}};
+
+// Homebase table (365 entries, one per day of year)
+// Entry format: {{daylight_minutes, temp_c10, seasonal_baseline}}
+static const homebase_entry_t homebase_table[365] = {{
+"""
+    
+    # Write entries in groups of 4 for readability
+    for i, (daylight, temp, baseline) in enumerate(entries, 1):
+        if (i - 1) % 4 == 0:
+            header += "    "
+        header += f"{{{daylight}, {temp}, {baseline}}}"
+        if i < 365:
+            header += ", "
+        if i % 4 == 0 and i < 365:
+            header += f" // Days {i-3}-{i}\n"
+    
+    header += """  // Day 365
+};
+
+// Accessor functions
+const homebase_entry_t* homebase_get_entry(uint16_t day_of_year) {
+    if (day_of_year < 1 || day_of_year > 365) {
+        return &homebase_table[0];  // Safe fallback
+    }
+    return &homebase_table[day_of_year - 1];
+}
+
+const homebase_metadata_t* homebase_get_metadata(void) {
+    return &homebase_metadata;
+}
+
+#endif // PHASE_ENGINE_ENABLED
+
+#endif // HOMEBASE_TABLE_H_
+"""
+    
+    # Write to file
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(header)
+    
+    # Print statistics
+    print(f"✓ Generated homebase table: {output_path}")
+    print(f"  Location: {latitude:.4f}°, {longitude:.4f}°")
+    print(f"  Timezone: UTC{timezone_offset//60:+d}")
+    print(f"  Entries: 365")
+    print(f"  Flash size: ~{len(entries) * 5} bytes (table data)")
+    print(f"  Total size: ~{len(header)} bytes (header + code)")
+    
+    # Sample data points
+    print(f"\n  Sample data:")
+    for day in [1, 90, 180, 270, 365]:
+        daylight, temp, baseline = entries[day - 1]
+        print(f"    Day {day:3d}: {daylight:3d} min daylight, "
+              f"{temp/10:4.1f}°C, baseline {baseline:3d}")
+
+
+def parse_timezone(tz_string):
+    """
+    Parse timezone string to offset in minutes.
+    Supports: PST, EST, UTC+X, UTC-X, or raw offset.
+    """
+    tz_map = {
+        'PST': -480, 'PDT': -420,
+        'MST': -420, 'MDT': -360,
+        'CST': -360, 'CDT': -300,
+        'EST': -300, 'EDT': -240,
+        'UTC': 0, 'GMT': 0,
+    }
+    
+    tz_upper = tz_string.upper().strip()
+    
+    if tz_upper in tz_map:
+        return tz_map[tz_upper]
+    
+    # Try parsing UTC+X or UTC-X
+    if tz_upper.startswith('UTC'):
+        offset_str = tz_upper[3:]
+        try:
+            hours = float(offset_str)
+            return int(hours * 60)
+        except ValueError:
+            pass
+    
+    # Try parsing as raw integer
+    try:
+        return int(tz_string)
+    except ValueError:
+        raise ValueError(f"Unknown timezone format: {tz_string}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate homebase table for Phase Watch",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # San Francisco
+  python3 generate_homebase.py --lat 37.7749 --lon -122.4194 --tz PST --year 2026
+  
+  # New York
+  python3 generate_homebase.py --lat 40.7128 --lon -74.0060 --tz EST --year 2026
+  
+  # London
+  python3 generate_homebase.py --lat 51.5074 --lon -0.1278 --tz UTC --year 2026
+  
+  # Tokyo
+  python3 generate_homebase.py --lat 35.6762 --lon 139.6503 --tz UTC+9 --year 2026
+        """
+    )
+    
+    parser.add_argument('--lat', type=float, required=True,
+                        help='Latitude in degrees (-90 to 90)')
+    parser.add_argument('--lon', type=float, required=True,
+                        help='Longitude in degrees (-180 to 180)')
+    parser.add_argument('--tz', type=str, required=True,
+                        help='Timezone (PST, EST, UTC+X, or minutes offset)')
+    parser.add_argument('--year', type=int, default=2026,
+                        help='Year for generation (default: 2026)')
+    parser.add_argument('--output', type=Path,
+                        default=Path(__file__).parent.parent / 'lib' / 'phase' / 'homebase_table.h',
+                        help='Output path (default: lib/phase/homebase_table.h)')
+    
+    args = parser.parse_args()
+    
+    # Validate inputs
+    if not -90 <= args.lat <= 90:
+        print(f"Error: Latitude must be in range [-90, 90], got {args.lat}", file=sys.stderr)
+        return 1
+    
+    if not -180 <= args.lon <= 180:
+        print(f"Error: Longitude must be in range [-180, 180], got {args.lon}", file=sys.stderr)
+        return 1
+    
+    try:
+        tz_offset = parse_timezone(args.tz)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    
+    # Generate table
+    generate_homebase_table(args.lat, args.lon, tz_offset, args.year, args.output)
+    
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

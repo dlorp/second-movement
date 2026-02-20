@@ -27,6 +27,25 @@
 
 #include "movement_faces.h"
 
+/* ===== EXPERIMENTAL FEATURES ===== */
+
+/* Phase Engine: Context-aware circadian rhythm tracking
+ * 
+ * Enables the Phase Watch system - real-time circadian alignment scoring
+ * based on time of day, season, activity, temperature, and light exposure.
+ * 
+ * Flash impact: ~12 KB (homebase table + computation logic)
+ * RAM impact: ~64 bytes (phase state)
+ * 
+ * See lib/phase/README.md for documentation.
+ * 
+ * NOTE: Disabled by default for backward compatibility.
+ *       Uncomment to enable:
+ */
+// #define PHASE_ENGINE_ENABLED
+
+/* ===== END EXPERIMENTAL FEATURES ===== */
+
 const watch_face_t watch_faces[] = {
     wyoscan_face,
     clock_face,
