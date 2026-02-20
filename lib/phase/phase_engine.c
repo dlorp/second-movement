@@ -43,6 +43,14 @@ uint16_t phase_compute(phase_state_t *state,
         phase_engine_init(state);
     }
     
+    // Validate inputs
+    if (day_of_year < 1 || day_of_year > 366) {
+        return 0;  // Invalid input - return error score
+    }
+    if (hour > 23) {
+        return 0;  // Invalid hour
+    }
+    
     state->last_hour = hour;
     state->last_day_of_year = day_of_year;
     state->last_phase_score = 50;  // Neutral score
