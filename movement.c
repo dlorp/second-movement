@@ -56,6 +56,13 @@
 #include "sleep_data.h"
 #include "smart_alarm_face.h"
 
+#ifdef PHASE_ENGINE_ENABLED
+// Phase 3B: Playlist controller integration
+// Placeholder - will wire to face dispatch in PR 4
+// For now, just verify playlist compiles and links
+#include "playlist.h"
+#endif
+
 #if __EMSCRIPTEN__
 #include <emscripten.h>
 void _wake_up_simulator(void);
