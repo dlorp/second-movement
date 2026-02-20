@@ -1133,6 +1133,83 @@
         </div>
     </div>
 
+    <!-- ZONE CONFIGURATION (PHASE 3) -->
+    <section id="zone-config" class="section" style="display:none">
+        <div class="section-title">◆ ZONE CONFIGURATION</div>
+        <p style="color: var(--color-amber-dim); font-size: 10px; margin-bottom: 12px; letter-spacing: 0.06em;">Customize phase zone boundaries (optional - defaults work for most users)</p>
+        
+        <details style="margin-bottom: 16px; background: var(--color-bg-recessed); border: 1px solid var(--color-border); padding: 12px;">
+            <summary style="cursor: pointer; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--color-amber-mid); user-select: none;">
+                ℹ️ WHAT ARE ZONES?
+            </summary>
+            <div style="margin-top: 12px; font-family: var(--font-mono); font-size: 9px; line-height: 1.6; color: var(--color-amber-dim); border-top: 1px solid var(--color-border); padding-top: 12px;">
+                <p style="margin: 0 0 8px 0;">The phase engine divides your day into 4 zones based on your phase score (0-100):</p>
+                <ul style="margin: 4px 0 8px 20px; padding: 0;">
+                    <li><strong style="color: var(--color-amber-bright);">Emergence</strong> (0-25): Waking, orienting - focus on rest quality</li>
+                    <li><strong style="color: var(--color-amber-bright);">Momentum</strong> (26-50): Building energy - wake momentum key</li>
+                    <li><strong style="color: var(--color-amber-bright);">Active</strong> (51-75): Peak output - energy dominates</li>
+                    <li><strong style="color: var(--color-amber-bright);">Descent</strong> (76-100): Winding down - comfort priority</li>
+                </ul>
+            </div>
+        </details>
+        
+        <div class="setting-row">
+            <span class="setting-label">EMERGENCE/MOMENTUM</span>
+            <div class="setting-control slider-wrap">
+                <input type="range" id="zone-emergence-max" min="15" max="35" value="25" step="1" aria-label="Emergence/Momentum threshold">
+                <span class="slider-val" id="zone-emergence-val">25</span>
+            </div>
+        </div>
+        <div style="margin: 4px 0 12px 8px; padding-left: 8px; font-family: var(--font-mono); font-size: 9px; color: var(--color-amber-trace); line-height: 1.4;">
+            Boundary between Emergence and Momentum zones (default: 25)
+        </div>
+        
+        <div class="setting-row">
+            <span class="setting-label">MOMENTUM/ACTIVE</span>
+            <div class="setting-control slider-wrap">
+                <input type="range" id="zone-momentum-max" min="40" max="60" value="50" step="1" aria-label="Momentum/Active threshold">
+                <span class="slider-val" id="zone-momentum-val">50</span>
+            </div>
+        </div>
+        <div style="margin: 4px 0 12px 8px; padding-left: 8px; font-family: var(--font-mono); font-size: 9px; color: var(--color-amber-trace); line-height: 1.4;">
+            Boundary between Momentum and Active zones (default: 50)
+        </div>
+        
+        <div class="setting-row">
+            <span class="setting-label">ACTIVE/DESCENT</span>
+            <div class="setting-control slider-wrap">
+                <input type="range" id="zone-active-max" min="65" max="85" value="75" step="1" aria-label="Active/Descent threshold">
+                <span class="slider-val" id="zone-active-val">75</span>
+            </div>
+        </div>
+        <div style="margin: 4px 0 12px 8px; padding-left: 8px; font-family: var(--font-mono); font-size: 9px; color: var(--color-amber-trace); line-height: 1.4;">
+            Boundary between Active and Descent zones (default: 75)
+        </div>
+        
+        <div style="margin-top: 16px; padding: 12px; background: var(--color-bg-recessed); border: 1px solid var(--color-border);">
+            <div style="font-size: 10px; color: var(--color-amber-dim); letter-spacing: 0.08em; margin-bottom: 8px;">PREVIEW</div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 10px; color: var(--color-amber-mid);">At phase score</span>
+                <input type="number" id="zone-preview-score" value="50" min="0" max="100" style="width: 60px; min-height: 36px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-amber-bright); padding: 4px 6px; font-family: var(--font-mono); font-size: 11px; text-align: center;">
+                <span style="font-size: 10px; color: var(--color-amber-mid);">you'd be in</span>
+                <strong id="zone-preview-name" style="color: var(--color-amber-hot); font-size: 12px; letter-spacing: 0.08em;">MOMENTUM</strong>
+                <span style="font-size: 10px; color: var(--color-amber-mid);">zone</span>
+            </div>
+        </div>
+        
+        <button id="zone-reset" style="width: 100%; margin-top: 12px; min-height: var(--touch-min);">[RESET TO DEFAULTS]</button>
+        
+        <details style="margin-top: 20px; background: var(--color-bg-recessed); border: 1px solid var(--color-amber-dim); padding: 12px;">
+            <summary style="cursor: pointer; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--color-alert); user-select: none;">
+                ⚙️ ADVANCED: METRIC WEIGHTS (EXPERTS ONLY)
+            </summary>
+            <div style="margin-top: 12px; font-family: var(--font-mono); font-size: 9px; line-height: 1.6; color: var(--color-amber-dim); border-top: 1px solid var(--color-border); padding-top: 12px;">
+                <p style="margin: 0; color: var(--color-critical); font-style: italic;"><strong>⚠ Warning:</strong> Only modify if you understand the metric system. Incorrect weights can break face rotation.</p>
+                <p style="margin: 8px 0 0 0; color: var(--color-amber-trace);">Weight editor deferred to Phase 4. Use zone thresholds above for customization.</p>
+            </div>
+        </details>
+    </section>
+
     <!-- SETTINGS -->
     <div class="section">
         <div class="section-title">SETTINGS</div>
@@ -2114,7 +2191,11 @@ let state = {
     // First-boot defaults (BKUP[2]: active hours)
     activeHoursEnabled: true,
     activeHoursStart: 16,  // 04:00
-    activeHoursEnd: 92     // 23:00
+    activeHoursEnd: 92,    // 23:00
+    // Phase 3: Zone thresholds
+    zoneEmergenceMax: 25,
+    zoneMomentumMax: 50,
+    zoneActiveMax: 75
 };
 
 let buildId = null;
@@ -2190,6 +2271,19 @@ function loadTemplate(tmplState) {
     if (tmplState.homebaseTz !== undefined) {
         state.homebaseTz = tmplState.homebaseTz ? String(tmplState.homebaseTz).trim() : null;
     }
+    // Phase 3: Load zone thresholds
+    if (tmplState.zoneEmergenceMax !== undefined) {
+        const v = parseInt(tmplState.zoneEmergenceMax, 10);
+        state.zoneEmergenceMax = (Number.isFinite(v) && v >= 15 && v <= 35) ? v : 25;
+    }
+    if (tmplState.zoneMomentumMax !== undefined) {
+        const v = parseInt(tmplState.zoneMomentumMax, 10);
+        state.zoneMomentumMax = (Number.isFinite(v) && v >= 40 && v <= 60) ? v : 50;
+    }
+    if (tmplState.zoneActiveMax !== undefined) {
+        const v = parseInt(tmplState.zoneActiveMax, 10);
+        state.zoneActiveMax = (Number.isFinite(v) && v >= 65 && v <= 85) ? v : 75;
+    }
     // sync sliders/toggles to loaded state
     document.getElementById('ledRed').value = state.ledRed;
     document.getElementById('ledRedVal').textContent = state.ledRed;
@@ -2207,6 +2301,14 @@ function loadTemplate(tmplState) {
     document.getElementById('homebase-lat').value = state.homebaseLat !== null ? state.homebaseLat : '';
     document.getElementById('homebase-lon').value = state.homebaseLon !== null ? state.homebaseLon : '';
     document.getElementById('homebase-tz').value = state.homebaseTz !== null ? state.homebaseTz : '';
+    // Sync zone threshold UI
+    document.getElementById('zone-emergence-max').value = state.zoneEmergenceMax;
+    document.getElementById('zone-emergence-val').textContent = state.zoneEmergenceMax;
+    document.getElementById('zone-momentum-max').value = state.zoneMomentumMax;
+    document.getElementById('zone-momentum-val').textContent = state.zoneMomentumMax;
+    document.getElementById('zone-active-max').value = state.zoneActiveMax;
+    document.getElementById('zone-active-val').textContent = state.zoneActiveMax;
+    updateZonePreview();
     renderBoards();
     renderDisplays();
     renderActiveFaces();
@@ -2427,6 +2529,33 @@ function updateAhVisualBar() {
 }
 
 // ============================================================
+// ZONE CONFIGURATION (PHASE 3)
+// ============================================================
+function updateZoneConfigVisibility() {
+    const phaseEnabled = state.activeFaces.some(id => 
+        id.includes('emergence') || id.includes('momentum') || 
+        id.includes('active') || id.includes('descent') ||
+        id.includes('phase')
+    );
+    document.getElementById('zone-config').style.display = phaseEnabled ? 'block' : 'none';
+}
+
+function updateZonePreview() {
+    const score = parseInt(document.getElementById('zone-preview-score').value) || 50;
+    const emergenceMax = state.zoneEmergenceMax || 25;
+    const momentumMax = state.zoneMomentumMax || 50;
+    const activeMax = state.zoneActiveMax || 75;
+    
+    let zoneName;
+    if (score <= emergenceMax) zoneName = 'EMERGENCE';
+    else if (score <= momentumMax) zoneName = 'MOMENTUM';
+    else if (score <= activeMax) zoneName = 'ACTIVE';
+    else zoneName = 'DESCENT';
+    
+    document.getElementById('zone-preview-name').textContent = zoneName;
+}
+
+// ============================================================
 // INIT
 // ============================================================
 async function init() {
@@ -2492,6 +2621,21 @@ async function init() {
     if (state.homebaseTz !== null) {
         document.getElementById('homebase-tz').value = state.homebaseTz;
     }
+    
+    // restore zone thresholds (Phase 3)
+    if (state.zoneEmergenceMax !== undefined) {
+        document.getElementById('zone-emergence-max').value = state.zoneEmergenceMax;
+        document.getElementById('zone-emergence-val').textContent = state.zoneEmergenceMax;
+    }
+    if (state.zoneMomentumMax !== undefined) {
+        document.getElementById('zone-momentum-max').value = state.zoneMomentumMax;
+        document.getElementById('zone-momentum-val').textContent = state.zoneMomentumMax;
+    }
+    if (state.zoneActiveMax !== undefined) {
+        document.getElementById('zone-active-max').value = state.zoneActiveMax;
+        document.getElementById('zone-active-val').textContent = state.zoneActiveMax;
+    }
+    updateZonePreview();
 
     renderBoards();
     renderDisplays();
@@ -2623,6 +2767,49 @@ async function init() {
         } else {
             e.target.style.borderColor = 'var(--color-critical)';
         }
+    });
+    
+    // Zone configuration sliders (Phase 3)
+    document.getElementById('zone-emergence-max').addEventListener('input', e => {
+        const val = parseInt(e.target.value, 10);
+        state.zoneEmergenceMax = val;
+        document.getElementById('zone-emergence-val').textContent = val;
+        updateZonePreview();
+        updateHash();
+    });
+    
+    document.getElementById('zone-momentum-max').addEventListener('input', e => {
+        const val = parseInt(e.target.value, 10);
+        state.zoneMomentumMax = val;
+        document.getElementById('zone-momentum-val').textContent = val;
+        updateZonePreview();
+        updateHash();
+    });
+    
+    document.getElementById('zone-active-max').addEventListener('input', e => {
+        const val = parseInt(e.target.value, 10);
+        state.zoneActiveMax = val;
+        document.getElementById('zone-active-val').textContent = val;
+        updateZonePreview();
+        updateHash();
+    });
+    
+    // Zone preview score input
+    document.getElementById('zone-preview-score').addEventListener('input', updateZonePreview);
+    
+    // Zone reset button
+    document.getElementById('zone-reset').addEventListener('click', () => {
+        state.zoneEmergenceMax = 25;
+        state.zoneMomentumMax = 50;
+        state.zoneActiveMax = 75;
+        document.getElementById('zone-emergence-max').value = 25;
+        document.getElementById('zone-momentum-max').value = 50;
+        document.getElementById('zone-active-max').value = 75;
+        document.getElementById('zone-emergence-val').textContent = '25';
+        document.getElementById('zone-momentum-val').textContent = '50';
+        document.getElementById('zone-active-val').textContent = '75';
+        updateZonePreview();
+        updateHash();
     });
     
     // Use browser location button
@@ -2830,6 +3017,9 @@ function renderActiveFaces() {
 
     // Calculate flash usage
     updateFlashUsage();
+    
+    // Update zone config visibility (Phase 3)
+    updateZoneConfigVisibility();
 }
 
 function updateFlashUsage() {
@@ -3028,6 +3218,18 @@ function updateHash() {
     if (state.homebaseTz !== null) {
         params.push('hb_tz=' + encodeURIComponent(state.homebaseTz));
     }
+    
+    // Add zone thresholds if non-default (Phase 3)
+    if (state.zoneEmergenceMax !== undefined && state.zoneEmergenceMax !== 25) {
+        params.push('zem=' + state.zoneEmergenceMax);
+    }
+    if (state.zoneMomentumMax !== undefined && state.zoneMomentumMax !== 50) {
+        params.push('zmm=' + state.zoneMomentumMax);
+    }
+    if (state.zoneActiveMax !== undefined && state.zoneActiveMax !== 75) {
+        params.push('zam=' + state.zoneActiveMax);
+    }
+    
     history.replaceState(null, '', '#' + params.join('&'));
 }
 
@@ -3108,6 +3310,16 @@ function parseHash() {
             homebaseTz = tz;
         }
     }
+    
+    // Parse and validate zone thresholds (Phase 3)
+    const clampZone = (val, def, min, max) => {
+        const n = parseInt(val, 10);
+        return (Number.isFinite(n) && n >= min && n <= max) ? n : def;
+    };
+    
+    const zoneEmergenceMax = params.zem !== undefined ? clampZone(params.zem, 25, 15, 35) : 25;
+    const zoneMomentumMax = params.zmm !== undefined ? clampZone(params.zmm, 50, 40, 60) : 50;
+    const zoneActiveMax = params.zam !== undefined ? clampZone(params.zam, 75, 65, 85) : 75;
 
     return {
         board,
@@ -3124,7 +3336,10 @@ function parseHash() {
         activeHoursEnd: clampQh(params.ah_end, 92),
         homebaseLat,
         homebaseLon,
-        homebaseTz
+        homebaseTz,
+        zoneEmergenceMax,
+        zoneMomentumMax,
+        zoneActiveMax
     };
 }
 
@@ -3196,6 +3411,17 @@ async function triggerBuild() {
     }
     if (state.homebaseTz !== null) {
         inputs.homebase_tz = String(state.homebaseTz);
+    }
+    
+    // Add zone thresholds (Phase 3 - phase engine configuration)
+    if (state.zoneEmergenceMax !== undefined && state.zoneEmergenceMax !== 25) {
+        inputs.zone_emergence_max = String(state.zoneEmergenceMax);
+    }
+    if (state.zoneMomentumMax !== undefined && state.zoneMomentumMax !== 50) {
+        inputs.zone_momentum_max = String(state.zoneMomentumMax);
+    }
+    if (state.zoneActiveMax !== undefined && state.zoneActiveMax !== 75) {
+        inputs.zone_active_max = String(state.zoneActiveMax);
     }
 
     showStatus('DISPATCHING BUILD ' + buildId + '...', '');
