@@ -27,7 +27,7 @@
 #include "sensors.h"
 #include "lis2dw.h"
 #include "watch.h"
-#include "thermistor_driver.h"
+#include "movement.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -39,8 +39,7 @@ void sensors_init(struct sensor_state_t *state, bool has_accel) {
     memset(state, 0, sizeof(struct sensor_state_t));
     state->has_accelerometer = has_accel;
     
-    // PR #66: Initialize thermistor (available on all boards)
-    thermistor_driver_init();
+    // Note: Thermistor initialization is handled by Movement
     
     state->initialized = true;
 }
@@ -203,18 +202,14 @@ void sensors_sample_temperature(struct sensor_state_t *state) {
         return;
     }
     
-    // All boards have onboard thermistor
-    thermistor_driver_enable();
-    
-    // Read temperature (returns float in Celsius)
-    float temp_c = thermistor_driver_get_temperature();
-    
-    thermistor_driver_disable();
+    // Use existing Movement API (handles thermistor + LIS2DW fallback)
+    // movement_get_temperature() checks movement_state.has_thermistor and
+    // falls back to LIS2DW12 internal temp sensor if no thermistor available
+    float temp_c = movement_get_temperature();
     
     // Convert to 0.1°C units (e.g., 20.5°C → 205)
-    // Handle error case (thermistor_driver returns 0xFFFFFFFF on error)
     if (temp_c == (float)0xFFFFFFFF) {
-        // No thermistor available, use reasonable fallback
+        // No temperature sensor available, use reasonable fallback
         state->temperature_c10 = 200;  // 20.0°C (room temperature)
     } else {
         // Convert float to 0.1°C units with rounding
