@@ -7,28 +7,28 @@ Second Movement
 
 | Site | Description |
 |------|-------------|
-| [**Firmware Builder**](https://dlorp.github.io/second-movement/builder/) | Web UI — pick faces, configure settings, dispatch a GitHub Actions build, download UF2 |
-| [**Companion App**](https://dlorp.github.io/second-movement/companion-app/) | Optical TX web app — send data to the watch via screen flash (Timex DataLink-style) |
+| [**Firmware Builder**](https://dlorp.github.io/second-movement/builder/) | Web UI - pick faces, configure settings, dispatch a GitHub Actions build, download UF2 |
+| [**Companion App**](https://dlorp.github.io/second-movement/companion-app/) | Optical TX web app - send data to the watch via screen flash (Timex DataLink style) |
 
 ## Fork Changes
 
 ### Tap-to-Wake Feature
 Added crystal tap detection for instant display wake on Sensor Watch Pro boards:
 - Hybrid implementation using motion wake (INT2/A4) + software tap polling
-- Both crystal tap and wrist-raise wake the display from sleep
-- Uses LIS2DW12 accelerometer's hardware tap detection (400Hz, Z-axis threshold 12)
-- Power optimized: Low-Power Mode 1 (~45-90µA continuous draw)
+- Both crystal tap and wrist raise wake the display from sleep
+- Uses LIS2DW12 accelerometer's hardware tap detection (400Hz, Z axis threshold 12)
+- Power optimized: Low power Mode 1 (~45-90µA continuous draw)
 - Graceful fallback on Green boards (no accelerometer)
 - Documentation: TAP_TO_WAKE.md and TAP_TO_WAKE_SLEEP_MODE_ANALYSIS.md
 
 **Hardware constraint:** LIS2DW12 tap interrupts can only route to INT1 (A3), which is not an RTC wake pin. Solution uses motion detection on INT2 (A4) to wake from STANDBY sleep, then polls tap register to distinguish tap events from wrist movement.
 
 ### Active Hours Feature
-**What it means:** Active Hours define when you're awake and active. Outside these hours (your sleep window), the watch enters a low-power mode that prevents accidental display wakes from rolling over in bed.
+**What it means:** Active Hours define when you're awake and active. Outside these hours (your sleep window), the watch enters a low power mode that prevents accidental display wakes from rolling over in bed.
 
 **What changes during sleep hours:**
 - **Motion wake disabled:** Wrist movement no longer triggers display wake (prevents false wakes from tossing/turning)
-- **Tap-to-wake still works:** Crystal tap always wakes display (intentional gesture)
+- **Tap to wake still works:** Crystal tap always wakes display (intentional gesture)
 - **Button wake always works:** Physical buttons always wake display
 - **Sleep tracking enabled:** Orientation changes logged for sleep quality metrics (Stream 4)
 - **Smart alarm active:** Light sleep detection begins 15 min before alarm window (Stream 3)
@@ -36,24 +36,24 @@ Added crystal tap detection for instant display wake on Sensor Watch Pro boards:
 **Default configuration:**
 - Active Hours: 04:00 - 23:00 (awake)
 - Sleep Window: 23:00 - 04:00 (sleeping)
-- User-configurable via settings face (15-minute increments)
+- User-configurable via settings face (15 minute increments)
 
 **Components:**
 - **Stream 1 (Core Logic):** Sleep detection and motion wake suppression
-- **Stream 2 (Settings UI):** User-configurable Active Hours in settings face
-- **Stream 3 (Smart Alarm):** Up band-style alarm with light sleep detection
+- **Stream 2 (Settings UI):** User configurable Active Hours in settings face
+- **Stream 3 (Smart Alarm):** Up band style alarm with light sleep detection
 - **Stream 4 (Sleep Tracking):** Orientation logging for sleep quality (70 bytes, 7 nights)
 
 **Power impact:**
 - Deep sleep mode: Minimal power draw (accelerometer at 1.6Hz stationary mode)
 - Sleep tracking overhead: Under 5µA (orientation logging only)
-- Smart alarm pre-wake: Ramps to 45-90µA for 15 min before alarm window
+- Smart alarm prewake: Ramps to 45-90µA for 15 min before alarm window
 
 **Persistence:**
-Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power cycles, resets on complete battery removal (standard Sensor Watch behavior).
+Settings stored in BKUP[2] register (battery backed RAM). Survives normal power cycles, resets on complete battery removal (standard Sensor Watch behavior).
 
 ### Sleep & Circadian Tracking System
-**What it is:** Research-backed sleep detection + circadian health scoring for long-term pattern tracking. Uses accelerometer motion detection + ambient light sensor to distinguish sleep from wake, then calculates health metrics over 7-day rolling windows.
+**What it is:** Research backed sleep detection + circadian health scoring for long term pattern tracking. Uses time / active hours + accelerometer motion detection + ambient light sensor to distinguish sleep from wake, then calculates health metrics over 7-day rolling windows.
 
 **Three watch faces:**
 
@@ -62,23 +62,23 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 - **After wake-up:** Adds Sleep Score (SL 0-100) as first display mode
 - **Sleep Score formula:** 50% duration + 30% efficiency + 20% light exposure
 - **ALARM button:** Cycles SL → Duration → Efficiency → WASO → Awakenings
-- **Algorithm:** Cole-Kripke (1992) + Light Enhancement (11-min sliding window, 85-90% accuracy target)
+- **Algorithm:** Cole-Kripke (1992) + Light Enhancement (11 min sliding window, 85-90% accuracy target)
 
 **2. Circadian Score Face (CS)**
-- **Overall score:** CS 0-100 (7-day aggregate, 75% evidence-based)
+- **Overall score:** CS 0-100 (7 day aggregate, 75% evidence based)
 - **ALARM button:** Drill down to 5 subscores (TI/DU/EF/AH/LI)
 - **Components:**
   - **TI (Timing):** Sleep Regularity Index - 35% weight (Phillips et al. 2017)
-  - **DU (Duration):** Sleep duration penalty - 30% (Cappuccio U-curve, 7-8h optimal)
+  - **DU (Duration):** Sleep duration penalty - 30% (Cappuccio U curve, 7-8h optimal)
   - **EF (Efficiency):** Sleep efficiency - 20% (% time asleep in bed)
   - **AH (Active Hours):** Compliance with window - 10% (onset/offset within 1h)
   - **LI (Light):** Light exposure quality - 5% (% time in darkness)
 
 **Data flow:**
 - Sleep tracking runs automatically 23:00-04:00 (synced with Active Hours from BKUP[2])
-- At window end: metrics exported to 7-day rolling buffer (flash row 30, ~200 bytes)
-- Circadian Score calculated on-demand when CS face is activated
-- Power: ~4-5µA during sleep (LIS2DW12 Low-Power Mode 1 + light ADC)
+- At window end: metrics exported to 7 day rolling buffer (flash row 30, ~200 bytes)
+- Circadian Score calculated on demand when CS face is activated
+- Power: ~4-5µA during sleep (LIS2DW12 Low Power Mode 1 + light ADC)
 
 **Smart alarm integration:**
 - Smart alarm (if enabled) can query sleep_tracker state for light sleep detection
@@ -86,20 +86,19 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 - Alarm triggers during light sleep within configured window for gentler wake
 
 **Face navigation:**
-1. Wyoscan
-2. Clock
-3. **Sleep Tracker** (live + review with SL score)
-4. **Circadian Score** (7-day CS + drill-down)
-5. World Clock, Sunrise/Sunset, etc.
+0. Wyoscan
+1. **Sleep Tracker** (live + review with SL score)
+2. **Circadian Score** (7-day CS + drill-down)
+3. World Clock, Sunrise/Sunset, etc.
 
 ### Phase Engine: Chronomantic Instrument
-> ⚠️ **Status:** In active development and testing. This is experimental firmware — expect bugs and behavioral changes as the system is tuned.
+> ⚠️ **Status:** In active development and testing. This is experimental firmware expect bugs and behavioral changes as the system is tuned.
 
-**What it is:** The watch becomes a **personal chronomantic instrument** — not just telling you the time, but measuring your alignment with natural cycles. It tracks the relationship between **Human × Environment × Season** to show you where you are relative to what's normal for your body in this place, at this time of year.
+**What it is:** The watch becomes a **personal chronomantic instrument** not just telling you the time, but measuring your alignment with natural cycles. It tracks the relationship between **Human × Environment × Season** to show you where you are relative to what's normal for your body in this place, at this time of year.
 
-**Philosophy:** Instead of passive time-telling, the watch actively measures three axes simultaneously:
+**Philosophy:** Instead of passive time telling, the watch actively measures three axes simultaneously:
 
-By monitoring these metrics throughout the day, you can see if your actions are improving your alignment or causing you to stagnate. The homebase data tables (pre-computed seasonal norms for your location) provide the reference point — the instrument shows you the delta.
+By monitoring these metrics throughout the day, you can see if your actions are improving your alignment or causing you to stagnate. The homebase data tables (pre computed seasonal norms for your location) provide the reference point; the instrument shows you the delta.
 
 **Three axes of measurement:**
 
@@ -109,7 +108,7 @@ By monitoring these metrics throughout the day, you can see if your actions are 
 | **Environment** | Light, temperature, motion variance | Lux sensor, thermistor, motion patterns |
 | **Season** | Expected daylight, climate norms for your location | Homebase table (pre-computed seasonal data) |
 
-**Core principle:** Phase is a continuous weighted field (0-100), not rigid clock zones. Your biological state flows through four zones as you move through your day. The watch surfaces metrics that deviate from expected norms — when everything is aligned (phase ≈ 100), you see green lights. When something is off (low phase score), the relevant metric surfaces to show you what needs attention.
+**Core principle:** Phase is a continuous weighted field (0-100), not rigid clock zones. Your biological state flows through four zones as you move through your day. The watch surfaces metrics that deviate from expected norms  when everything is aligned (phase ≈ 100), you see green lights. When something is off (low phase score), the relevant metric surfaces to show you what needs attention.
 
 ---
 
@@ -119,7 +118,7 @@ Phase score maps to zones that represent your biological state:
 
 | Zone | Phase Score | What It Means | Example Time* |
 |------|-------------|---------------|---------------|
-| **Emergence** | 0-25 | Waking up, orienting, building alertness | Early morning (5-8 AM) |
+| **Emergence** | 0-25 | Waking up, orienting, building alertness | Early morning (4-8 AM) |
 | **Momentum** | 26-50 | Building energy, ramping activity | Late morning (9-12 PM) |
 | **Active** | 51-75 | Peak capacity, maximum output | Afternoon (1-5 PM) |
 | **Descent** | 76-100 | Winding down, preparing for rest | Evening (6-11 PM) |
@@ -135,7 +134,7 @@ Each zone has a dedicated watch face that displays metrics relevant to that biol
 - **Descent Face** (`DE`): Shows Comfort, Emotional state (ready for rest)
 
 **Playlist Controller:**
-- **Manual:** Press ALARM button to cycle through zone-specific metrics
+- **Manual:** Long-Press ALARM button to acess and through zone-specific metrics
 - **Automatic:** Watch switches zone faces when phase score crosses zone boundaries (debounced over 3 ticks to prevent jitter)
 - **Smart surfacing:** Metrics with extreme values (far from neutral 50) surface more often than mundane values
 
@@ -146,14 +145,14 @@ Each zone has a dedicated watch face that displays metrics relevant to that biol
 **1. Sleep Debt (SD)**
 - **Meaning:** Cumulative sleep deficit over the last 3 nights
 - **Range:** 0 = fully rested, 100 = severely sleep deprived
-- **Math:** Target = 480 min (8h/night). Deficit per night = `max(0, 480 - actual_minutes)`. Rolling 3-night weighted average: `(deficit[0]*50 + deficit[1]*30 + deficit[2]*20) / 100`
+- **Math:** Target = 480 min (8h/night). Deficit per night = `max(0, 480 - actual_minutes)`. Rolling 3 night weighted average: `(deficit[0]*50 + deficit[1]*30 + deficit[2]*20) / 100`
 - **Updates:** Every minute during Emergence zone, hourly otherwise
 - **Data source:** Sleep tracker (7-night buffer in flash)
 
 **2. Emotional / Mood (EM)**
 - **Meaning:** Circadian alignment + lunar influence + activity variance
 - **Range:** 0 = low/disrupted, 100 = aligned/elevated
-- **Math:** Three sub-scores blended:
+- **Math:** Three sub scores blended:
   - **Circadian (40%):** Cosine curve peaking at 2 PM, trough at 2 AM (`cosine_lut_24[hour]`)
   - **Lunar (20%):** Approximates lunar phase from day of year, peaks near full moon
   - **Variance (40%):** Activity variance over last 15 min (high variance during expected-rest = penalty)
@@ -177,7 +176,7 @@ Each zone has a dedicated watch face that displays metrics relevant to that biol
 **5. Comfort (CMF)**
 - **Meaning:** Alignment with seasonal/environmental norms for your location
 - **Range:** 0 = extreme deviation, 100 = perfectly normal
-- **Math:** Two sub-scores:
+- **Math:** Two sub scores:
   - **Temperature (60%):** `100 - min(100, abs(current_temp - expected_temp) / 3)`. Expected temp from homebase table.
   - **Light (40%):** Compares lux against expected for time of day (500+ lux during day, <50 at night)
 - **Updates:** Every 15 minutes
