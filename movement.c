@@ -546,27 +546,12 @@ static void _movement_handle_top_of_minute(void) {
         // Get phase score from phase engine (stubbed for now - requires Phase 1-2 integration)
         uint16_t phase_score = 50;  // Default midpoint; replace with phase_compute() when available
         
-        // Get activity level from accelerometer (if available)
-        uint16_t activity_level = 0;
-        if (movement_state.has_lis2dw) {
-            // Stub: would read from accelerometer data structure
-            // activity_level = get_recent_activity_level();
-        }
-        
-        // PR #66: Get temperature from sensor state
-        int16_t temp_c10 = (int16_t)sensors_get_temperature_c10(&movement_state.sensors);
-        
-        // PR #66: Get light level from sensor state
-        uint16_t light_lux = sensors_get_lux_avg(&movement_state.sensors);
-        
-        // Update metrics engine
+        // Update metrics engine (sensors passed directly for cleaner API)
         metrics_update(&movement_state.metrics,
+                      &movement_state.sensors,
                       hour, minute, day_of_year,
                       (uint8_t)phase_score,
-                      activity_level,
                       movement_state.cumulative_activity,
-                      temp_c10,
-                      light_lux,
                       &global_circadian_data,
                       NULL,  // homebase - requires Phase 2 homebase integration
                       movement_state.has_lis2dw);
