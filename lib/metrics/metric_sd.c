@@ -26,6 +26,7 @@
 
 #include "metric_sd.h"
 #include "circadian_score.h"
+#include <stddef.h>
 
 // Sleep target: 8 hours = 480 minutes
 #define SD_TARGET_MINUTES 480

@@ -118,6 +118,7 @@ SRCS += \
   ./lib/fesk_tx/fesk_session.c \
   ./lib/phase/phase_engine.c \
   ./lib/phase/playlist.c \
+  ./lib/phase/sensors.c \
   ./lib/metrics/metrics.c \
   ./lib/metrics/metric_sd.c \
   ./lib/metrics/metric_em.c \
