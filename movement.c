@@ -691,15 +691,22 @@ bool movement_default_loop_handler(movement_event_t event) {
             }
             break;
 #ifdef PHASE_ENGINE_ENABLED
-        case EVENT_ALARM_BUTTON_UP:
-            // Phase 4B: If playlist mode is active, advance to next face in rotation
-            if (movement_state.playlist_mode_active) {
-                playlist_advance(&movement_state.playlist);
+        case EVENT_ALARM_LONG_PRESS:
+            // Phase 4B: Long-press ALARM from clock → enter phase playlist mode
+            if (movement_state.current_face_idx == 1) {  // Clock face (index 1)
+                movement_state.playlist_mode_active = true;
                 
-                // Switch to the zone face for the current zone
+                // Jump to zone face for current zone
                 phase_zone_t zone = playlist_get_zone(&movement_state.playlist);
                 uint8_t zone_face_idx = _movement_get_zone_face_index(zone);
                 movement_move_to_face(zone_face_idx);
+            }
+            break;
+        case EVENT_ALARM_BUTTON_UP:
+            // Phase 4B: If in playlist mode, short-press ALARM cycles through zone metrics
+            if (movement_state.playlist_mode_active) {
+                playlist_advance(&movement_state.playlist);
+                // Stay on the same zone face, metric changes internally via ALARM button
             }
             break;
 #endif
