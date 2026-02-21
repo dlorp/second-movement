@@ -108,24 +108,16 @@ void metrics_update(metrics_engine_t *engine,
     
     // --- Wake Momentum (WK) ---
     // Calculate minutes awake from wake onset time
-    uint16_t minutes_awake = 0;
-    if (hour >= engine->wake_onset_hour) {
-        minutes_awake = (hour - engine->wake_onset_hour) * 60;
-        if (minute >= engine->wake_onset_minute) {
-            minutes_awake += (minute - engine->wake_onset_minute);
-        } else {
-            minutes_awake -= (engine->wake_onset_minute - minute);
-        }
-    } else {
-        // Wrapped past midnight
-        uint16_t hours_til_midnight = (24 - engine->wake_onset_hour);
-        minutes_awake = hours_til_midnight * 60 + hour * 60;
-        if (minute >= engine->wake_onset_minute) {
-            minutes_awake += (minute - engine->wake_onset_minute);
-        } else {
-            minutes_awake -= (engine->wake_onset_minute - minute);
-        }
+    // Use total minutes from midnight to handle wraparound correctly
+    uint16_t wake_minutes = engine->wake_onset_hour * 60 + engine->wake_onset_minute;
+    uint16_t current_minutes = hour * 60 + minute;
+    
+    // Handle midnight wraparound
+    if (current_minutes < wake_minutes) {
+        current_minutes += 1440;  // Add 24 hours in minutes
     }
+    
+    uint16_t minutes_awake = current_minutes - wake_minutes;
     _current_metrics.wk = metric_wk_compute(minutes_awake, cumulative_activity, has_accelerometer);
     
     // --- Energy ---
@@ -188,6 +180,26 @@ void metrics_load_bkup(metrics_engine_t *engine) {
     // Validate and clamp loaded time values
     if (engine->wake_onset_hour >= 24) engine->wake_onset_hour = 0;
     if (engine->wake_onset_minute >= 60) engine->wake_onset_minute = 0;
+}
+
+void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute) {
+    if (!engine) return;
+    
+    // Validate and clamp inputs
+    if (hour >= 24) hour = 0;
+    if (minute >= 60) minute = 0;
+    
+    // Update wake onset time
+    engine->wake_onset_hour = hour;
+    engine->wake_onset_minute = minute;
+    
+    // Save to BKUP immediately (important for WK metric persistence)
+    if (engine->bkup_reg_wk != 0) {
+        uint32_t wk_data = 0;
+        wk_data |= (uint32_t)engine->wake_onset_hour;
+        wk_data |= ((uint32_t)engine->wake_onset_minute) << 8;
+        watch_store_backup_data(wk_data, engine->bkup_reg_wk);
+    }
 }
 
 void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute) {
