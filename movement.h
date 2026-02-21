@@ -34,6 +34,7 @@
 #ifdef PHASE_ENGINE_ENABLED
 #include "metrics.h"
 #include "playlist.h"
+#include "sensors.h"
 #endif
 
 /// @brief A struct that allows a watch face to report its state back to Movement.
@@ -331,6 +332,9 @@ typedef struct {
     uint16_t metric_tick_count;     // Counter for 15-minute metric updates
     uint16_t cumulative_activity;    // Activity accumulator since wake
     bool playlist_mode_active;       // True when playlist controls face rotation
+    
+    // Phase 4A: Sensor state (PR #65: motion, PR #66: lux + temperature)
+    struct sensor_state_t sensors;
 #endif
 } movement_state_t;
 
