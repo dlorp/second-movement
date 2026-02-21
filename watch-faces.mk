@@ -63,4 +63,8 @@ SRCS += \
   ./watch-faces/complication/sleep_score_face.c \
   ./watch-faces/io/comms_rx.c \
   ./watch-faces/io/fesk_demo_lite_face.c \
+  ./watch-faces/complication/emergence_face.c \
+  ./watch-faces/complication/momentum_face.c \
+  ./watch-faces/complication/active_face.c \
+  ./watch-faces/complication/descent_face.c \
 # New watch faces go above this line.
