@@ -95,13 +95,13 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 ### Phase Engine: Chronomantic Instrument
 > ⚠️ **Status:** In active development and testing. This is experimental firmware — expect bugs and behavioral changes as the system is tuned.
 
-**What it is:** A biological state tracking system that measures your alignment with natural cycles — not clock time. Think of it as a compass for your body's relationship to the environment and seasons.
+**What it is:** The watch becomes a **personal chronomantic instrument** — not just telling you the time, but measuring your alignment with natural cycles. It tracks the relationship between **Human × Environment × Season** to show you where you are relative to what's normal for your body in this place, at this time of year.
 
-**Philosophy:** The watch becomes a **chronomantic instrument** measuring the relationship between **Human × Environment × Season**.
+**Philosophy:** Instead of passive time-telling, the watch actively measures three axes simultaneously:
 
-Instead of just telling you the time, it uses pre-computed seasonal data tables for your location (homebase) to show you **where you are** relative to what's normal for your body in this place, at this time of year. By monitoring these metrics throughout the day, you can see if your actions are improving your alignment or causing you to stagnate.
+By monitoring these metrics throughout the day, you can see if your actions are improving your alignment or causing you to stagnate. The homebase data tables (pre-computed seasonal norms for your location) provide the reference point — the instrument shows you the delta.
 
-**The three axes measured simultaneously:**
+**Three axes of measurement:**
 
 | Axis | What It Measures | Data Source |
 |------|------------------|-------------|
