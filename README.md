@@ -93,6 +93,8 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 5. World Clock, Sunrise/Sunset, etc.
 
 ### Phase Engine: Chronomantic Instrument
+> ⚠️ **Status:** In active development and testing. This is experimental firmware — expect bugs and behavioral changes as the system is tuned.
+
 **What it is:** A biological state tracking system that measures your alignment with natural cycles — not clock time. Think of it as a compass for your body's relationship to the environment and seasons.
 
 **Philosophy:** The watch becomes a **chronomantic instrument** measuring three axes simultaneously:
