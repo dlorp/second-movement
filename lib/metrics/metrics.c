@@ -32,6 +32,7 @@
 #include "metric_comfort.h"
 #include "circadian_score.h"
 #include "phase_engine.h"
+#include "sensors.h"
 #include "watch.h"
 
 // Safe absolute value wrapper to handle INT16_MIN edge case
@@ -76,19 +77,23 @@ void metrics_init(metrics_engine_t *engine) {
 }
 
 void metrics_update(metrics_engine_t *engine,
+                    const struct sensor_state_t *sensors,
                     uint8_t hour,
                     uint8_t minute,
                     uint16_t day_of_year,
                     uint8_t phase_score,
-                    uint16_t activity_level,
                     uint16_t cumulative_activity,
-                    int16_t temp_c10,
-                    uint16_t light_lux,
                     const circadian_data_t *sleep_data,
                     const homebase_entry_t *homebase,
                     bool has_accelerometer) {
     
     if (!engine || !engine->initialized) return;
+    
+    // Extract sensor values (with fallback defaults if sensors is NULL)
+    int16_t temp_c10 = sensors ? (int16_t)sensors_get_temperature_c10(sensors) : 200;
+    uint16_t light_lux = sensors ? sensors_get_lux_avg(sensors) : 0;
+    uint16_t activity_variance = sensors ? sensors_get_motion_variance(sensors) : 50;
+    uint16_t activity_level = sensors ? sensors_get_motion_intensity(sensors) : 0;
     
     // Update cadence tracking
     engine->last_update_hour = hour;
@@ -103,8 +108,7 @@ void metrics_update(metrics_engine_t *engine,
     
     // --- Emotional (EM) ---
     // Compute from circadian cycle, lunar cycle, and activity variance
-    // (activity_variance placeholder = activity_level for now)
-    _current_metrics.em = metric_em_compute(hour, day_of_year, activity_level);
+    _current_metrics.em = metric_em_compute(hour, day_of_year, activity_variance);
     
     // --- Wake Momentum (WK) ---
     // Calculate minutes awake from wake onset time
@@ -180,26 +184,6 @@ void metrics_load_bkup(metrics_engine_t *engine) {
     // Validate and clamp loaded time values
     if (engine->wake_onset_hour >= 24) engine->wake_onset_hour = 0;
     if (engine->wake_onset_minute >= 60) engine->wake_onset_minute = 0;
-}
-
-void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute) {
-    if (!engine) return;
-    
-    // Validate and clamp inputs
-    if (hour >= 24) hour = 0;
-    if (minute >= 60) minute = 0;
-    
-    // Update wake onset time
-    engine->wake_onset_hour = hour;
-    engine->wake_onset_minute = minute;
-    
-    // Save to BKUP immediately (important for WK metric persistence)
-    if (engine->bkup_reg_wk != 0) {
-        uint32_t wk_data = 0;
-        wk_data |= (uint32_t)engine->wake_onset_hour;
-        wk_data |= ((uint32_t)engine->wake_onset_minute) << 8;
-        watch_store_backup_data(wk_data, engine->bkup_reg_wk);
-    }
 }
 
 void metrics_set_wake_onset(metrics_engine_t *engine, uint8_t hour, uint8_t minute) {

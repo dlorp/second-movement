@@ -33,6 +33,9 @@
 #include "circadian_score.h"
 #include "phase_engine.h"
 
+// Forward declaration for sensor state
+struct sensor_state_t;
+
 /**
  * Metric Engine: Compute biological state metrics from sensors and sleep data
  * 
@@ -84,27 +87,23 @@ void metrics_init(metrics_engine_t *engine);
  * Update all metrics based on current sensor data and time.
  * 
  * @param engine Engine state
+ * @param sensors Sensor state (motion, temp, light data)
  * @param hour Current hour (0-23)
  * @param minute Current minute (0-59)
  * @param day_of_year Current day (1-365)
  * @param phase_score Current phase score from phase_engine (0-100)
- * @param activity_level Recent activity (0-1000, arbitrary units)
  * @param cumulative_activity Cumulative activity since wake (0-65535, for WK bonus)
- * @param temp_c10 Current temperature (celsius * 10)
- * @param light_lux Current light level (lux)
  * @param sleep_data Circadian sleep history (7-night buffer)
  * @param homebase Homebase entry for current day (seasonal baseline)
  * @param has_accelerometer True if LIS2DW accelerometer is available
  */
 void metrics_update(metrics_engine_t *engine,
+                    const struct sensor_state_t *sensors,
                     uint8_t hour,
                     uint8_t minute,
                     uint16_t day_of_year,
                     uint8_t phase_score,
-                    uint16_t activity_level,
                     uint16_t cumulative_activity,
-                    int16_t temp_c10,
-                    uint16_t light_lux,
                     const circadian_data_t *sleep_data,
                     const homebase_entry_t *homebase,
                     bool has_accelerometer);
