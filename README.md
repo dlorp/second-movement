@@ -92,6 +92,177 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 4. **Circadian Score** (7-day CS + drill-down)
 5. World Clock, Sunrise/Sunset, etc.
 
+### Phase Engine: Chronomantic Instrument
+**What it is:** A biological state tracking system that measures your alignment with natural cycles — not clock time. Think of it as a compass for your body's relationship to the environment and seasons.
+
+**Philosophy:** The watch becomes a **chronomantic instrument** measuring three axes simultaneously:
+
+| Axis | What It Measures | Data Source |
+|------|------------------|-------------|
+| **Human** | Activity rhythm, wake momentum, sleep debt | Accelerometer, sleep tracking |
+| **Environment** | Light, temperature, motion variance | Lux sensor, thermistor, motion patterns |
+| **Season** | Expected daylight, climate norms for your location | Homebase table (pre-computed seasonal data) |
+
+**Core principle:** Phase is a continuous weighted field (0-100), not rigid clock zones. Your biological state flows through four zones as you move through your day.
+
+---
+
+#### The Four Zones
+
+Phase score maps to zones that represent your biological state:
+
+| Zone | Phase Score | What It Means | Example Time* |
+|------|-------------|---------------|---------------|
+| **Emergence** | 0-25 | Waking up, orienting, building alertness | Early morning (5-8 AM) |
+| **Momentum** | 26-50 | Building energy, ramping activity | Late morning (9-12 PM) |
+| **Active** | 51-75 | Peak capacity, maximum output | Afternoon (1-5 PM) |
+| **Descent** | 76-100 | Winding down, preparing for rest | Evening (6-11 PM) |
+
+***Note:** Times are examples for a typical schedule. Phase score is based on YOUR biological rhythm, not the clock. A night-shift worker's Emergence might happen at 8 PM.
+
+**Zone Faces:**
+Each zone has a dedicated watch face that displays metrics relevant to that biological state:
+
+- **Emergence Face** (`EM`): Shows Sleep Debt (SD), Emotional state (EM), Comfort (CMF)
+- **Momentum Face** (`MO`): Shows Wake Momentum (WK), Sleep Debt, Temperature
+- **Active Face** (`AC`): Shows Energy capacity (NRG), Emotional state, Sleep Debt
+- **Descent Face** (`DE`): Shows Comfort, Emotional state (ready for rest)
+
+**Playlist Controller:**
+- **Manual:** Press ALARM button to cycle through zone-specific metrics
+- **Automatic:** Watch switches zone faces when phase score crosses zone boundaries (debounced over 3 ticks to prevent jitter)
+- **Smart surfacing:** Metrics with extreme values (far from neutral 50) surface more often than mundane values
+
+---
+
+#### The Six Metrics (0-100 Scale)
+
+**1. Sleep Debt (SD)**
+- **Meaning:** Cumulative sleep deficit over the last 3 nights
+- **Range:** 0 = fully rested, 100 = severely sleep deprived
+- **Math:** Target = 480 min (8h/night). Deficit per night = `max(0, 480 - actual_minutes)`. Rolling 3-night weighted average: `(deficit[0]*50 + deficit[1]*30 + deficit[2]*20) / 100`
+- **Updates:** Every minute during Emergence zone, hourly otherwise
+- **Data source:** Sleep tracker (7-night buffer in flash)
+
+**2. Emotional / Mood (EM)**
+- **Meaning:** Circadian alignment + lunar influence + activity variance
+- **Range:** 0 = low/disrupted, 100 = aligned/elevated
+- **Math:** Three sub-scores blended:
+  - **Circadian (40%):** Cosine curve peaking at 2 PM, trough at 2 AM (`cosine_lut_24[hour]`)
+  - **Lunar (20%):** Approximates lunar phase from day of year, peaks near full moon
+  - **Variance (40%):** Activity variance over last 15 min (high variance during expected-rest = penalty)
+- **Updates:** Every 15 minutes
+- **Data source:** Hour-of-day, day-of-year, accelerometer variance
+
+**3. Wake Momentum (WK)**
+- **Meaning:** How ramped up you are since waking
+- **Range:** 0 = just woke, 100 = fully alert
+- **Math:** Base ramp: `min(100, minutes_awake * 100 / 120)` (full ramp in 2 hours). Activity bonus accelerates ramp up to +30%. Sedentary penalty caps at 60.
+- **Updates:** Every minute for first 2 hours after wake, then every 15 min
+- **Data source:** Wake onset time (from Active Hours transition) + cumulative activity
+
+**4. Energy Capacity (NRG)**
+- **Meaning:** Available physical/cognitive capacity right now
+- **Range:** 0 = depleted, 100 = peak capacity
+- **Math:** `Energy = phase_score - (SD / 3) + activity_bonus`. Activity bonus = `min(20, recent_activity / 50)`. Essentially: how aligned you are (phase) minus how tired (sleep debt) plus recent momentum.
+- **Updates:** Every 15 minutes
+- **Data source:** Phase score, Sleep Debt, accelerometer activity
+
+**5. Comfort (CMF)**
+- **Meaning:** Alignment with seasonal/environmental norms for your location
+- **Range:** 0 = extreme deviation, 100 = perfectly normal
+- **Math:** Two sub-scores:
+  - **Temperature (60%):** `100 - min(100, abs(current_temp - expected_temp) / 3)`. Expected temp from homebase table.
+  - **Light (40%):** Compares lux against expected for time of day (500+ lux during day, <50 at night)
+- **Updates:** Every 15 minutes
+- **Data source:** Thermistor, lux sensor (Pro board only), homebase seasonal table
+
+**6. Jet Lag (JL)** *(Deferred to future release)*
+- **Meaning:** Timezone disruption and recovery
+- **Range:** 0 = no shift, 100 = maximum disruption
+- **Math:** On timezone change: `JL = abs(hours_shifted) * 12` (capped at 100). Decay: `JL -= max(1, JL / 24)` per hour (roughly 1 day per hour of shift to recover)
+
+---
+
+#### Phase Score Computation (The Core Algorithm)
+
+**Inputs:**
+- Hour (0-23)
+- Day of year (1-366)
+- Activity level (0-1000, from accelerometer)
+- Temperature (°C × 10, from thermistor)
+- Light level (lux, from light sensor)
+
+**Algorithm:**
+```c
+1. Get seasonal baseline from homebase table (pre-computed expected values for your location)
+2. Calculate circadian curve: cosine_lut_24[hour] (peaks at 2 PM, troughs at 2 AM)
+3. Expected activity = seasonal_baseline * ((1000 + circadian_curve) / 2000)
+4. Activity deviation = abs(actual_activity - expected_activity)
+5. Temperature deviation = abs(current_temp - expected_temp) / 10
+6. Light deviation = abs(current_lux - expected_lux) / 50
+7. Phase score = 100 - (activity_dev / 2) - temp_dev - light_dev
+8. Clamp to 0-100 range
+```
+
+**Integer math only** — no floating point (SAM L22 has no FPU). All operations use fixed-point scaling.
+
+**Weighted Relevance (Smart Surfacing):**
+Each zone has a weight vector determining which metrics surface:
+```c
+//                  SD   EM   WK  NRG  CMF
+Emergence:        [30,  25,   5,  10,  30]  // Sleep debt & comfort matter most
+Momentum:         [20,  20,  30,  10,  20]  // Wake momentum is key
+Active:           [15,  20,   5,  40,  20]  // Energy dominates
+Descent:          [10,  35,   0,  10,  45]  // Mood & comfort for wind-down
+```
+
+Relevance for each metric: `weight * abs(metric - 50) / 50`
+
+Metrics near 50 (neutral) stay quiet. Metrics at extremes (0 or 100) surface strongly, weighted by zone priority.
+
+---
+
+#### Resource Impact
+
+**Flash:** ~18 KB total
+- Homebase table: ~6 KB (365 daily entries with seasonal data)
+- Phase engine: ~3 KB
+- Metric engine: ~4 KB
+- Playlist controller: ~2 KB
+- Zone faces: ~3 KB
+
+**RAM:** 72 bytes total
+- Phase state: 40 bytes (24-hour history buffer)
+- Metrics engine: 6 bytes (current scores)
+- Playlist state: 16 bytes (rotation + hysteresis)
+- Sensor state: 54 bytes (motion, lux, temp buffers)
+
+**Power:** ~4 µA average
+- LIS2DW12 stationary mode: 2.75 µA
+- Lux sampling (1/min): <0.1 µA
+- Phase computation (1/15min): ~0.2 µA
+- Display updates (zone-change only): ~1 µA amortized
+
+**Build-time:** Zero-cost when disabled — all code is conditionally compiled with `#ifdef PHASE_ENGINE_ENABLED`
+
+---
+
+#### Enabling Phase Engine
+
+**Via Makefile:**
+```bash
+make BOARD=sensorwatch_green DISPLAY=classic PHASE_ENGINE_ENABLED=1
+```
+
+**Via movement_config.h:**
+```c
+#define PHASE_ENGINE_ENABLED
+```
+
+**Via Web Builder:**
+Configure homebase settings (latitude/longitude/timezone) — Phase Engine auto-enables when homebase is set.
+
 ---
 
 This is a work-in-progress refactor of the Movement firmware for [Sensor Watch](https://www.sensorwatch.net).
