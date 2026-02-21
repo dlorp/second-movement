@@ -184,6 +184,13 @@ void sensors_sample_lux(struct sensor_state_t *state) {
     for (uint8_t i = 0; i < state->lux_buf_count; i++) {
         sum += state->lux_buffer[i];
     }
+    
+    // Guard against division by zero
+    if (state->lux_buf_count == 0) {
+        state->lux_avg = 0;
+        return;
+    }
+    
     state->lux_avg = (uint16_t)(sum / state->lux_buf_count);
 #else
     // Non-Pro boards: no light sensor
