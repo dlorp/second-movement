@@ -31,6 +31,11 @@
 #include "utz.h"
 #include "lis2dw.h"
 
+#ifdef PHASE_ENGINE_ENABLED
+#include "metrics.h"
+#include "playlist.h"
+#endif
+
 /// @brief A struct that allows a watch face to report its state back to Movement.
 typedef struct {
     uint8_t wants_background_task: 1;
@@ -316,6 +321,17 @@ typedef struct {
     // signal and alarm volumes
     watch_buzzer_volume_t signal_volume;
     watch_buzzer_volume_t alarm_volume;
+
+#ifdef PHASE_ENGINE_ENABLED
+    // Phase 3: Metrics engine and playlist controller
+    metrics_engine_t metrics;
+    playlist_state_t playlist;
+    
+    // Playlist integration state
+    uint16_t metric_tick_count;     // Counter for 15-minute metric updates
+    uint16_t cumulative_activity;    // Activity accumulator since wake
+    bool playlist_mode_active;       // True when playlist controls face rotation
+#endif
 } movement_state_t;
 
 void movement_move_to_face(uint8_t watch_face_index);

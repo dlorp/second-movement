@@ -1,393 +1,416 @@
-# Phase Engine
+# Playlist Controller
 
-Context-aware circadian rhythm tracking for Sensor Watch Pro.
+**Phase 3 Component:** Weighted Zone-Based Face Rotation System
+
+The Playlist Controller manages **adaptive face rotation** by computing zone-specific metric relevance and dynamically building a prioritized "playlist" of watch faces. It bridges the **Metrics Engine** (biological state) and the **Zone Faces** (adaptive UI).
+
+---
 
 ## Overview
 
-The Phase Engine computes a real-time "phase score" (0-100) representing how well your current activity aligns with your circadian rhythm. Unlike simple sleep tracking, it combines:
+### Purpose
 
-- **Seasonal data** (daylight, temperature) via location-specific homebase table
-- **Time of day** (circadian curve)
-- **Activity level** (movement, exertion)
-- **Environmental inputs** (temperature, light exposure)
+Instead of manually scrolling through all watch faces, the playlist controller:
+1. **Detects your current phase zone** (Emergence, Momentum, Active, Descent)
+2. **Ranks metrics by relevance** for that zone
+3. **Builds a playlist** of 3-6 faces showing the most important metrics
+4. **Auto-rotates faces** based on dwell time (user can also advance manually)
 
-All computations use **integer math only** (no floating point) for embedded efficiency.
+**Example:** In **Momentum zone** (26-50% phase score), WK and Energy metrics are most relevant, so those faces appear first in rotation.
+
+---
 
 ## Architecture
 
 ```
-lib/phase/
-├── phase_engine.h       # Core API and data structures
-├── phase_engine.c       # Phase computation logic
-├── homebase.h           # Homebase table interface
-├── homebase_table.h     # Generated LUT (365 days of seasonal data)
-└── README.md            # This file
+┌──────────────────┐
+│  Phase Score     │  0-100 from phase_compute()
+│  (Circadian)     │
+└────────┬─────────┘
+         │
+         v
+┌──────────────────┐
+│  Zone Detection  │  EMERGENCE → MOMENTUM → ACTIVE → DESCENT
+│  (with hysteresis)│
+└────────┬─────────┘
+         │
+         v
+┌──────────────────┐      ┌─────────────────┐
+│ Metric Weighting │<─────│ Metrics Snapshot│
+│  (zone-specific) │      │  SD/EM/WK/Eng/Com│
+└────────┬─────────┘      └─────────────────┘
+         │
+         v
+┌──────────────────┐
+│  Playlist Build  │  Sort by weight × value
+│  (top 6 metrics) │
+└────────┬─────────┘
+         │
+         v
+┌──────────────────┐
+│  Face Rotation   │  Manual (ALARM) or Auto (dwell timeout)
+└──────────────────┘
 ```
 
-### Flash Budget
+---
 
-- **Homebase table:** ~8 KB (365 entries × ~22 bytes)
-- **Phase engine code:** ~4 KB (computation logic)
-- **Total:** ~12 KB (well within 15-25 KB budget)
-
-### RAM Budget
-
-- **Phase state:** 64 bytes (includes 24-hour history buffer)
-
-## Homebase Table
-
-The homebase table is a location-specific lookup table (LUT) with 365 entries (one per day of year). Each entry contains:
-
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `expected_daylight_min` | `uint16_t` | Sunrise to sunset duration (minutes) | `570` = 9h 30m |
-| `avg_temp_c10` | `int16_t` | Average temperature (celsius × 10) | `125` = 12.5°C |
-| `seasonal_baseline` | `uint8_t` | Seasonal energy baseline (0-100) | `65` = moderate |
-
-**Why?** This table provides seasonal context without needing GPS or network access. The watch "knows" what's normal for your location and time of year.
-
-### Generating the Homebase Table
-
-The homebase table is generated at build time using `utils/generate_homebase.py`:
-
-```bash
-# San Francisco (default)
-python3 utils/generate_homebase.py --lat 37.7749 --lon -122.4194 --tz PST --year 2026
-
-# New York
-python3 utils/generate_homebase.py --lat 40.7128 --lon -74.0060 --tz EST --year 2026
-
-# London
-python3 utils/generate_homebase.py --lat 51.5074 --lon -0.1278 --tz UTC --year 2026
-
-# Tokyo
-python3 utils/generate_homebase.py --lat 35.6762 --lon 139.6503 --tz UTC+9 --year 2026
-```
-
-**Output:** Replaces `lib/phase/homebase_table.h` with location-specific data.
-
-**When to regenerate:**
-- Moving to a new location (>100 miles latitude change)
-- Timezone change
-- Annual update (optional - seasonal patterns don't change much)
-
-## Phase Engine API
+## API Reference
 
 ### Initialization
 
 ```c
-#include "phase_engine.h"
+#include "playlist.h"
 
-phase_state_t state;
-phase_engine_init(&state);
+playlist_state_t state;
+memset(&state, 0, sizeof(state));
+playlist_init(&state);
 ```
 
-### Computing Phase Score
+### Update (Every 15 Minutes or on State Change)
 
 ```c
-// Gather inputs
-uint8_t hour = current_datetime.unit.hour;
-uint8_t day_of_year = /* compute from date */;
-uint16_t activity_level = /* from accelerometer, 0-1000 */;
-int16_t temp_c10 = /* from sensor, e.g., 235 = 23.5°C */;
-uint16_t light_lux = /* from light sensor, e.g., 500 */;
-
-// Compute phase
-uint16_t phase_score = phase_compute(&state, hour, day_of_year, 
-                                      activity_level, temp_c10, light_lux);
-
-// phase_score: 0-100
-// - 0-30: Poor alignment (rest recommended)
-// - 30-60: Moderate alignment
-// - 60-80: Good alignment
-// - 80-100: Excellent alignment (peak performance)
+void playlist_update(playlist_state_t *state, 
+                     uint16_t phase_score,              // 0-100
+                     const metrics_snapshot_t *metrics); // SD/EM/WK/Energy/Comfort
 ```
 
-### Getting Recommendations
+**Triggers:**
+- Every 15 minutes (when metrics update)
+- After manual face advance
+- On zone transition
+
+**Behavior:**
+- Recomputes zone from phase score
+- Applies zone-specific weights to metrics
+- Sorts metrics by `weight × value`
+- Rebuilds face_indices[] array (top 6)
+
+### Get Current Face
 
 ```c
-uint8_t action = phase_get_recommendation(phase_score, hour);
-
-// action codes:
-// 0 = Rest (low phase, conserve energy)
-// 1 = Moderate activity
-// 2 = Active (good phase for work/exercise)
-// 3 = Peak performance (optimal phase)
+uint8_t metric_index = playlist_get_current_face(&state);
+// Returns: 0=SD, 1=EM, 2=WK, 3=Energy, 4=Comfort
 ```
 
-### Trend Analysis
+### Manual Advance (ALARM Button)
 
 ```c
-// Get phase trend over last 6 hours
-int16_t trend = phase_get_trend(&state, 6);
-
-// trend: -100 (declining) to +100 (improving)
-// Useful for predicting energy crashes or peaks
+void playlist_advance(playlist_state_t *state);
 ```
 
-## Integration with Watch Faces
+**Behavior:**
+- Moves to next face in rotation (wraps at end)
+- Resets dwell timer
+- Plays button feedback sound (if enabled)
 
-### Option 1: Direct Integration
+### Get Current Zone
 
 ```c
-#include "phase_engine.h"
+phase_zone_t zone = playlist_get_zone(&state);
+// Returns: ZONE_EMERGENCE, ZONE_MOMENTUM, ZONE_ACTIVE, or ZONE_DESCENT
+```
 
-typedef struct {
-    // ... existing face state ...
-    #ifdef PHASE_ENGINE_ENABLED
-    phase_state_t phase_state;
-    #endif
-} my_face_state_t;
+---
 
-void my_face_setup(movement_settings_t *settings, uint8_t watch_face_index, void **context_ptr) {
-    // ... existing setup ...
-    
-    #ifdef PHASE_ENGINE_ENABLED
-    my_face_state_t *state = (my_face_state_t *)*context_ptr;
-    phase_engine_init(&state->phase_state);
-    #endif
-}
+## Zone System
 
-void my_face_loop(movement_event_t event, movement_settings_t *settings, void *context) {
-    my_face_state_t *state = (my_face_state_t *)context;
-    
-    #ifdef PHASE_ENGINE_ENABLED
-    if (event.event_type == EVENT_TICK) {
-        // Update phase score every minute
-        watch_date_time_t dt = watch_rtc_get_date_time();
-        uint8_t hour = dt.unit.hour;
-        uint8_t day_of_year = /* compute */;
-        
-        uint16_t phase = phase_compute(&state->phase_state, hour, day_of_year,
-                                        /* activity */, /* temp */, /* light */);
-        
-        // Display or use phase score
-        printf("Phase: %d\n", phase);
+### Four Phases of the Circadian Cycle
+
+| Zone | Phase Score | Time of Day (typical) | Focus | Top Metrics |
+|------|-------------|----------------------|-------|-------------|
+| **Emergence** | 0-25 | 4 AM - 9 AM | Waking, orienting | SD, EM, Comfort |
+| **Momentum** | 26-50 | 9 AM - 2 PM | Building energy | WK, Energy, SD |
+| **Active** | 51-75 | 2 PM - 8 PM | Peak output | Energy, EM, Comfort |
+| **Descent** | 76-100 | 8 PM - 4 AM | Winding down | Comfort, SD, EM |
+
+### Zone-Specific Metric Weights
+
+```c
+// ZONE_EMERGENCE (0-25): Just woke up, need status check
+static const uint8_t WEIGHTS_EMERGENCE[5] = {
+    100,  // SD:      Critical (did I sleep enough?)
+    80,   // EM:      Important (how do I feel?)
+    40,   // WK:      Low (too early to care)
+    60,   // Energy:  Moderate (building up)
+    90    // Comfort: High (environment matters)
+};
+
+// ZONE_MOMENTUM (26-50): Building the day
+static const uint8_t WEIGHTS_MOMENTUM[5] = {
+    70,   // SD:      Moderate (yesterday's sleep still matters)
+    60,   // EM:      Moderate (mood stabilizing)
+    100,  // WK:      Critical (am I fully alert yet?)
+    90,   // Energy:  High (capacity check)
+    50    // Comfort: Low (less sensitive during ramp-up)
+};
+
+// ZONE_ACTIVE (51-75): Peak productivity
+static const uint8_t WEIGHTS_ACTIVE[5] = {
+    40,   // SD:      Low (not thinking about last night)
+    80,   // EM:      High (mood affects performance)
+    60,   // WK:      Moderate (already awake)
+    100,  // Energy:  Critical (need to know capacity)
+    70    // Comfort: Moderate (optimize environment)
+};
+
+// ZONE_DESCENT (76-100): Winding down
+static const uint8_t WEIGHTS_DESCENT[5] = {
+    90,   // SD:      High (will I sleep well tonight?)
+    70,   // EM:      Moderate (managing evening mood)
+    30,   // WK:      Low (irrelevant now)
+    50,   // Energy:  Low (letting go of output)
+    100   // Comfort: Critical (optimize for sleep prep)
+};
+```
+
+---
+
+## Playlist Algorithm
+
+### Step 1: Compute Weighted Relevance
+
+For each metric `i`:
+```
+relevance[i] = weight[zone][i] × metric_value[i] / 100
+```
+
+**Example (Momentum zone):**
+```
+Metrics:     SD=60,  EM=70,  WK=40,  Energy=55,  Comfort=80
+Weights:     70,     60,     100,    90,         50
+Relevance:   42,     42,     40,     49.5,       40
+Sorted:      Energy(49.5) → SD(42) → EM(42) → WK(40) → Comfort(40)
+```
+
+### Step 2: Sort by Relevance (Bubble Sort)
+
+```c
+// In-place sort of metric indices by relevance (descending)
+for (i = 0; i < count-1; i++) {
+    for (j = 0; j < count-i-1; j++) {
+        if (relevance[j] < relevance[j+1]) {
+            swap(face_indices[j], face_indices[j+1]);
+        }
     }
-    #endif
 }
 ```
 
-### Option 2: Shared Global State
+### Step 3: Build Playlist
 
-If multiple faces need phase data, consider a global state in `movement.c`:
+- **Top 6 metrics** → `face_indices[]` array
+- **Face count** → number of non-zero relevance metrics (typically 5, since JL is stubbed)
+
+### Step 4: Hysteresis (Zone Transition)
+
+To prevent flickering at zone boundaries:
+- New zone must persist for **2 consecutive updates** (30 minutes)
+- Only then does the playlist rebuild
 
 ```c
-// movement.c
-#ifdef PHASE_ENGINE_ENABLED
-static phase_state_t global_phase_state;
-
-void movement_init(void) {
-    phase_engine_init(&global_phase_state);
+if (new_zone != current_zone) {
+    if (new_zone == pending_zone) {
+        consecutive_count++;
+        if (consecutive_count >= 2) {
+            current_zone = new_zone;  // Commit transition
+            rebuild_playlist();
+        }
+    } else {
+        pending_zone = new_zone;
+        consecutive_count = 1;
+    }
 }
+```
 
-phase_state_t* movement_get_phase_state(void) {
-    return &global_phase_state;
+---
+
+## Auto-Advance (Dwell Timer)
+
+**Status:** Not yet implemented (deferred to Phase 4)
+
+**Planned Behavior:**
+- Each face has a `dwell_limit` (e.g., 5 minutes)
+- After `dwell_limit` ticks, auto-advance to next face
+- User interaction resets dwell timer
+- Can be disabled in settings
+
+**Current Behavior:** Manual advance only (ALARM button)
+
+---
+
+## Integration Example
+
+### In `movement.c` (Phase 3 PR 6)
+
+```c
+#ifdef PHASE_ENGINE_ENABLED
+// In _movement_handle_top_of_minute() (every 15 min):
+if (tick_count >= 15) {
+    tick_count = 0;
+    
+    // Update metrics
+    metrics_update(&movement_state.metrics, ...);
+    
+    // Get current metrics
+    metrics_snapshot_t snapshot;
+    metrics_get(&movement_state.metrics, &snapshot);
+    
+    // Update playlist
+    uint16_t phase_score = phase_compute(...);  // From Phase 1-2
+    playlist_update(&movement_state.playlist, phase_score, &snapshot);
+    
+    // If playlist mode active, switch to recommended face
+    if (movement_state.playlist_mode_active) {
+        uint8_t metric_idx = playlist_get_current_face(&movement_state.playlist);
+        phase_zone_t zone = playlist_get_zone(&movement_state.playlist);
+        uint8_t face_idx = get_zone_face_index(metric_idx, zone);
+        movement_move_to_face(face_idx);
+    }
 }
 #endif
 ```
 
-Then faces can access it via `movement_get_phase_state()`.
-
-## Enabling/Disabling Phase Engine
-
-The phase engine is **disabled by default** to maintain backward compatibility.
-
-### To Enable
-
-Add to `movement_config.h`:
+### ALARM Button Handler
 
 ```c
-#define PHASE_ENGINE_ENABLED
+#ifdef PHASE_ENGINE_ENABLED
+case EVENT_ALARM_BUTTON_UP:
+    if (movement_state.playlist_mode_active) {
+        playlist_advance(&movement_state.playlist);
+        
+        uint8_t metric_idx = playlist_get_current_face(&movement_state.playlist);
+        phase_zone_t zone = playlist_get_zone(&movement_state.playlist);
+        uint8_t face_idx = get_zone_face_index(metric_idx, zone);
+        movement_move_to_face(face_idx);
+    }
+    break;
+#endif
 ```
-
-### Flash Size Impact
-
-- **Disabled:** 0 bytes (all code is `#ifdef`'d out)
-- **Enabled (stubs only):** ~500 bytes (Phase 1)
-- **Enabled (full logic):** ~12 KB (Phase 2+)
-
-### Testing Both Modes
-
-```bash
-# Test disabled (default)
-make clean && make
-arm-none-eabi-size build/watch.elf
-
-# Test enabled
-echo "#define PHASE_ENGINE_ENABLED" >> movement_config.h
-make clean && make
-arm-none-eabi-size build/watch.elf
-
-# Clean up
-git checkout movement_config.h
-```
-
-## Implementation Status
-
-### Phase 1: Scaffolding ✓
-
-- [x] Directory structure
-- [x] Homebase generator script
-- [x] Phase engine headers
-- [x] Stub implementations (return neutral values)
-- [x] `#ifdef` infrastructure
-- [x] Documentation
-
-**Current state:** Compiles cleanly with/without `PHASE_ENGINE_ENABLED`, but returns neutral scores (50/100).
-
-### Phase 2: Metrics (TODO)
-
-- [ ] Implement homebase table lookups
-- [ ] Circadian curve computation (cosine approximation LUT)
-- [ ] Activity deviation scoring
-- [ ] Temperature deviation scoring
-- [ ] Light exposure scoring
-- [ ] Weighted combination algorithm
-
-### Phase 3: Optimization (TODO)
-
-- [ ] Flash size profiling
-- [ ] LUT compression (if needed)
-- [ ] RAM optimization
-- [ ] Power profiling
-
-### Phase 4: Watch Faces (TODO)
-
-- [ ] Dedicated phase display face
-- [ ] Integration with existing faces (sleep tracker, activity, etc.)
-- [ ] Phase history visualization
-
-## Design Decisions
-
-### Why Integer Math?
-
-SAM L22 has no hardware FPU. Floating point operations are **50-100× slower** than integer operations. For a battery-powered watch, this matters.
-
-**Example:** Temperature stored as `celsius × 10`:
-- `23.5°C` → `235` (int16_t)
-- `12.5°C` → `125` (int16_t)
-
-### Why a Homebase Table?
-
-Alternative approaches considered:
-
-1. **Real-time solar calculations** - Too slow, burns power
-2. **Network lookups** - No network on watch
-3. **GPS-based** - No GPS, high power draw
-4. **Generic seasonal curve** - Inaccurate (e.g., Seattle vs Phoenix)
-
-**Homebase table wins:** Fast, accurate, low power, works offline.
-
-### Why 365 Entries (Not 12)?
-
-Daily granularity captures real seasonal transitions:
-- Spring/fall equinoxes (rapid daylight changes)
-- Gradual temperature shifts
-- Location-specific weather patterns
-
-Cost: ~5 KB extra flash (totally acceptable).
-
-### Why Casio Style?
-
-Casio watches (G-SHOCK, Pro Trek) use extensive LUTs for tide tables, sunrise/sunset, moon phases, etc. It's a proven embedded pattern:
-- Fast lookups (array indexing)
-- Deterministic memory usage
-- No runtime computation overhead
-
-## Memory Footprint
-
-### Flash (Program Memory)
-
-| Component | Size | Notes |
-|-----------|------|-------|
-| Homebase metadata | ~20 bytes | Location, year, etc. |
-| Homebase table (365 entries) | ~1,825 bytes | 5 bytes × 365 |
-| Homebase accessor functions | ~100 bytes | Bounds checking |
-| Phase engine API | ~500 bytes | Stub implementations |
-| **Total (Phase 1)** | **~2,445 bytes** | Well under 4 KB budget |
-
-Future phases (with full logic):
-| Phase engine computation | ~3-4 KB | Circadian curves, scoring |
-| **Total (Phase 2+)** | **~6-8 KB** | Well under 12 KB budget |
-
-### RAM (Runtime Memory)
-
-| Component | Size | Notes |
-|-----------|------|-------|
-| `phase_state_t` | 64 bytes | Includes 24-hour history |
-| Stack usage (worst case) | ~32 bytes | Function calls |
-| **Total** | **~96 bytes** | <0.5% of 32 KB RAM |
-
-## Testing
-
-### Unit Tests (Future)
-
-```bash
-# TODO: Add to CI pipeline
-python3 tests/test_phase_engine.py
-```
-
-### Integration Tests
-
-```bash
-# Compile with phase engine
-echo "#define PHASE_ENGINE_ENABLED" >> movement_config.h
-make clean && make
-
-# Verify size
-arm-none-eabi-size build/watch.elf
-
-# Expected (Phase 1):
-# text     data     bss
-# +2500    +0       +0   (vs baseline)
-```
-
-## References
-
-### Circadian Research
-
-- **Phillips et al. (2017):** Sleep Regularity Index
-- **Cappuccio et al.:** Sleep duration U-curve
-- **Czeisler & Gooley (2007):** Light exposure timing
-
-### Implementation Patterns
-
-- `lib/circadian_score.c` - Integer math precedent
-- `lib/sunriset/` - Solar calculations (inspiration for homebase)
-
-## FAQ
-
-**Q: Do I need to regenerate the homebase table every year?**  
-A: No. Seasonal patterns are stable. Regenerating every 5-10 years is fine.
-
-**Q: What if I travel to a different timezone?**  
-A: Phase 4 will add multi-timezone support. For now, regenerate the table for your new location.
-
-**Q: Can I use this without environmental sensors?**  
-A: Yes. Pass `0` for temperature and light inputs - the engine will fall back to time-of-day scoring.
-
-**Q: How does this differ from circadian_score?**  
-A: `circadian_score` analyzes past sleep data (retrospective). Phase engine tracks real-time alignment (prospective).
-
-**Q: Why not use the existing sunriset library?**  
-A: `sunriset` computes sunrise/sunset in real-time (slow). Homebase table precomputes it (fast).
-
-## Contributing
-
-When adding features to the phase engine:
-
-1. **Maintain integer math** - No floats!
-2. **Respect budgets** - Flash ≤12 KB, RAM ≤64 bytes
-3. **Add `#ifdef` guards** - Must compile when disabled
-4. **Update this README** - Document new APIs
-5. **Test both modes** - Enabled and disabled builds
-
-## License
-
-MIT License - See `LICENSE.md` in repository root.
 
 ---
 
-**Status:** Phase 1 complete (scaffolding).  
-**Next:** Phase 2 (metrics computation).
+## Resource Usage
+
+### Flash: ~1.5 KB
+
+| Component | Size |
+|-----------|------|
+| `playlist.c` | ~1,200 B |
+| Weight tables | ~200 B |
+| Sorting logic | ~100 B |
+| **Total** | **~1,500 B** |
+
+### RAM: 24 Bytes (playlist_state_t)
+
+```c
+typedef struct {
+    uint8_t zone;                  // 1 B: Current zone (0-3)
+    uint8_t face_count;            // 1 B: Faces in rotation (0-6)
+    uint8_t face_indices[6];       // 6 B: Sorted metric indices
+    uint8_t current_face;          // 1 B: Index into face_indices
+    uint16_t dwell_ticks;          // 2 B: Time on current face
+    uint16_t dwell_limit;          // 2 B: Auto-advance threshold
+    uint8_t pending_zone;          // 1 B: Hysteresis state
+    uint8_t consecutive_count;     // 1 B: Hysteresis counter
+    // Padding: ~9 B
+} playlist_state_t;  // 24 B total
+```
+
+### BKUP: 0 Bytes
+
+Playlist state is **runtime-only** (no persistence needed).
+
+---
+
+## Testing
+
+### Unit Tests
+
+```bash
+# Test zone detection
+make test_playlist_zone
+
+# Test metric weighting
+make test_playlist_weights
+
+# Test face sorting
+make test_playlist_sort
+
+# Test hysteresis
+make test_playlist_hysteresis
+```
+
+### Integration Test
+
+```bash
+# Full playlist controller test
+make test_playlist_integration
+```
+
+---
+
+## Configuration
+
+### Compile-Time Flags
+
+```makefile
+PHASE_ENGINE_ENABLED = 1   # Enable playlist controller
+```
+
+### Runtime Configuration (Future)
+
+- [ ] Dwell timeout (auto-advance interval)
+- [ ] Custom zone boundaries (adjust phase score thresholds)
+- [ ] Metric exclusions (hide specific metrics from rotation)
+
+---
+
+## Known Limitations
+
+1. **Auto-advance not implemented:** Requires dwell timer integration
+2. **Zone face dispatch stubbed:** Returns face 0 (clock) until zone faces merged
+3. **No user preferences:** All users see same weights (Phase 4: personalization)
+4. **No A/B testing:** Weight tuning is manual (Phase 4: adaptive learning)
+
+---
+
+## Future Enhancements (Phase 4+)
+
+- [ ] Auto-advance based on dwell timer
+- [ ] User-configurable weights (e.g., "I care more about Comfort than EM")
+- [ ] Adaptive weight learning (observe which faces user spends time on)
+- [ ] Zone boundary customization (early bird vs night owl)
+- [ ] Metric exclusion (hide JL if never traveling)
+- [ ] Multi-metric faces (e.g., "Emergence Summary" showing SD+EM+Comfort)
+
+---
+
+## Troubleshooting
+
+### Playlist not updating?
+
+- Check that `PHASE_ENGINE_ENABLED=1` in build
+- Verify `metrics_update()` is called every 15 minutes
+- Ensure `phase_score` is non-zero (stubbed to 50 if phase engine unavailable)
+
+### Zone transitions too fast?
+
+- Hysteresis requires **2 consecutive updates** (30 min total)
+- If still flickering, increase `HYSTERESIS_THRESHOLD` in `playlist.c`
+
+### Face rotation stuck?
+
+- Check `playlist_mode_active` flag (must be true)
+- Verify `get_zone_face_index()` returns valid face indices
+- Ensure ALARM button events reach `playlist_advance()`
+
+---
+
+## References
+
+- `PHASE3_IMPLEMENTATION_PLAN.md` — Overall Phase 3 architecture
+- `lib/metrics/README.md` — Metrics Engine (data source for playlist)
+- `PHASE3_BUDGET_REPORT.md` — Resource usage details
+
+---
+
+**Questions? See `docs/PHASE3_FAQ.md` or ask in #second-movement**
