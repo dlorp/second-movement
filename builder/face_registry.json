@@ -179,6 +179,17 @@
       "default_position": null
     },
     {
+      "id": "active_face",
+      "name": "Active",
+      "category": "complication",
+      "source": "./watch-faces/complication/active_face.c",
+      "header": "./watch-faces/complication/active_face.h",
+      "description": "Displays metrics relevant to the Active phase (peak alertness): - View 0: Energy (NRG) - Primary metric (phase-aligned capacity) - View 1: Emotional (EM) - Mood state",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
       "id": "activity_logging_face",
       "name": "Activity Logging",
       "category": "sensor",
@@ -322,6 +333,28 @@
       "default_position": null
     },
     {
+      "id": "descent_face",
+      "name": "Descent",
+      "category": "complication",
+      "source": "./watch-faces/complication/descent_face.c",
+      "header": "./watch-faces/complication/descent_face.h",
+      "description": "Displays metrics relevant to the Descent phase (winding down): - View 0: Comfort (CMF) - Primary metric (environmental alignment) - View 1: Emotional (EM) - Evening mood state",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "emergence_face",
+      "name": "Emergence",
+      "category": "complication",
+      "source": "./watch-faces/complication/emergence_face.c",
+      "header": "./watch-faces/complication/emergence_face.h",
+      "description": "Displays metrics relevant to the Emergence phase (waking up): - View 0: Sleep Debt (SD) - Primary metric - View 1: Emotional (EM) - Mood state",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
       "id": "endless_runner_face",
       "name": "Endless Runner",
       "category": "complication",
@@ -460,6 +493,17 @@
       "source": "./watch-faces/clock/mars_time_face.c",
       "header": "./watch-faces/clock/mars_time_face.h",
       "description": "This watch face is dedicated to Martian timekeeping. It has several modes, and can display either a time or a date. Pressing the ALARM button cycles through different time zones on Mars:",
+      "requires_sensor": null,
+      "default": false,
+      "default_position": null
+    },
+    {
+      "id": "momentum_face",
+      "name": "Momentum",
+      "category": "complication",
+      "source": "./watch-faces/complication/momentum_face.c",
+      "header": "./watch-faces/complication/momentum_face.h",
+      "description": "Displays metrics relevant to the Momentum phase (ramping up): - View 0: Wake Momentum (WK) - Primary metric (ramp to alertness) - View 1: Sleep Debt (SD) - Residual sleep pressure",
       "requires_sensor": null,
       "default": false,
       "default_position": null
