@@ -38,9 +38,10 @@
  * See lib/phase/README.md for documentation.
  * 
  * NOTE: Disabled by default for backward compatibility.
- *       Uncomment to enable:
+ *       Enable via Makefile: make BOARD=... DISPLAY=... PHASE_ENGINE_ENABLED=1
+ *       Or uncomment below:
  */
-#define PHASE_ENGINE_ENABLED
+// #define PHASE_ENGINE_ENABLED
 
 /* ===== END EXPERIMENTAL FEATURES ===== */
 

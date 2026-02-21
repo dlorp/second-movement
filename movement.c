@@ -27,10 +27,6 @@
 #define MOVEMENT_REALLY_LONG_PRESS_TICKS 192
 #define MOVEMENT_MAX_LONG_PRESS_TICKS 1280 // get a chance to check if a button held down over 10 seconds is a glitch
 
-// Phase Engine: Must be defined before including movement.h
-// This should match the setting in movement_config.h
-#define PHASE_ENGINE_ENABLED
-
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
