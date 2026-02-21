@@ -97,7 +97,11 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 
 **What it is:** A biological state tracking system that measures your alignment with natural cycles — not clock time. Think of it as a compass for your body's relationship to the environment and seasons.
 
-**Philosophy:** The watch becomes a **chronomantic instrument** measuring three axes simultaneously:
+**Philosophy:** The watch becomes a **chronomantic instrument** measuring the relationship between **Human × Environment × Season**.
+
+Instead of just telling you the time, it uses pre-computed seasonal data tables for your location (homebase) to show you **where you are** relative to what's normal for your body in this place, at this time of year. By monitoring these metrics throughout the day, you can see if your actions are improving your alignment or causing you to stagnate.
+
+**The three axes measured simultaneously:**
 
 | Axis | What It Measures | Data Source |
 |------|------------------|-------------|
@@ -105,7 +109,7 @@ Settings stored in BKUP[2] register (battery-backed RAM). Survives normal power 
 | **Environment** | Light, temperature, motion variance | Lux sensor, thermistor, motion patterns |
 | **Season** | Expected daylight, climate norms for your location | Homebase table (pre-computed seasonal data) |
 
-**Core principle:** Phase is a continuous weighted field (0-100), not rigid clock zones. Your biological state flows through four zones as you move through your day.
+**Core principle:** Phase is a continuous weighted field (0-100), not rigid clock zones. Your biological state flows through four zones as you move through your day. The watch surfaces metrics that deviate from expected norms — when everything is aligned (phase ≈ 100), you see green lights. When something is off (low phase score), the relevant metric surfaces to show you what needs attention.
 
 ---
 
