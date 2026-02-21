@@ -527,10 +527,16 @@ static void _movement_handle_top_of_minute(void) {
     was_in_sleep_window = now_in_sleep_window;
 
 #ifdef PHASE_ENGINE_ENABLED
+    // PR #66: Sample lux every minute (lightweight)
+    sensors_sample_lux(&movement_state.sensors);
+    
     // Phase 3: Update metrics engine every 15 minutes
     movement_state.metric_tick_count++;
     if (movement_state.metric_tick_count >= 15) {
         movement_state.metric_tick_count = 0;
+        
+        // PR #65 + #66: Full sensor update (motion + lux + temperature)
+        sensors_update(&movement_state.sensors);
         
         // Gather current sensor readings
         uint8_t hour = date_time.unit.hour;
@@ -547,17 +553,11 @@ static void _movement_handle_top_of_minute(void) {
             // activity_level = get_recent_activity_level();
         }
         
-        // Get temperature
-        int16_t temp_c10 = 0;
-        if (movement_state.has_thermistor) {
-            float temp_c = movement_get_temperature();
-            if (temp_c != 0xFFFFFFFF) {
-                temp_c10 = (int16_t)(temp_c * 10.0f);
-            }
-        }
+        // PR #66: Get temperature from sensor state
+        int16_t temp_c10 = (int16_t)sensors_get_temperature_c10(&movement_state.sensors);
         
-        // Get light level (stub - requires light sensor integration)
-        uint16_t light_lux = 0;
+        // PR #66: Get light level from sensor state
+        uint16_t light_lux = sensors_get_lux_avg(&movement_state.sensors);
         
         // Update metrics engine
         metrics_update(&movement_state.metrics,
@@ -1434,6 +1434,12 @@ void app_setup(void) {
         movement_state.metric_tick_count = 0;
         movement_state.cumulative_activity = 0;
         movement_state.playlist_mode_active = false;  // Disabled by default; enable via watch face
+        
+        // Phase 4A: Initialize sensor state (PR #65 + #66)
+        sensors_init(&movement_state.sensors, movement_state.has_lis2dw);
+        if (movement_state.has_lis2dw) {
+            sensors_configure_accel(&movement_state.sensors);
+        }
 #endif
 
         movement_request_tick_frequency(1);
