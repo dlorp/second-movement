@@ -485,3 +485,230 @@ After dogfooding, Phase 3 succeeds if:
 ---
 
 **End of tuning parameters. Begin dogfooding with these defaults, iterate based on reality.**
+
+---
+
+## Phase 4F: Sleep Mode & Calibration Parameters
+**Version:** 1.0 (Initial implementation)  
+**Last updated:** 2026-02-22  
+**Status:** Implemented, awaiting dogfooding validation
+
+### 1. Active Hours Sleep Mode
+
+```c
+// Sleep window enforcement
+#define ALL_NIGHTER_THRESHOLD_MIN       30    // Minutes of sustained activity to override sleep mode
+#define MOVEMENT_SIGNIFICANCE_THRESHOLD 30    // Movements per minute to count as "active"
+#define IDLE_RESET_MINUTES              5     // Minutes of low activity before resetting sustained counter
+```
+
+**Behavior:**
+- During sleep hours (outside active hours), zones lock to DESCENT
+- If sustained activity exceeds 30 minutes, sleep mode unlocks (all-nighter detection)
+- Prevents 3am bathroom trips from triggering MOMENTUM/ACTIVE zones
+
+**Test case:**
+- 3 AM bathroom trip (5 min movement) → zone stays DESCENT
+- All-nighter work session (40+ min sustained) → zones unlock, normal logic resumes
+
+---
+
+### 2. EM Light Calibration (Alaska-Ready)
+
+```c
+// Default lux thresholds (temperate climate)
+#define DEFAULT_OUTDOOR_LUX_MIN         500   // Typical outdoor daylight
+#define DEFAULT_INDOOR_LUX_MIN          50    // Typical indoor lighting
+#define DEFAULT_DAYLIGHT_START          6     // Hour (6 AM)
+#define DEFAULT_DAYLIGHT_END            18    // Hour (6 PM)
+
+// Alaska winter calibration example
+#define ALASKA_WINTER_OUTDOOR_LUX       200   // Overcast midday
+#define ALASKA_WINTER_INDOOR_LUX        50    // Same as default
+#define ALASKA_WINTER_DAYLIGHT_START    10    // Hour (10 AM)
+#define ALASKA_WINTER_DAYLIGHT_END      16    // Hour (4 PM)
+
+// Alaska summer calibration example
+#define ALASKA_SUMMER_OUTDOOR_LUX       800   // Snow reflection spikes
+#define ALASKA_SUMMER_DAYLIGHT_START    4     // Hour (4 AM, long days)
+#define ALASKA_SUMMER_DAYLIGHT_END      22    // Hour (10 PM)
+```
+
+**Rationale:**
+- Hardcoded 500 lux outdoor assumption fails in Alaska winter (200-300 lux overcast)
+- Daylight hours vary by latitude and season
+- Makes EM metric track "outdoor feel" not absolute lux
+
+**Test case:**
+- Alaska winter: 200 lux at noon → EM scores as "outdoor" (good alignment)
+- Standard config: 200 lux → EM scores as "too dim" (bad EM score)
+
+**Tuning workflow:**
+1. Observe local lux readings during typical "outdoor" conditions
+2. Set `outdoor_lux_min` to median daytime outdoor lux (±100 lux)
+3. Adjust `daylight_start/end` to local sunrise/sunset (±1 hour)
+4. Re-test EM scores for 3-7 days
+
+---
+
+### 3. WK Activity Baseline (7-Day Personalization)
+
+```c
+// WK baseline computation
+#define WK_BASELINE_HISTORY_DAYS        7     // Rolling average window
+#define WK_BASELINE_ACTIVE_HOURS        16    // Assumed active hours per day
+#define WK_BASELINE_DEFAULT             30    // Fallback if no history
+
+// Threshold derivation (integer math)
+// active_threshold = baseline + (baseline >> 1)           // 1.5× baseline
+// very_active_threshold = (baseline << 1) + (baseline >> 1) // 2.5× baseline
+```
+
+**Behavior:**
+- Tracks daily total movement in 7-day circular buffer
+- Computes baseline = avg(daily_totals) / 16 hours
+- Derives personalized "active" (1.5×) and "very active" (2.5×) thresholds
+- Sedentary user: low baseline → low threshold (easier to hit "active")
+- Athletic user: high baseline → high threshold (harder to hit "active")
+
+**Example scenarios:**
+
+| User Profile | Daily Movement | Baseline/hr | Active Threshold | Very Active Threshold |
+|--------------|---------------|-------------|------------------|-----------------------|
+| Sedentary    | 2,400         | 15          | 23               | 38                    |
+| Moderate     | 4,800         | 30          | 45               | 75                    |
+| Athletic     | 9,600         | 60          | 90               | 150                   |
+
+**Test case:**
+- Wear for 7 days with varied activity levels
+- Check that baseline converges to personal average
+- Active threshold should feel "achievable but not trivial"
+- Very active threshold should require "deliberate effort"
+
+**Tuning:** No knobs needed - personalizes automatically. Validate that 7 days is sufficient warm-up period.
+
+---
+
+### 4. Zone Transition Hysteresis
+
+```c
+// Configurable hysteresis count
+#define HYSTERESIS_COUNT_MIN            3     // Minimum (45 min @ 15-min updates)
+#define HYSTERESIS_COUNT_DEFAULT        3     // Default (45 min)
+#define HYSTERESIS_COUNT_MAX            10    // Maximum (150 min @ 15-min updates)
+```
+
+**Behavior:**
+- Requires N consecutive readings in new zone before transitioning
+- With 15-minute update intervals:
+  - Count = 3 → 45 minutes (default, balanced)
+  - Count = 5 → 75 minutes (more stable, slower response)
+  - Count = 10 → 150 minutes (very stable, sluggish)
+
+**Tuning guidance:**
+
+| Hysteresis | Transition Time | Use Case |
+|------------|----------------|----------|
+| 3          | 45 min         | Balanced (default) |
+| 5          | 75 min         | Prevent flicker during varied activity |
+| 7          | 105 min        | Very stable zones (long-duration work) |
+| 10         | 150 min        | Maximum stability (slow lifestyle changes) |
+
+**Test case:**
+- Hysteresis = 3: Transition from MOMENTUM → ACTIVE after ~45 min sustained high activity
+- Hysteresis = 7: Same transition takes ~105 min (more resistant to noise)
+
+**Tuning workflow:**
+1. Start with default (3)
+2. If zones feel "jittery" (changing too often) → increase to 5-7
+3. If zones feel "sluggish" (not responsive) → decrease to 3 (minimum)
+4. Target: zones should change 2-4 times per day (not hourly)
+
+---
+
+### 5. RAM & Flash Budget Summary
+
+| Feature | RAM (bytes) | Flash (bytes) |
+|---------|-------------|---------------|
+| Sleep mode tracking | +2 | ~400 |
+| EM light calibration | 0 (params) | ~300 |
+| WK baseline (7-day) | +16 | ~350 |
+| Hysteresis tuning | 0 (param) | ~50 |
+| **Total Phase 4F** | **+18** | **~1,100** |
+
+**Budget status:** Well under 2 KB flash constraint (55% of budget).
+
+---
+
+### 6. Builder UI Configuration (TODO)
+
+Phase 4F parameters will be exposed in builder UI when implemented:
+
+```javascript
+// Light calibration section
+outdoor_lux_min: 500,        // Outdoor light threshold (50-2000 lux)
+indoor_lux_min: 50,          // Indoor light threshold (5-500 lux)
+daylight_start: 6,           // Daylight start hour (0-23)
+daylight_end: 18,            // Daylight end hour (0-23)
+
+// Hysteresis tuning
+hysteresis_count: 3,         // Zone transition count (3-10)
+
+// Active hours already exist in builder
+active_hours_enabled: true,
+active_hours_start: 6,       // 6 AM
+active_hours_end: 22,        // 10 PM
+```
+
+**UI tooltips:**
+- `outdoor_lux_min`: "Expected light during daytime (lux). Lower for cloudy climates."
+- `daylight_start/end`: "Hours when outdoor light is expected. Adjust for latitude/season."
+- `hysteresis_count`: "Stability vs responsiveness. Higher = more stable zones (3-10 readings)."
+
+---
+
+### 7. Validation Checklist (Dogfooding)
+
+**Sleep Mode Enforcement:**
+- [ ] 3 AM bathroom trip: zone stays DESCENT (no escalation)
+- [ ] All-nighter coding session (40+ min): zones unlock after 30 min
+- [ ] Early morning wake (5 AM): DESCENT until active hours start
+
+**EM Calibration:**
+- [ ] Overcast day (200 lux): EM scores as "outdoor" (not penalized)
+- [ ] Snow reflection (800 lux): EM scores as "very bright" (appropriate)
+- [ ] Sunset timing: EM transitions outdoor→indoor at configured `daylight_end`
+
+**WK Baseline:**
+- [ ] Sedentary day (2000 movements): active threshold feels achievable
+- [ ] Athletic day (10,000 movements): very active threshold feels challenging
+- [ ] 7-day warmup: baseline converges to stable value by day 8
+
+**Hysteresis Tuning:**
+- [ ] Hysteresis = 3: zones change 2-4 times per day (not hourly)
+- [ ] Hysteresis = 7: zones very stable (only change with sustained state shifts)
+- [ ] Brief activity bursts: do NOT trigger zone changes (debounced)
+
+---
+
+### 8. Known Limitations & Future Work
+
+**Phase 4F MVP:**
+- ✅ Sleep mode enforcement (zones locked during sleep)
+- ✅ Configurable lux thresholds (Alaska-ready)
+- ✅ WK baseline personalization (7-day rolling)
+- ✅ Configurable hysteresis (stability tuning)
+
+**Deferred to Phase 5:**
+- ⏳ Auto-calibration (lux thresholds learned from 7-day histogram)
+- ⏳ Builder UI timeline visualization (zone preview)
+- ⏳ Telemetry events (SLEEP_LOCK, ALLNIGHTER, EM_CAL logged)
+
+**No changes to:**
+- Power budget (<2.5 µA target maintained)
+- Update frequency (15 min intervals unchanged)
+- Zone weight tables (Emergence/Momentum/Active/Descent logic unchanged)
+
+---
+
+**Phase 4F tuning complete. Ready for dogfooding validation.**
