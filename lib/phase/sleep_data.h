@@ -225,6 +225,53 @@ sleep_state_t sleep_data_get_state_at_epoch(const sleep_telemetry_state_t *state
  */
 void sleep_data_set_state_at_epoch(sleep_telemetry_state_t *state, uint16_t epoch_idx, sleep_state_t sleep_state);
 
+// ============================================================================
+// Phase 4F: WK Baseline Tracking (7-day rolling average)
+// ============================================================================
+
+/**
+ * WK Baseline: Tracks daily movement totals over 7 days to compute
+ * a personalized baseline for activity levels.
+ */
+typedef struct {
+    uint16_t daily_totals[7];    // 7-day circular buffer (movements per day)
+    uint8_t day_index;           // Current index in circular buffer (0-6)
+    uint8_t baseline_per_hour;   // Computed baseline (movements/hour)
+} wk_baseline_t;  // 17 bytes
+
+/**
+ * Update baseline with today's movement total.
+ * Recalculates baseline as average hourly movement over valid days.
+ * 
+ * @param wk Baseline state
+ * @param daily_movement Total movements for the day
+ */
+void wk_baseline_update_daily(wk_baseline_t *wk, uint16_t daily_movement);
+
+/**
+ * Get computed baseline movements per hour.
+ * 
+ * @param wk Baseline state
+ * @return Baseline movements per hour (0-255)
+ */
+uint8_t wk_baseline_get_per_hour(const wk_baseline_t *wk);
+
+/**
+ * Get "active" threshold (baseline × 1.5).
+ * 
+ * @param wk Baseline state
+ * @return Active threshold (0-255)
+ */
+uint8_t wk_baseline_get_active_threshold(const wk_baseline_t *wk);
+
+/**
+ * Get "very active" threshold (baseline × 2.0).
+ * 
+ * @param wk Baseline state
+ * @return Very active threshold (0-255)
+ */
+uint8_t wk_baseline_get_very_active_threshold(const wk_baseline_t *wk);
+
 #endif // PHASE_ENGINE_ENABLED
 
 #endif // SLEEP_DATA_H_

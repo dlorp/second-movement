@@ -112,7 +112,9 @@ void sleep_data_detect_wake_events(sleep_telemetry_state_t *state) {
                 uint16_t wake_duration_epochs = consecutive_wake;
                 uint16_t wake_duration_min = (wake_duration_epochs + 1) / 2;  // 30s epochs -> minutes
                 
-                state->wake_events.total_wake_min += wake_duration_min;
+                // Saturating add to prevent overflow
+                uint32_t new_total = (uint32_t)state->wake_events.total_wake_min + wake_duration_min;
+                state->wake_events.total_wake_min = (new_total > UINT16_MAX) ? UINT16_MAX : (uint16_t)new_total;
                 
                 if (wake_duration_min > state->wake_events.longest_wake_min) {
                     state->wake_events.longest_wake_min = MIN(wake_duration_min, 255);
@@ -122,9 +124,9 @@ void sleep_data_detect_wake_events(sleep_telemetry_state_t *state) {
                     // Record wake time as offset from sleep onset in 15-min blocks
                     uint16_t offset_min = current_wake_start / 2;  // epochs -> minutes
                     state->wake_events.wake_times[state->wake_events.wake_count] = MIN(offset_min / 15, 255);
+                    state->wake_events.wake_count++;
                 }
-                
-                state->wake_events.wake_count++;
+                // If already at max, don't increment (prevents overflow and wraparound)
             }
             
             consecutive_wake = 0;
@@ -137,7 +139,9 @@ void sleep_data_detect_wake_events(sleep_telemetry_state_t *state) {
         uint16_t wake_duration_epochs = consecutive_wake;
         uint16_t wake_duration_min = (wake_duration_epochs + 1) / 2;
         
-        state->wake_events.total_wake_min += wake_duration_min;
+        // Saturating add to prevent overflow
+        uint32_t new_total = (uint32_t)state->wake_events.total_wake_min + wake_duration_min;
+        state->wake_events.total_wake_min = (new_total > UINT16_MAX) ? UINT16_MAX : (uint16_t)new_total;
         
         if (wake_duration_min > state->wake_events.longest_wake_min) {
             state->wake_events.longest_wake_min = MIN(wake_duration_min, 255);
@@ -146,9 +150,9 @@ void sleep_data_detect_wake_events(sleep_telemetry_state_t *state) {
         if (state->wake_events.wake_count < MAX_WAKE_EVENTS) {
             uint16_t offset_min = current_wake_start / 2;
             state->wake_events.wake_times[state->wake_events.wake_count] = MIN(offset_min / 15, 255);
+            state->wake_events.wake_count++;
         }
-        
-        state->wake_events.wake_count++;
+        // If already at max, don't increment (prevents overflow and wraparound)
     }
 }
 
@@ -181,9 +185,9 @@ uint8_t sleep_data_calc_restlessness(const sleep_telemetry_state_t *state) {
         }
     }
     
-    // Calculate percentages (avoid division by zero)
-    uint8_t restless_pct = (restless_count * 100) / state->sleep_states.total_epochs;
-    uint8_t wake_pct = (wake_count * 100) / state->sleep_states.total_epochs;
+    // Calculate percentages (avoid division by zero and integer overflow)
+    uint8_t restless_pct = (uint8_t)(((uint32_t)restless_count * 100) / state->sleep_states.total_epochs);
+    uint8_t wake_pct = (uint8_t)(((uint32_t)wake_count * 100) / state->sleep_states.total_epochs);
     
     // Movement component (0-50): % of epochs in RESTLESS or WAKE state
     uint16_t move_score = (restless_pct + wake_pct) / 2;
