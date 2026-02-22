@@ -537,6 +537,14 @@ static void _movement_handle_top_of_minute(void) {
     
     // Phase 3: Update metrics engine every 15 minutes
     movement_state.metric_tick_count++;
+    
+    // Phase 4E: Track hourly boundaries for telemetry accumulation
+    static uint8_t last_telemetry_hour = 255;  // Initialize to invalid hour
+    bool is_hourly_tick = (last_telemetry_hour != date_time.unit.hour);
+    if (is_hourly_tick) {
+        last_telemetry_hour = date_time.unit.hour;
+    }
+    
     if (movement_state.metric_tick_count >= 15) {
         movement_state.metric_tick_count = 0;
         
@@ -613,6 +621,61 @@ static void _movement_handle_top_of_minute(void) {
                               active_hours.bit.enabled,
                               active_start,
                               active_end);
+        
+        // Phase 4E: Accumulate telemetry every hour
+        if (is_hourly_tick) {
+            // Get current zone
+            phase_zone_t current_zone = playlist_get_zone(&movement_state.playlist);
+            
+            // Get hourly sensor data
+            uint8_t light_minutes = sensors_get_hourly_light_minutes(&movement_state.sensors);
+            uint8_t motion_interrupts = sensors_get_hourly_movement_count(&movement_state.sensors);
+            
+            // Get battery voltage (in millivolts)
+            uint16_t battery_mv = watch_get_vcc_voltage();
+            
+            // Get previous hour's metrics for confidence calculation
+            // For simplicity, use a static buffer to track last hour's values
+            static metrics_snapshot_t prev_snapshot = {0};
+            static bool prev_snapshot_valid = false;
+            static phase_zone_t prev_zone_hourly = 0;
+            
+            // Calculate dominant metric based on deviation from neutral
+            dominant_metric_t dominant = (dominant_metric_t)metrics_get_dominant(&snapshot, current_zone);
+            
+            // Check if anomaly fired this hour
+            bool anomaly_fired = movement_state.phase.anomaly_fired;
+            
+            // Accumulate telemetry
+            if (prev_snapshot_valid) {
+                sleep_data_accumulate_telemetry(&movement_state.sleep_telemetry,
+                                               hour,
+                                               current_zone,
+                                               prev_zone_hourly,
+                                               dominant,
+                                               anomaly_fired,
+                                               light_minutes,
+                                               motion_interrupts,
+                                               battery_mv,
+                                               snapshot.sd, prev_snapshot.sd,
+                                               snapshot.em, prev_snapshot.em,
+                                               snapshot.energy, prev_snapshot.energy,
+                                               snapshot.comfort, prev_snapshot.comfort);
+            }
+            
+            // Save current snapshot for next hour
+            prev_snapshot = snapshot;
+            prev_snapshot_valid = true;
+            prev_zone_hourly = current_zone;
+            
+            // Reset hourly sensor counters
+            sensors_reset_hourly_counters(&movement_state.sensors);
+            
+            // Reset midnight telemetry at hour 0
+            if (hour == 0) {
+                sleep_data_reset_daily_telemetry(&movement_state.sleep_telemetry);
+            }
+        }
     }
 #endif
 }
@@ -1654,6 +1717,29 @@ bool app_loop(void) {
         _movement_handle_accelerometer_wake();
     }
 
+#ifdef PHASE_ENGINE_ENABLED
+    // Phase 4E: Track per-second light exposure and epoch sleep state
+    if (pending_events & (1 << EVENT_TICK)) {
+        // Tick epoch counter for light exposure tracking
+        sensors_tick_epoch(&movement_state.sensors);
+        
+        // Every 30 seconds, record sleep epoch if in sleep window and confirmed asleep
+        movement_state.sensors.epoch_seconds++;
+        if (movement_state.sensors.epoch_seconds >= 30) {
+            movement_state.sensors.epoch_seconds = 0;
+            
+            // Record epoch if we're in sleep window and confirmed asleep
+            if (is_sleep_window() && is_confirmed_asleep()) {
+                uint8_t movement_count = sensors_get_epoch_movement_count(&movement_state.sensors);
+                sleep_data_record_epoch(&movement_state.sleep_telemetry, movement_count);
+                
+                // Reset epoch counter for next 30-second window
+                movement_state.sensors.epoch_movement_count = 0;
+            }
+        }
+    }
+#endif
+
     // handle any button up/down events that occurred, e.g. schedule longpress timeouts, reset inactivity, etc.
     _movement_handle_button_presses(pending_events);
 
@@ -1922,6 +2008,18 @@ void cb_tick(void) {
 
 void cb_accelerometer_event(void) {
     movement_volatile_state.has_pending_accelerometer = true;
+    
+#ifdef PHASE_ENGINE_ENABLED
+    // Phase 4E: Increment epoch movement counter for sleep tracking
+    if (movement_state.sensors.epoch_movement_count < 255) {
+        movement_state.sensors.epoch_movement_count++;
+    }
+    
+    // Also increment hourly counter for telemetry
+    if (movement_state.sensors.hourly_movement_count < 255) {
+        movement_state.sensors.hourly_movement_count++;
+    }
+#endif
 }
 
 // Active Hours Sleep Mode Support (Stream 1: Core Logic)

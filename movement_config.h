@@ -73,7 +73,9 @@ const watch_face_t watch_faces[] = {
     // SECONDARY FACES (Long-press MODE from face 0 → 14)
     comms_face,                 // 14: Phase telemetry export
     lis2dw_monitor_face,        // 15: Accelerometer data
+#ifdef HAS_IR_SENSOR
     light_sensor_face,          // 16: Light sensor data
+#endif
     voltage_face,               // 17: Battery voltage
     settings_face,              // 18: Configuration
 };
@@ -86,7 +88,11 @@ const watch_face_t watch_faces[] = {
  * Some folks also like to use this to hide the preferences and time set faces from the normal rotation.
  * If you don't want any faces to be excluded, set this to 0 and a long Mode press will have no effect.
  */
+#ifdef HAS_IR_SENSOR
 #define MOVEMENT_SECONDARY_FACE_INDEX (MOVEMENT_NUM_FACES - 5)  // Last 5 faces: comms, lis2dw, light_sensor, voltage, settings
+#else
+#define MOVEMENT_SECONDARY_FACE_INDEX (MOVEMENT_NUM_FACES - 4)  // Last 4 faces: comms, lis2dw, voltage, settings
+#endif
 
 /* Custom hourly chime tune. Check movement_custom_signal_tunes.h for options. */
 #define SIGNAL_TUNE_DEFAULT
