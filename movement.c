@@ -568,7 +568,29 @@ static void _movement_handle_top_of_minute(void) {
         // Get previous zone before update
         phase_zone_t prev_zone = playlist_get_zone(&movement_state.playlist);
         
-        playlist_update(&movement_state.playlist, phase_score, &snapshot);
+        // Phase 4F: Get active hours configuration for sleep mode enforcement
+        movement_active_hours_t active_hours = movement_get_active_hours();
+        
+        // Clamp to valid range before division (96 quarter-hours = 24 hours)
+        uint8_t start_qh = active_hours.bit.start_quarter_hours;
+        uint8_t end_qh = active_hours.bit.end_quarter_hours;
+        
+        if (start_qh > 95) start_qh = 95;
+        if (end_qh > 95) end_qh = 95;
+        
+        uint8_t active_start = start_qh / 4;  // Convert to hours
+        uint8_t active_end = end_qh / 4;      // Convert to hours
+        
+        // Get recent movement for all-nighter detection
+        uint16_t movement_this_minute = sensors_get_hourly_movement_count(&movement_state.sensors);
+        
+        // Phase 4F: Default hysteresis count (can be made configurable via settings)
+        uint8_t hysteresis_count = 3;  // TODO: Load from settings when UI is implemented
+        
+        // Update playlist with sleep mode enforcement
+        playlist_update(&movement_state.playlist, phase_score, &snapshot,
+                       hour, active_hours.bit.enabled, active_start, active_end,
+                       movement_this_minute, hysteresis_count);
         
         // Phase 4B: If playlist mode is active and zone changed, switch to zone face
         if (movement_state.playlist_mode_active) {
@@ -582,19 +604,6 @@ static void _movement_handle_top_of_minute(void) {
         }
         
         // Phase 4D: Detect anomalies and trigger chimes if needed
-        // Get active hours configuration for gating
-        movement_active_hours_t active_hours = movement_get_active_hours();
-        
-        // Clamp to valid range before division (96 quarter-hours = 24 hours)
-        uint8_t start_qh = active_hours.bit.start_quarter_hours;
-        uint8_t end_qh = active_hours.bit.end_quarter_hours;
-        
-        if (start_qh > 95) start_qh = 95;
-        if (end_qh > 95) end_qh = 95;
-        
-        uint8_t active_start = start_qh / 4;  // Convert to hours
-        uint8_t active_end = end_qh / 4;      // Convert to hours
-        
         phase_detect_anomalies(&movement_state.phase,
                               snapshot.sd,
                               snapshot.em,
@@ -1491,6 +1500,9 @@ void app_setup(void) {
         // Phase 4D: Initialize phase engine (for anomaly detection)
         memset(&movement_state.phase, 0, sizeof(phase_state_t));
         phase_engine_init(&movement_state.phase);
+        
+        // Phase 4E: Initialize sleep tracking and telemetry
+        sleep_data_init(&movement_state.sleep_telemetry);
         
         // Phase 4A: Initialize sensor state (PR #65 + #66)
         sensors_init(&movement_state.sensors, movement_state.has_lis2dw);
