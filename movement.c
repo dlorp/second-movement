@@ -556,8 +556,18 @@ static void _movement_handle_top_of_minute(void) {
         uint8_t minute = date_time.unit.minute;
         uint16_t day_of_year = date_time.unit.day;  // Simplified; actual day_of_year calculation needed
         
-        // Get phase score from phase engine (stubbed for now - requires Phase 1-2 integration)
-        uint16_t phase_score = 50;  // Default midpoint; replace with phase_compute() when available
+        // Get sensor readings for phase engine
+        uint16_t activity_level = movement_state.cumulative_activity;
+        int16_t temp_c10 = (int16_t)sensors_get_temperature_c10(&movement_state.sensors);
+        uint16_t light_lux = sensors_get_lux_avg(&movement_state.sensors);
+        
+        // Compute phase score from real sensor data (Phase 4E/4F integration)
+        uint16_t phase_score = phase_compute(&movement_state.phase,
+                                             hour,
+                                             day_of_year,
+                                             activity_level,
+                                             temp_c10,
+                                             light_lux);
         
         // Update metrics engine (sensors passed directly for cleaner API)
         metrics_update(&movement_state.metrics,
