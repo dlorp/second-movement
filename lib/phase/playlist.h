@@ -58,6 +58,9 @@ typedef struct {
     // Hysteresis state (prevent zone flicker)
     uint8_t pending_zone;
     uint8_t consecutive_count;
+    // Phase 4F: Sleep mode tracking (+4 bytes RAM)
+    uint8_t sustained_active_minutes; // Minutes of sustained activity (all-nighter detection)
+    uint8_t minutes_since_movement;   // Minutes since last significant movement
 } playlist_state_t;
 
 /**
@@ -71,13 +74,24 @@ void playlist_init(playlist_state_t *state);
 /**
  * Update playlist based on current phase score and metrics.
  * Handles zone transitions with hysteresis and auto-advance logic.
+ * Phase 4F: Adds sleep mode enforcement based on active hours.
  * 
  * @param state Playlist state (updated in-place)
  * @param phase_score Current phase score (0-100)
  * @param metrics Current metric snapshot
+ * @param hour Current hour (0-23) for sleep window detection
+ * @param active_hours_enabled True if active hours feature is enabled
+ * @param active_start Active hours start (hour, 0-23)
+ * @param active_end Active hours end (hour, 0-23)
+ * @param movement_this_minute Recent movement count (for all-nighter detection)
  */
 void playlist_update(playlist_state_t *state, uint16_t phase_score, 
-                     const metrics_snapshot_t *metrics);
+                     const metrics_snapshot_t *metrics,
+                     uint8_t hour,
+                     bool active_hours_enabled,
+                     uint8_t active_start,
+                     uint8_t active_end,
+                     uint16_t movement_this_minute);
 
 /**
  * Get current face index from playlist.

@@ -36,6 +36,24 @@ static const uint8_t zone_weights[4][5] = {
 #define MIN_RELEVANCE 10
 
 /**
+ * Check if current hour falls within sleep window (inverse of active hours).
+ * Phase 4F: Handles wrap-around (e.g., active hours 6-22 means sleep window 22-6).
+ * 
+ * @param hour Current hour (0-23)
+ * @param active_start Active hours start (0-23)
+ * @param active_end Active hours end (0-23)
+ * @return True if in sleep window (outside active hours)
+ */
+static bool is_sleep_window(uint8_t hour, uint8_t active_start, uint8_t active_end) {
+    if (active_start > active_end) {
+        // Active hours wrap midnight (e.g., 22-6 active → 6-22 sleep)
+        return (hour < active_start && hour >= active_end);
+    }
+    // Normal case: active hours within same day
+    return (hour < active_start || hour >= active_end);
+}
+
+/**
  * Determine zone from phase score.
  * 
  * @param phase_score Phase score (0-100)
@@ -128,10 +146,51 @@ void playlist_init(playlist_state_t *state) {
     state->dwell_limit = DEFAULT_DWELL_LIMIT;
     state->pending_zone = ZONE_EMERGENCE;
     state->consecutive_count = 0;
+    // Phase 4F: Initialize sleep mode tracking
+    state->sustained_active_minutes = 0;
+    state->minutes_since_movement = 0;
 }
 
 void playlist_update(playlist_state_t *state, uint16_t phase_score,
-                     const metrics_snapshot_t *metrics) {
+                     const metrics_snapshot_t *metrics,
+                     uint8_t hour,
+                     bool active_hours_enabled,
+                     uint8_t active_start,
+                     uint8_t active_end,
+                     uint16_t movement_this_minute) {
+    
+    // Phase 4F: Sleep mode enforcement
+    // Track sustained activity for all-nighter detection
+    const uint16_t MOVEMENT_THRESHOLD = 30;  // Significant movement count per minute
+    
+    if (movement_this_minute >= MOVEMENT_THRESHOLD) {
+        state->sustained_active_minutes++;
+        state->minutes_since_movement = 0;
+    } else {
+        state->minutes_since_movement++;
+        // Reset sustained counter if idle for 5+ minutes
+        if (state->minutes_since_movement >= 5) {
+            state->sustained_active_minutes = 0;
+        }
+    }
+    
+    // Sleep mode enforcement: lock to DESCENT zone during sleep hours
+    if (active_hours_enabled && is_sleep_window(hour, active_start, active_end)) {
+        // Check for all-nighter override (30+ minutes of sustained activity)
+        if (state->sustained_active_minutes < 30) {
+            // Lock to DESCENT zone (wind-down state)
+            if (state->zone != ZONE_DESCENT) {
+                state->zone = ZONE_DESCENT;
+                state->pending_zone = ZONE_DESCENT;
+                state->consecutive_count = 0;
+                rebuild_rotation(state, metrics);
+            }
+            return;  // Skip normal zone logic during sleep window
+        }
+        // If sustained_active_minutes >= 30, fall through to normal zone logic
+    }
+    
+    // Normal zone logic (outside sleep window or all-nighter override active)
     phase_zone_t new_zone = determine_zone(phase_score);
     
     // Hysteresis: require 3 consecutive readings in new zone
