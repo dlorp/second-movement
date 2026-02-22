@@ -584,10 +584,13 @@ static void _movement_handle_top_of_minute(void) {
         // Get recent movement for all-nighter detection
         uint16_t movement_this_minute = sensors_get_hourly_movement_count(&movement_state.sensors);
         
+        // Phase 4F: Default hysteresis count (can be made configurable via settings)
+        uint8_t hysteresis_count = 3;  // TODO: Load from settings when UI is implemented
+        
         // Update playlist with sleep mode enforcement
         playlist_update(&movement_state.playlist, phase_score, &snapshot,
                        hour, active_hours.bit.enabled, active_start, active_end,
-                       movement_this_minute);
+                       movement_this_minute, hysteresis_count);
         
         // Phase 4B: If playlist mode is active and zone changed, switch to zone face
         if (movement_state.playlist_mode_active) {
@@ -1497,6 +1500,9 @@ void app_setup(void) {
         // Phase 4D: Initialize phase engine (for anomaly detection)
         memset(&movement_state.phase, 0, sizeof(phase_state_t));
         phase_engine_init(&movement_state.phase);
+        
+        // Phase 4E: Initialize sleep tracking and telemetry
+        sleep_data_init(&movement_state.sleep_telemetry);
         
         // Phase 4A: Initialize sensor state (PR #65 + #66)
         sensors_init(&movement_state.sensors, movement_state.has_lis2dw);

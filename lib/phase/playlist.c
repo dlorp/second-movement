@@ -157,7 +157,12 @@ void playlist_update(playlist_state_t *state, uint16_t phase_score,
                      bool active_hours_enabled,
                      uint8_t active_start,
                      uint8_t active_end,
-                     uint16_t movement_this_minute) {
+                     uint16_t movement_this_minute,
+                     uint8_t hysteresis_count) {
+    
+    // Phase 4F: Validate and clamp hysteresis count
+    if (hysteresis_count < 3) hysteresis_count = 3;
+    if (hysteresis_count > 10) hysteresis_count = 10;
     
     // Phase 4F: Sleep mode enforcement
     // Track sustained activity for all-nighter detection
@@ -193,11 +198,11 @@ void playlist_update(playlist_state_t *state, uint16_t phase_score,
     // Normal zone logic (outside sleep window or all-nighter override active)
     phase_zone_t new_zone = determine_zone(phase_score);
     
-    // Hysteresis: require 3 consecutive readings in new zone
+    // Phase 4F: Hysteresis with configurable count (replaces ZONE_HYSTERESIS_COUNT constant)
     if (new_zone != state->zone) {
         if (new_zone == state->pending_zone) {
             state->consecutive_count++;
-            if (state->consecutive_count >= ZONE_HYSTERESIS_COUNT) {
+            if (state->consecutive_count >= hysteresis_count) {
                 // Zone change confirmed - rebuild rotation with new weights
                 state->zone = new_zone;
                 state->consecutive_count = 0;

@@ -74,7 +74,7 @@ void playlist_init(playlist_state_t *state);
 /**
  * Update playlist based on current phase score and metrics.
  * Handles zone transitions with hysteresis and auto-advance logic.
- * Phase 4F: Adds sleep mode enforcement based on active hours.
+ * Phase 4F: Adds sleep mode enforcement based on active hours and configurable hysteresis.
  * 
  * @param state Playlist state (updated in-place)
  * @param phase_score Current phase score (0-100)
@@ -84,6 +84,7 @@ void playlist_init(playlist_state_t *state);
  * @param active_start Active hours start (hour, 0-23)
  * @param active_end Active hours end (hour, 0-23)
  * @param movement_this_minute Recent movement count (for all-nighter detection)
+ * @param hysteresis_count Number of consecutive readings required for zone change (3-10)
  */
 void playlist_update(playlist_state_t *state, uint16_t phase_score, 
                      const metrics_snapshot_t *metrics,
@@ -91,7 +92,8 @@ void playlist_update(playlist_state_t *state, uint16_t phase_score,
                      bool active_hours_enabled,
                      uint8_t active_start,
                      uint8_t active_end,
-                     uint16_t movement_this_minute);
+                     uint16_t movement_this_minute,
+                     uint8_t hysteresis_count);
 
 /**
  * Get current face index from playlist.
