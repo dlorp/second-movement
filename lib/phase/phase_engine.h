@@ -62,6 +62,7 @@ void phase_engine_init(phase_state_t *state);
 
 /**
  * Compute current phase score (0-100).
+ * Phase 4F: Adds configurable lux thresholds for EM calibration.
  * 
  * @param state Engine state (updated in-place)
  * @param hour Current hour (0-23)
@@ -69,6 +70,10 @@ void phase_engine_init(phase_state_t *state);
  * @param activity_level Recent activity (0-1000, arbitrary units)
  * @param temp_c10 Current temperature (celsius * 10)
  * @param light_lux Current light level (lux)
+ * @param outdoor_lux_min Expected outdoor light threshold (default 500, Alaska winter: 200-300)
+ * @param indoor_lux_min Expected indoor light threshold (default 50)
+ * @param daylight_start Hour when daylight begins (default 6, Alaska winter: 10)
+ * @param daylight_end Hour when daylight ends (default 18, Alaska winter: 16)
  * @return Phase score (0-100), higher = better alignment
  */
 uint16_t phase_compute(phase_state_t *state,
@@ -76,7 +81,11 @@ uint16_t phase_compute(phase_state_t *state,
                        uint16_t day_of_year,
                        uint16_t activity_level,
                        int16_t temp_c10,
-                       uint16_t light_lux);
+                       uint16_t light_lux,
+                       uint16_t outdoor_lux_min,
+                       uint16_t indoor_lux_min,
+                       uint8_t daylight_start,
+                       uint8_t daylight_end);
 
 /**
  * Get phase trend over last N hours.

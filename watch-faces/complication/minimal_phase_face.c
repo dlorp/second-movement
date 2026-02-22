@@ -27,13 +27,23 @@ static void _minimal_phase_face_update_display(minimal_phase_state_t *state) {
     int16_t temp_c10 = 200;           // 20.0°C default
     uint16_t light_lux = 100;         // Dim indoor light default
     
+    // Phase 4F: Default lux calibration values (can be overridden via config)
+    uint16_t outdoor_lux_min = 500;   // Standard outdoor threshold
+    uint16_t indoor_lux_min = 50;     // Standard indoor threshold
+    uint8_t daylight_start = 6;       // 6 AM
+    uint8_t daylight_end = 18;        // 6 PM
+    
     // Compute current phase score
     uint16_t phase_score = phase_compute(&state->phase,
                                          hour,
                                          day_of_year,
                                          activity_level,
                                          temp_c10,
-                                         light_lux);
+                                         light_lux,
+                                         outdoor_lux_min,
+                                         indoor_lux_min,
+                                         daylight_start,
+                                         daylight_end);
     
     switch (state->mode) {
         case PHASE_MODE_SCORE:

@@ -62,7 +62,11 @@ uint16_t phase_compute(phase_state_t *state,
                        uint16_t day_of_year,
                        uint16_t activity_level,
                        int16_t temp_c10,
-                       uint16_t light_lux) {
+                       uint16_t light_lux,
+                       uint16_t outdoor_lux_min,
+                       uint16_t indoor_lux_min,
+                       uint8_t daylight_start,
+                       uint8_t daylight_end) {
     
     if (!state->initialized) {
         phase_engine_init(state);
@@ -109,9 +113,10 @@ uint16_t phase_compute(phase_state_t *state,
     // Scale to penalty (max penalty ~30 for 30°C deviation)
     temp_dev = (temp_dev > 300) ? 30 : (temp_dev / 10);
     
-    // Light deviation (simplified scoring)
-    // Expected light during day (6-18), darkness at night
-    uint16_t expected_light = (hour >= 6 && hour < 18) ? 500 : 50;
+    // Phase 4F: Light deviation with configurable thresholds (EM calibration)
+    // Use provided daylight hours and lux thresholds (Alaska-ready)
+    uint16_t expected_light = (hour >= daylight_start && hour < daylight_end) 
+                             ? outdoor_lux_min : indoor_lux_min;
     int16_t light_dev = (light_lux > expected_light)
                        ? (light_lux - expected_light)
                        : (expected_light - light_lux);
