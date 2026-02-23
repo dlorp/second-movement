@@ -35,16 +35,15 @@ static void _momentum_face_update_display(momentum_face_state_t *state) {
             watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[1]);
             break;
             
-        case 2: {  // Stats: "MO     Lv2" (top) + "3d" (bottom)
+        case 2: {  // Stats: "MO     Lv2" (top) + "WK  45" (bottom)
             word_level_t level = zone_words_get_level(metrics.wk);
-            uint16_t streak = movement_state.phase.zone_check_streak;
             
             // Top row: MO (positions 0-1) + Lv2 (positions 2-3)
             snprintf(buf, sizeof(buf), "MO     Lv%d", level);
             watch_display_text(WATCH_POSITION_TOP, buf);
             
-            // Bottom row: 3d (streak in positions 4-5)
-            snprintf(buf, sizeof(buf), "%dd        ", streak);
+            // Bottom row: WK + metric value
+            snprintf(buf, sizeof(buf), "WK  %d      ", metrics.wk);
             watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
         }

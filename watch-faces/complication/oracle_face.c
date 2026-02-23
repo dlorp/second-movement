@@ -230,6 +230,18 @@ static void _update_display(oracle_face_state_t *state) {
             watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
 
+        case ORACLE_VIEW_STATS: {
+#ifdef PHASE_ENGINE_ENABLED
+            extern movement_state_t movement_state;
+            uint16_t streak = movement_state.phase.zone_check_streak;
+            snprintf(buf, sizeof(buf), "Str %d", streak);
+#else
+            snprintf(buf, sizeof(buf), "Str  0");
+#endif
+            watch_display_text(WATCH_POSITION_BOTTOM, buf);
+            break;
+        }
+
         default:
             break;
     }

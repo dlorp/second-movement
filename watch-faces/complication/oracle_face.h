@@ -31,8 +31,8 @@
  *   On your birthday the face opens on a BDAY view before the phrase.
  *
  * Display (ALARM cycles):
- *   [birthday] BDAY → Word A → Word B → Info (moon + score)
- *   [normal]   Word A → Word B → Info
+ *   [birthday] BDAY → Word A → Word B → Info (moon + score) → Stats (streak)
+ *   [normal]   Word A → Word B → Info → Stats
  */
 
 #pragma once
@@ -44,6 +44,7 @@ typedef enum {
     ORACLE_VIEW_WORD_A,       // Moon phase word
     ORACLE_VIEW_WORD_B,       // Circadian energy word
     ORACLE_VIEW_INFO,         // Moon name + CS score
+    ORACLE_VIEW_STATS,        // Streak counter
     ORACLE_VIEW_COUNT
 } oracle_view_t;
 

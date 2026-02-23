@@ -35,16 +35,15 @@ static void _descent_face_update_display(descent_face_state_t *state) {
             watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[1]);
             break;
             
-        case 2: {  // Stats: "DE     Lv2" (top) + "3d" (bottom)
+        case 2: {  // Stats: "DE     Lv2" (top) + "CF  45" (bottom)
             word_level_t level = zone_words_get_level(metrics.comfort);
-            uint16_t streak = movement_state.phase.zone_check_streak;
             
             // Top row: DE (positions 0-1) + Lv2 (positions 2-3)
             snprintf(buf, sizeof(buf), "DE     Lv%d", level);
             watch_display_text(WATCH_POSITION_TOP, buf);
             
-            // Bottom row: 3d (streak in positions 4-5)
-            snprintf(buf, sizeof(buf), "%dd        ", streak);
+            // Bottom row: CF + metric value (comfort)
+            snprintf(buf, sizeof(buf), "CF  %d      ", metrics.comfort);
             watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
         }

@@ -35,16 +35,15 @@ static void _emergence_face_update_display(emergence_face_state_t *state) {
             watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[1]);
             break;
             
-        case 2: {  // Stats: "ER     Lv2" (top) + "3d" (bottom)
+        case 2: {  // Stats: "ER     Lv2" (top) + "EM  45" (bottom)
             word_level_t level = zone_words_get_level(metrics.em);
-            uint16_t streak = movement_state.phase.zone_check_streak;
             
             // Top row: ER (positions 0-1) + Lv2 (positions 2-3)
             snprintf(buf, sizeof(buf), "ER     Lv%d", level);
             watch_display_text(WATCH_POSITION_TOP, buf);
             
-            // Bottom row: 3d (streak in positions 4-5)
-            snprintf(buf, sizeof(buf), "%dd        ", streak);
+            // Bottom row: EM + metric value
+            snprintf(buf, sizeof(buf), "EM  %d      ", metrics.em);
             watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
         }
