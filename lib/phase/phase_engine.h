@@ -45,6 +45,8 @@ typedef struct {
     uint8_t history_index;          // Current position in circular buffer
     uint8_t anomaly_flags;          // Active anomalies (bitmask)
     bool initialized;               // Has engine been initialized?
+    uint16_t zone_check_streak;     // Consecutive days any zone face viewed
+    uint16_t zone_last_check_day;   // Last day-of-year any zone viewed (1-365)
 } phase_state_t;
 
 // Homebase data point (one per day-of-year)

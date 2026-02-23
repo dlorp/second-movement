@@ -12,8 +12,9 @@
 #include "../../lib/metrics/metrics.h"
 #include "../../lib/phase/zone_words.h"
 
-// Forward declaration - metrics_get will be called from the metrics module
+// Forward declarations
 extern void metrics_get(const metrics_engine_t *engine, metrics_snapshot_t *out);
+extern movement_state_t movement_state;
 
 static void _descent_face_update_display(descent_face_state_t *state) {
     char buf[11] = {0};
@@ -22,28 +23,35 @@ static void _descent_face_update_display(descent_face_state_t *state) {
     metrics_snapshot_t metrics = {0};
     metrics_get(NULL, &metrics);
     
-    // Zone indicator in top-left
-    watch_display_text(WATCH_POSITION_TOP_LEFT, "DE");
-    
     // Display based on mode
     switch (state->display_mode) {
         case 0:  // Word 1
+            watch_display_text(WATCH_POSITION_TOP, "          ");  // Clear top
             watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[0]);
             break;
             
         case 1:  // Word 2
+            watch_display_text(WATCH_POSITION_TOP, "          ");  // Clear top
             watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[1]);
             break;
             
-        case 2: {  // Stats: "R Lv2 3d" (Recovery zone uses comfort metric)
+        case 2: {  // Stats: "DE     Lv2" (top) + "3d" (bottom)
             word_level_t level = zone_words_get_level(metrics.comfort);
-            snprintf(buf, sizeof(buf), "R Lv%d %dd", level, state->streak_days);
+            uint16_t streak = movement_state.phase.zone_check_streak;
+            
+            // Top row: DE (positions 0-1) + Lv2 (positions 2-3)
+            snprintf(buf, sizeof(buf), "DE     Lv%d", level);
+            watch_display_text(WATCH_POSITION_TOP, buf);
+            
+            // Bottom row: 3d (streak in positions 4-5)
+            snprintf(buf, sizeof(buf), "%dd        ", streak);
             watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
         }
             
         default:
             state->display_mode = 0;
+            watch_display_text(WATCH_POSITION_TOP, "          ");
             watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[0]);
             break;
     }
@@ -61,19 +69,19 @@ void descent_face_activate(void *context) {
     descent_face_state_t *state = (descent_face_state_t *)context;
     state->display_mode = 0;  // Start with word 1
     
-    // Get current date for streak tracking
+    // Get current date for global streak tracking
     watch_date_time date_time = watch_rtc_get_date_time();
-    uint16_t day_of_year = date_time.unit.day;
+    uint16_t day_of_year = (date_time.unit.month - 1) * 30 + date_time.unit.day;
     
-    // Check if this is a new day
-    if (state->last_check_day != day_of_year) {
-        uint8_t prev_day = state->last_check_day;
-        state->last_check_day = day_of_year;
+    // Update global zone check streak
+    if (movement_state.phase.zone_last_check_day != day_of_year) {
+        uint16_t prev_day = movement_state.phase.zone_last_check_day;
+        movement_state.phase.zone_last_check_day = day_of_year;
         
-        if (day_of_year == prev_day + 1 || (prev_day == 0)) {
-            state->streak_days++;
+        if (day_of_year == prev_day + 1 || prev_day == 0) {
+            movement_state.phase.zone_check_streak++;
         } else {
-            state->streak_days = 1;
+            movement_state.phase.zone_check_streak = 1;
         }
     }
     
