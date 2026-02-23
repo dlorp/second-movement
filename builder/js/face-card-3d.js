@@ -111,13 +111,13 @@ export class FaceCard3D {
         
         // Face name (large)
         ctx.font = 'bold 48px "Share Tech Mono", monospace';
-        const name = this.faceData.name || 'Unknown';
+        const name = escapeHTML(this.faceData.name || 'Unknown');
         this.wrapText(ctx, name, canvas.width / 2, 40, canvas.width - 80, 60);
         
         // Category badge
         ctx.fillStyle = '#CC8800'; // Amber mid
         ctx.font = '28px "Share Tech Mono", monospace';
-        const category = (this.faceData.category || 'misc').toUpperCase();
+        const category = escapeHTML(this.faceData.category || 'misc').toUpperCase();
         ctx.fillText(category, canvas.width / 2, 160);
         
         // Separator line
@@ -132,7 +132,7 @@ export class FaceCard3D {
         ctx.fillStyle = '#FFB000'; // Amber bright
         ctx.font = '22px "Share Tech Mono", monospace';
         ctx.textAlign = 'left';
-        const description = this.faceData.description || 'No description';
+        const description = escapeHTML(this.faceData.description || 'No description');
         this.wrapText(ctx, description, 40, 260, canvas.width - 80, 30);
         
         // Flash size (if available)

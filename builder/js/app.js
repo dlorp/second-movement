@@ -442,12 +442,13 @@ function populateCategoryFilters() {
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.id = `category-${category}`;
+        const safeCategoryId = category.replace(/[^a-z0-9-]/gi, '_');
+        checkbox.id = `category-${safeCategoryId}`;
         checkbox.checked = true; // All visible by default
 
         const label = document.createElement('label');
-        label.htmlFor = `category-${category}`;
-        label.textContent = category;
+        label.htmlFor = `category-${safeCategoryId}`;
+        label.textContent = escapeHTML(category);
 
         // Category filter handler
         checkbox.addEventListener('change', () => {
