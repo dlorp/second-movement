@@ -88,13 +88,26 @@ uint16_t phase_compute(phase_state_t *state,
 int16_t phase_get_trend(const phase_state_t *state, uint8_t hours);
 
 /**
- * Get recommended action based on current phase.
+ * Get recommended action based on current phase and active hours.
+ * 
+ * Uses active hours configuration to determine activity periods:
+ * - Outside active hours: rest/moderate only
+ * - First 25% of active hours: early morning (gradual ramp)
+ * - Middle 50% of active hours: peak activity window
+ * - Last 25% of active hours: wind-down period
  * 
  * @param phase_score Current phase score (0-100)
  * @param hour Current hour (0-23)
+ * @param active_hours_enabled True if active hours feature is enabled
+ * @param active_start Active hours start (hour, 0-23)
+ * @param active_end Active hours end (hour, 0-23)
  * @return Action code: 0=rest, 1=moderate, 2=active, 3=peak performance
  */
-uint8_t phase_get_recommendation(uint16_t phase_score, uint8_t hour);
+uint8_t phase_get_recommendation(uint16_t phase_score, 
+                                 uint8_t hour,
+                                 bool active_hours_enabled,
+                                 uint8_t active_start,
+                                 uint8_t active_end);
 
 /**
  * Detect anomalies in metrics (values deviating ±20 from midpoint).
