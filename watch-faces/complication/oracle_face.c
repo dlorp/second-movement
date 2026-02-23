@@ -4,7 +4,7 @@
  *
  * Oracle Face — daily 2-word phrase
  * Word A: moon phase (what the cosmos is doing)
- * Word B: circadian score tier (what you bring to it)
+ * Word B: phase zone (what you bring to it)
  */
 
 #include <stdlib.h>
@@ -13,6 +13,10 @@
 #include "oracle_face.h"
 #include "watch_utility.h"
 #include "circadian_score.h"
+
+#ifdef PHASE_ENGINE_ENABLED
+#include "movement.h"
+#endif
 
 // ─────────────────────────────────────────────────────────────────
 // Word A: 64-word flat list, ordered by lunar archetype
@@ -53,31 +57,30 @@ static const char *words_a[64] = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Word B: 55-word flat list, ordered by energy/mood (depleted → sharp)
-// Circadian tier seeds the chapter offset (11 words per tier zone).
-// index = (circadian_tier * 11 + day_of_year * 7) % 55
-// → day*7 with gcd(7,55)=1 → visits all 55 words before repeating
+// Word B: 55-word flat list, ordered by phase zone archetype
+// Phase zone seeds the chapter offset (4 zones: 14, 14, 14, 13 words).
+// index = zone_offset + (day_of_year * 7) % words_per_zone
+// → day*7 with gcd(7,14)=7 and gcd(7,13)=1 → full cycling within zones
 // → LCM(64 days, 55 days) = 3,520 days ≈ 9.6 years before same phrase
-// Words are mood/action: the texture of your capacity today
+// Words are archetypal actions: the texture of your capacity today
 // ─────────────────────────────────────────────────────────────────
 static const char *words_b[55] = {
-    // Zone 0 (0-10): depleted — rest is the work, not the failure
-    // HAZE: the depleted researcher moves through a world gone fuzzy
-    "SLEEP", "REST", "IDLE", "HAZE", "MAYBE", "WAIT", "STILL", "QUIET", "PAUSE", "HOLD", "YIELD",
-    // Zone 1 (11-21): low — soft tending, gentle enough
-    // HUM: meditative continuity — low frequency but still running
-    // LAY: lay low / lay it down / lay the groundwork — context does the work
-    "DRIFT", "TEND", "MEND", "NURSE", "SLOW", "SOFT", "CALM", "EASE", "LIGHT", "HUM", "LAY",
-    // Zone 2 (22-32): average — carrying it, steady
-    // SCAN: field observer presence active — awareness baseline
-    // DIG: dig in, dig it, literally dig — earthy, committed
-    "SCAN", "LEAN", "RISK", "MOVE", "SEEK", "STEP", "PACE", "WORK", "PRESS", "DIG", "GRIND",
-    // Zone 3 (33-43): good — intentional, building
-    // AXE: declarative cut-through — sharp personality in the good-energy zone
-    "PUSH", "DARE", "DRIVE", "SHAPE", "AXE", "CRAFT", "CLIMB", "REACH", "BUILD", "LEAD", "FORGE",
-    // Zone 4 (44-54): sharp — peak capacity, don't waste it
-    // ZAP: electric punch. LOCK: signal acquired — peak perception as target acquisition.
-    "GO", "SURGE", "ZAP", "SPARK", "HUNT", "BURN", "LEAP", "NOW", "LOCK", "BLAZE", "FLY",
+    // Zone 0 (0-13): Emergence (0-25) — waking, orienting, gentle awakening
+    // HAZE: the world before it sharpens. HUM: low frequency presence.
+    // WAKE/STIR: the first movements toward consciousness.
+    "SLEEP", "REST", "WAKE", "STIR", "DRIFT", "TEND", "SOFT", "CALM", "EASE", "RISE", "LIGHT", "HUM", "STILL", "QUIET",
+    // Zone 1 (14-27): Momentum (26-50) — building energy, steady work
+    // SCAN: field observer active. DIG/GRIND: committed, earthy effort.
+    // WORK/BUILD: the fundamental cadence of getting things done.
+    "SCAN", "LEAN", "MOVE", "SEEK", "STEP", "PACE", "WORK", "PRESS", "BUILD", "CLIMB", "REACH", "RISK", "DIG", "GRIND",
+    // Zone 2 (28-41): Active (51-75) — peak capacity, high energy
+    // GO/SURGE: immediate action. LOCK: target acquired. BLAZE/FLY: peak flow.
+    // AXE: declarative cut-through — sharp personality at peak energy.
+    "PUSH", "DRIVE", "FORGE", "CRAFT", "SHAPE", "GO", "SURGE", "SPARK", "HUNT", "BURN", "LEAP", "LOCK", "BLAZE", "FLY",
+    // Zone 3 (42-54): Descent (76-100) — winding down, settling, returning
+    // EASE/YIELD: intentional release. SETTLE/CLOSE: completion, not failure.
+    // HUSK: the shell that remains — organic, specific, transformation complete.
+    "EASE", "YIELD", "SETTLE", "CLOSE", "DIM", "FADE", "RETURN", "GIVE", "DONE", "TURN", "PASS", "SHIFT", "HUSK",
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -124,21 +127,35 @@ static void _compute_oracle(oracle_face_state_t *state, uint8_t year_val) {
     uint8_t inner_a = (state->day_of_year + year_val % 8) % 8;
     state->word_a_idx = state->moon_phase * 8 + inner_a;
 
-    // Word B: circadian tier zone (11 words), shuffled order, annual reset.
-    // gcd(3, 11) = 1 → shuffled zone walk. year_val % 11 shifts annually.
-    // Normalize score to actual range [17, 100] -> tiers 0-4
-    // Boundaries: 0: 17-33, 1: 34-50, 2: 51-67, 3: 68-84, 4: 85-100
-    // (Minimum score is 17 because SRI timing component defaults to 50,
-    // contributing 17 pts minimum when no sleep data is available.)
-    uint8_t score = state->circadian_score;
-    uint8_t tier;
-    if      (score < 34) tier = 0;
-    else if (score < 51) tier = 1;
-    else if (score < 68) tier = 2;
-    else if (score < 85) tier = 3;
-    else                 tier = 4;
-    uint8_t inner_b = ((state->day_of_year * 3) + year_val % 11) % 11;
-    state->word_b_idx = tier * 11 + inner_b;
+    // Word B: phase zone (4 zones with 14, 14, 14, 13 words)
+    // Get phase score (0-100) from Phase Engine or fallback to circadian midpoint
+#ifdef PHASE_ENGINE_ENABLED
+    extern movement_state_t movement_state;
+    uint16_t phase_score = movement_state.phase.last_phase_score;
+#else
+    // Fallback: use circadian score as phase proxy when Phase Engine disabled
+    uint16_t phase_score = state->circadian_score;
+#endif
+
+    // Map phase score to zone (0-3)
+    // Emergence (0-25), Momentum (26-50), Active (51-75), Descent (76-100)
+    uint8_t zone;
+    if      (phase_score <= 25) zone = 0;  // Emergence
+    else if (phase_score <= 50) zone = 1;  // Momentum
+    else if (phase_score <= 75) zone = 2;  // Active
+    else                        zone = 3;  // Descent
+
+    // Calculate zone offset and words per zone
+    static const uint8_t words_per_zone[4] = {14, 14, 14, 13};
+    uint8_t zone_offset = (zone == 0) ? 0 :
+                         (zone == 1) ? 14 :
+                         (zone == 2) ? 28 : 42;
+    
+    // Index within zone: day_of_year * 7 cycles through zone words
+    // gcd(7,14)=7 → visits 2 words in 14-word zones before repeating
+    // gcd(7,13)=1 → visits all 13 words in Descent zone
+    uint8_t inner_b = (state->day_of_year * 7) % words_per_zone[zone];
+    state->word_b_idx = zone_offset + inner_b;
 
     // Reading mode: 85% full reading, ~7.5% A only, ~7.5% B only
     // % 13: 0=A_only(7.7%), 1=B_only(7.7%), 2-12=BOTH(84.6%)
