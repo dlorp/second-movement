@@ -95,7 +95,7 @@ export async function triggerBuild() {
 
     const inputs = {
         faces: faces.join(','),
-        board: state.board,
+        board: 'sensorwatch_' + state.board,
         display: state.display,
         secondary_index: String(secondaryIndex),
         clock_24h: String(state.clock24h),
