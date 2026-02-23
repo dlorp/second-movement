@@ -87,7 +87,7 @@ Settings stored in BKUP[2] register (battery backed RAM). Survives normal power 
 
 **Face navigation:**
 
-**0. Wyoscan (The Oracle)**
+**0. Wyoscan**
 - Animated clock face that slowly reveals time left-to-right (2-second scanning cycle)
 - Based on the wyoscan watch designed by Dexter Sinister ([o-r-g.com/apps/wyoscan](https://www.o-r-g.com/apps/wyoscan))
 - Philosophy: "Reading this watch requires more attention than usual, as the seven segments of each digit are lit one by one across its display. This speed may be adjusted until it reaches the limits of your perception. You and your watch are now in tune."
