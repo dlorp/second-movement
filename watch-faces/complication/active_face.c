@@ -10,58 +10,43 @@
 
 #ifdef PHASE_ENGINE_ENABLED
 #include "../../lib/metrics/metrics.h"
+#include "../../lib/phase/zone_words.h"
 
 // Forward declaration - metrics_get will be called from the metrics module
 extern void metrics_get(const metrics_engine_t *engine, metrics_snapshot_t *out);
 
 static void _active_face_update_display(active_face_state_t *state) {
-    // Defensive bounds check
-    if (state->view_index >= ACTIVE_VIEW_COUNT) {
-        state->view_index = 0;
-    }
-    
     char buf[11] = {0};
     
-    // Get current metrics (engine param unused in current implementation)
-    metrics_snapshot_t metrics = {0};  // Zero-initialize
+    // Get current metrics
+    metrics_snapshot_t metrics = {0};
     metrics_get(NULL, &metrics);
     
     // Zone indicator in top-left
     watch_display_text(WATCH_POSITION_TOP_LEFT, "AC");
     
-    // Display metric based on current view (with trend)
-    uint8_t current_value = 0;
-    int8_t trend = 0;
-    
-    switch (state->view_index) {
-        case 0:  // Energy (primary)
-            current_value = metrics.energy;
-            trend = (int8_t)(current_value - state->prev_other[0]);
-            snprintf(buf, sizeof(buf), "EN%d %+d", metrics.energy, trend);
-            state->prev_other[0] = current_value;
+    // Display based on mode
+    switch (state->display_mode) {
+        case 0:  // Word 1
+            watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[0]);
             break;
-        case 1:  // Emotional
-            current_value = metrics.em;
-            trend = (int8_t)(current_value - state->prev_other[1]);
-            snprintf(buf, sizeof(buf), "EM%d %+d", metrics.em, trend);
-            state->prev_other[1] = current_value;
+            
+        case 1:  // Word 2
+            watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[1]);
             break;
-        case 2:  // Sleep Debt - use signed field
-            current_value = (uint8_t)metrics.sd;
-            trend = (int8_t)(metrics.sd - state->prev_sd);
-            snprintf(buf, sizeof(buf), "SD%d %+d", metrics.sd, trend);
-            state->prev_sd = metrics.sd;
+            
+        case 2: {  // Stats: "W Lv2 3d" (using WK metric for Activity zone)
+            word_level_t level = zone_words_get_level(metrics.wk);
+            snprintf(buf, sizeof(buf), "W Lv%d %dd", level, state->streak_days);
+            watch_display_text(WATCH_POSITION_BOTTOM, buf);
             break;
+        }
+            
         default:
-            state->view_index = 0;
-            current_value = metrics.energy;
-            trend = (int8_t)(current_value - state->prev_other[0]);
-            snprintf(buf, sizeof(buf), "EN%d %+d", metrics.energy, trend);
-            state->prev_other[0] = current_value;
+            state->display_mode = 0;
+            watch_display_text(WATCH_POSITION_BOTTOM, state->selected_words[0]);
             break;
     }
-    
-    watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
 
 void active_face_setup(uint8_t watch_face_index, void **context_ptr) {
@@ -74,7 +59,36 @@ void active_face_setup(uint8_t watch_face_index, void **context_ptr) {
 
 void active_face_activate(void *context) {
     active_face_state_t *state = (active_face_state_t *)context;
-    state->view_index = 0;  // Always start with primary metric (Energy)
+    state->display_mode = 0;  // Start with word 1
+    
+    // Get current date for streak tracking
+    watch_date_time date_time = watch_rtc_get_date_time();
+    uint16_t day_of_year = date_time.unit.day;
+    
+    // Check if this is a new day
+    if (state->last_check_day != day_of_year) {
+        uint8_t prev_day = state->last_check_day;
+        state->last_check_day = day_of_year;
+        
+        if (day_of_year == prev_day + 1 || (prev_day == 0)) {
+            state->streak_days++;
+        } else {
+            state->streak_days = 1;
+        }
+    }
+    
+    // Get current WK metric for word level (Activity zone uses WK words)
+    metrics_snapshot_t metrics = {0};
+    metrics_get(NULL, &metrics);
+    word_level_t level = zone_words_get_level(metrics.wk);
+    
+    // Generate random seed from current time
+    uint32_t seed = (date_time.reg << 16) | (date_time.unit.hour << 8) | date_time.unit.minute;
+    
+    // Select words for this activation (Activity zone = ZONE_WK)
+    zone_words_select(ZONE_WK, level, seed, 
+                     state->selected_words[0], 
+                     state->selected_words[1]);
 }
 
 bool active_face_loop(movement_event_t event, void *context) {
@@ -87,8 +101,8 @@ bool active_face_loop(movement_event_t event, void *context) {
             break;
             
         case EVENT_ALARM_BUTTON_UP:
-            // Cycle through metric views
-            state->view_index = (state->view_index + 1) % ACTIVE_VIEW_COUNT;
+            // Cycle through display modes: word1 → word2 → stats → word1
+            state->display_mode = (state->display_mode + 1) % 3;
             _active_face_update_display(state);
             break;
         
