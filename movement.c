@@ -2091,19 +2091,21 @@ uint8_t sleep_tracking_get_current_bin(void) {
     uint8_t hour = now.unit.hour;
     uint8_t minute = now.unit.minute;
 
-    // Sleep end hour is user-configurable: active hours start = wake-up time (BKUP[2])
+    // Sleep window is user-configurable via active hours (BKUP[2])
+    // Sleep start = end of active hours, sleep end = start of active hours
     movement_active_hours_t active_hours = movement_get_active_hours();
+    uint8_t sleep_start_hour = active_hours.bit.end_quarter_hours / 4;
     uint8_t sleep_end_hour = active_hours.bit.start_quarter_hours / 4;
 
-    // Sleep window runs from SLEEP_START_HOUR until the configured wake-up hour
+    // Calculate which 15-minute bin we're in
     int bin = -1;
     
-    if (hour >= SLEEP_START_HOUR) {
-        // Evening portion (e.g. 23:00-23:59) -> bins 0-3
-        bin = (hour - SLEEP_START_HOUR) * 4 + (minute / SLEEP_BIN_MINUTES);
+    if (hour >= sleep_start_hour) {
+        // Evening portion (e.g. 22:00-23:59) -> bins 0-7
+        bin = (hour - sleep_start_hour) * 4 + (minute / SLEEP_BIN_MINUTES);
     } else if (hour < sleep_end_hour) {
-        // Post-midnight portion (e.g. 00:00 to wake hour) -> bins 4+
-        bin = ((24 - SLEEP_START_HOUR) + hour) * 4 + (minute / SLEEP_BIN_MINUTES);
+        // Post-midnight portion (e.g. 00:00 to wake hour) -> bins 8+
+        bin = ((24 - sleep_start_hour) + hour) * 4 + (minute / SLEEP_BIN_MINUTES);
     }
     
     if (bin < 0 || bin >= SLEEP_BINS_PER_NIGHT) {
