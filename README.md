@@ -86,10 +86,17 @@ Settings stored in BKUP[2] register (battery backed RAM). Survives normal power 
 - Alarm triggers during light sleep within configured window for gentler wake
 
 **Face navigation:**
-0. Wyoscan
-1. **Sleep Tracker** (live + review with SL score)
-2. **Circadian Score** (7-day CS + drill-down)
-3. World Clock, Sunrise/Sunset, etc.
+
+**0. Wyoscan (The Oracle)**
+- Animated clock face that slowly reveals time left-to-right (2-second scanning cycle)
+- Based on the wyoscan watch designed by Dexter Sinister ([o-r-g.com/apps/wyoscan](https://www.o-r-g.com/apps/wyoscan))
+- Philosophy: "Reading this watch requires more attention than usual, as the seven segments of each digit are lit one by one across its display. This speed may be adjusted until it reaches the limits of your perception. You and your watch are now in tune."
+- Always-visible face (position 0 in navigation)
+- Entry point: Long-press MODE from wyoscan to access secondary faces
+
+**1. Sleep Tracker** (live + review with SL score)
+**2. Circadian Score** (7-day CS + drill-down)
+**3. World Clock, Sunrise/Sunset, etc.**
 
 ### Phase Engine: Chronomantic Instrument
 > ⚠️ **Current Status:** Phase 4E/4F complete - ready for dogfooding. All core features implemented and tested:
