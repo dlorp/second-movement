@@ -97,18 +97,17 @@ void temperature_forecast_face_resign(movement_settings_t *settings, void *conte
 static void display_forecast(temperature_forecast_state_t *state, movement_settings_t *settings) {
     (void) settings;
     char buf[11];
-    const homebase_entry_t *entry = NULL;
-    bool has_data = false;
-    bool from_forecast = false;
 
 #ifdef PHASE_ENGINE_ENABLED
+    const homebase_entry_t *entry = NULL;
+    bool has_data = false;
+    
     // Try to get forecast data
     entry = forecast_get_entry(state->current_day);
     
     if (entry != NULL && forecast_table_valid) {
         // Use forecast data
         has_data = true;
-        from_forecast = true;
         watch_set_indicator(WATCH_INDICATOR_SIGNAL); // Show "FC" indicator
     } else {
         // Fallback to homebase seasonal average
@@ -127,9 +126,8 @@ static void display_forecast(temperature_forecast_state_t *state, movement_setti
         }
         watch_clear_indicator(WATCH_INDICATOR_SIGNAL);
     }
-#endif
 
-    if (!has_data || entry == NULL) {
+    if (!has_data) {
         // No data available
         watch_display_text_with_fallback(WATCH_POSITION_TOP, "no da", "noda");
         watch_clear_indicator(WATCH_INDICATOR_SIGNAL);
@@ -174,4 +172,10 @@ static void display_forecast(temperature_forecast_state_t *state, movement_setti
         watch_display_text_with_fallback(WATCH_POSITION_BOTTOM, buf, buf);
         watch_clear_indicator(WATCH_INDICATOR_LAP);
     }
+#else
+    // PHASE_ENGINE_ENABLED not defined - no forecast data available
+    watch_display_text_with_fallback(WATCH_POSITION_TOP, "no da", "noda");
+    watch_clear_indicator(WATCH_INDICATOR_SIGNAL);
+    watch_clear_indicator(WATCH_INDICATOR_LAP);
+#endif
 }
