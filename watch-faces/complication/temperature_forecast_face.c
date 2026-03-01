@@ -72,8 +72,8 @@ bool temperature_forecast_face_loop(movement_event_t event, movement_settings_t 
             display_forecast(state, settings);
             break;
         case EVENT_ALARM_BUTTON_UP:
-            // Toggle between high and low temperature
-            state->show_low_temp = !state->show_low_temp;
+            // Toggle between temperature and daylight
+            state->show_daylight = !state->show_daylight;
             display_forecast(state, settings);
             break;
         case EVENT_ACTIVATE:
@@ -97,17 +97,18 @@ void temperature_forecast_face_resign(movement_settings_t *settings, void *conte
 static void display_forecast(temperature_forecast_state_t *state, movement_settings_t *settings) {
     (void) settings;
     char buf[11];
-    int16_t temp_c10 = 0;
+    const homebase_entry_t *entry = NULL;
     bool has_data = false;
+    bool from_forecast = false;
 
 #ifdef PHASE_ENGINE_ENABLED
     // Try to get forecast data
-    const homebase_entry_t *entry = forecast_get_entry(state->current_day);
+    entry = forecast_get_entry(state->current_day);
     
     if (entry != NULL && forecast_table_valid) {
         // Use forecast data
-        temp_c10 = entry->avg_temp_c10;
         has_data = true;
+        from_forecast = true;
         watch_set_indicator(WATCH_INDICATOR_SIGNAL); // Show "FC" indicator
     } else {
         // Fallback to homebase seasonal average
@@ -120,19 +121,19 @@ static void display_forecast(temperature_forecast_state_t *state, movement_setti
         // Add current_day offset to get future day
         day_of_year = (day_of_year + state->current_day - 1) % 365 + 1;
         
-        const homebase_entry_t *homebase = homebase_get_entry(day_of_year);
-        if (homebase != NULL) {
-            temp_c10 = homebase->avg_temp_c10;
+        entry = homebase_get_entry(day_of_year);
+        if (entry != NULL) {
             has_data = true;
         }
         watch_clear_indicator(WATCH_INDICATOR_SIGNAL);
     }
 #endif
 
-    if (!has_data) {
+    if (!has_data || entry == NULL) {
         // No data available
         watch_display_text_with_fallback(WATCH_POSITION_TOP, "no da", "noda");
         watch_clear_indicator(WATCH_INDICATOR_SIGNAL);
+        watch_clear_indicator(WATCH_INDICATOR_LAP);
         return;
     }
 
@@ -145,23 +146,32 @@ static void display_forecast(temperature_forecast_state_t *state, movement_setti
     sprintf(buf, "%s", DAY_ABBR[forecast_day_of_week]);
     watch_display_text_with_fallback(WATCH_POSITION_TOP, buf, buf);
 
-    // Convert temperature from c10 to Celsius and display
-    // temp_c10 is in tenths of degrees Celsius
-    int16_t temp_c = temp_c10 / 10;
-    
-    // Display temperature with sign
-    // Format: "+15" or "-05"
-    if (temp_c >= 0) {
-        sprintf(buf, "  %c%2d", '+', temp_c);
-    } else {
-        sprintf(buf, "  %c%2d", '-', -temp_c);
-    }
-    watch_display_text_with_fallback(WATCH_POSITION_BOTTOM, buf, buf);
-
-    // Show indicator for high/low temp mode
-    if (state->show_low_temp) {
+    if (state->show_daylight) {
+        // Show daylight hours
+        // expected_daylight_min is in minutes, convert to hours with 1 decimal
+        // Bounds check: cap at 24 hours (1440 minutes) to prevent display overflow
+        uint16_t daylight_min = entry->expected_daylight_min;
+        if (daylight_min > 1440) {
+            daylight_min = 1440;
+        }
+        float hours = daylight_min / 60.0f;
+        // Format: "10.5" (max 4 chars including decimal)
+        sprintf(buf, "%4.1f", hours);
+        watch_display_text_with_fallback(WATCH_POSITION_BOTTOM, buf, buf);
         watch_set_indicator(WATCH_INDICATOR_LAP);
     } else {
+        // Show temperature
+        // avg_temp_c10 is in tenths of degrees Celsius
+        int16_t temp_c = entry->avg_temp_c10 / 10;
+        
+        // Display temperature with sign
+        // Format: "+15" or "-05"
+        if (temp_c >= 0) {
+            sprintf(buf, "  %c%2d", '+', temp_c);
+        } else {
+            sprintf(buf, "  %c%2d", '-', -temp_c);
+        }
+        watch_display_text_with_fallback(WATCH_POSITION_BOTTOM, buf, buf);
         watch_clear_indicator(WATCH_INDICATOR_LAP);
     }
 }

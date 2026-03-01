@@ -32,7 +32,7 @@
  *
  * Usage:
  * - MODE short: Cycle through 7 days (today → 6 days out)
- * - ALARM short: Toggle between high/low temperature display
+ * - ALARM short: Toggle between temperature and daylight hours display
  * - Shows "no da" when forecast_table is not valid
  * - Falls back to homebase seasonal average when forecast unavailable
  *
@@ -46,7 +46,7 @@
 
 typedef struct {
     uint8_t current_day;     // 0-6 (today through 6 days out)
-    bool show_low_temp;      // false = high, true = low
+    bool show_daylight;      // false = temp, true = daylight
 } temperature_forecast_state_t;
 
 void temperature_forecast_face_setup(movement_settings_t *settings, uint8_t watch_face_index, void ** context_ptr);
