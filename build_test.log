@@ -1,0 +1,272 @@
+emmake: "make BOARD=sensorwatch_blue DISPLAY=classic PHASE_ENGINE_ENABLED=1" in "/Users/lorp/repos/second-movement"
+:
+CC build-sim/phase_engine.o
+CC build-sim/forecast_table.o
+CC build-sim/sensors.o
+CC build-sim/sleep_data.o
+CC build-sim/zone_words.o
+lib/phase/zone_words.c:72:29: warning: excess elements in array initializer [-Wexcess-initializers]
+   72 |     "FRAGMENT", "SPLINTER", "RUNE", "GLYPH", "SIGIL", "MARK", "SIGN", "SYMBOL", "TOKEN", "CIPHER", "CODE", "BREAK",
+      |                             ^~~~~~
+1 warning generated.
+CC build-sim/metrics.o
+CC build-sim/metric_sd.o
+CC build-sim/metric_em.o
+CC build-sim/metric_comfort.o
+CC build-sim/temperature_forecast_face.o
+CC build-sim/settings_face.o
+CC build-sim/circadian_score_face.o
+CC build-sim/oracle_face.o
+CC build-sim/comms_face.o
+CC build-sim/emergence_face.o
+watch-faces/complication/emergence_face.c:46:13: warning: 'snprintf' will always be truncated; specified size is 11, but format string expands to at least 12 [-Wformat-truncation]
+   46 |             snprintf(buf, sizeof(buf), "EM  %d      ", metrics.em);
+      |             ^
+1 warning generated.
+CC build-sim/momentum_face.o
+watch-faces/complication/momentum_face.c:46:13: warning: 'snprintf' will always be truncated; specified size is 11, but format string expands to at least 12 [-Wformat-truncation]
+   46 |             snprintf(buf, sizeof(buf), "WK  %d      ", metrics.wk);
+      |             ^
+1 warning generated.
+CC build-sim/active_face.o
+watch-faces/complication/active_face.c:46:13: warning: 'snprintf' will always be truncated; specified size is 11, but format string expands to at least 12 [-Wformat-truncation]
+   46 |             snprintf(buf, sizeof(buf), "WK  %d      ", metrics.wk);
+      |             ^
+1 warning generated.
+CC build-sim/descent_face.o
+watch-faces/complication/descent_face.c:46:13: warning: 'snprintf' will always be truncated; specified size is 11, but format string expands to at least 12 [-Wformat-truncation]
+   46 |             snprintf(buf, sizeof(buf), "CF  %d      ", metrics.comfort);
+      |             ^
+1 warning generated.
+CC build-sim/zone_display_face.o
+watch-faces/complication/zone_display_face.c:35:52: warning: passing 'volatile playlist_state_t *' to parameter of type 'const playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+   35 |     uint8_t metric_idx = playlist_get_current_face(&movement_state.playlist);
+      |                                                    ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:88:59: note: passing argument to parameter 'state' here
+   88 | uint8_t playlist_get_current_face(const playlist_state_t *state);
+      |                                                           ^
+watch-faces/complication/zone_display_face.c:39:17: warning: passing 'volatile metrics_engine_t *' to parameter of type 'const metrics_engine_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+   39 |     metrics_get(&movement_state.metrics, &metrics);
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/metrics/metrics.h:117:42: note: passing argument to parameter 'engine' here
+  117 | void metrics_get(const metrics_engine_t *engine, metrics_snapshot_t *out);
+      |                                          ^
+watch-faces/complication/zone_display_face.c:99:30: warning: passing 'volatile playlist_state_t *' to parameter of type 'playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+   99 |             playlist_advance(&movement_state.playlist);
+      |                              ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:96:41: note: passing argument to parameter 'state' here
+   96 | void playlist_advance(playlist_state_t *state);
+      |                                         ^
+3 warnings generated.
+CC build-sim/movement.o
+In file included from movement.c:37:
+In file included from gossamer/common/usb.h:32:
+In file included from ./tinyusb/src/tusb.h:37:
+In file included from ./tinyusb/src/common/tusb_common.h:74:
+In file included from ./tinyusb/src/tusb_option.h:247:
+./tinyusb/src/common/tusb_mcu.h:562:4: warning: "TUP_DCD_ENDPOINT_MAX is not defined for this MCU, default to 8" [-W#warnings]
+  562 |   #warning "TUP_DCD_ENDPOINT_MAX is not defined for this MCU, default to 8"
+      |    ^
+movement.c:556:24: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  556 |     sensors_sample_lux(&movement_state.sensors);
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:84:48: note: passing argument to parameter 'state' here
+   84 | void sensors_sample_lux(struct sensor_state_t *state);
+      |                                                ^
+movement.c:572:24: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  572 |         sensors_update(&movement_state.sensors);
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:78:44: note: passing argument to parameter 'state' here
+   78 | void sensors_update(struct sensor_state_t *state);
+      |                                            ^
+movement.c:581:65: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'const struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  581 |         int16_t temp_c10 = (int16_t)sensors_get_temperature_c10(&movement_state.sensors);
+      |                                                                 ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:87:66: note: passing argument to parameter 'state' here
+   87 | int16_t sensors_get_temperature_c10(const struct sensor_state_t *state);
+      |                                                                  ^
+movement.c:582:50: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'const struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  582 |         uint16_t light_lux = sensors_get_lux_avg(&movement_state.sensors);
+      |                                                  ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:86:59: note: passing argument to parameter 'state' here
+   86 | uint16_t sensors_get_lux_avg(const struct sensor_state_t *state);
+      |                                                           ^
+movement.c:585:46: warning: passing 'volatile phase_state_t *' to parameter of type 'phase_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  585 |         uint16_t phase_score = phase_compute(&movement_state.phase,
+      |                                              ^~~~~~~~~~~~~~~~~~~~~
+./lib/phase/phase_engine.h:76:39: note: passing argument to parameter 'state' here
+   76 | uint16_t phase_compute(phase_state_t *state,
+      |                                       ^
+movement.c:593:24: warning: passing 'volatile metrics_engine_t *' to parameter of type 'metrics_engine_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  593 |         metrics_update(&movement_state.metrics,
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/metrics/metrics.h:100:39: note: passing argument to parameter 'engine' here
+  100 | void metrics_update(metrics_engine_t *engine,
+      |                                       ^
+movement.c:594:23: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'const struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  594 |                       &movement_state.sensors,
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/metrics/metrics.h:101:50: note: passing argument to parameter 'sensors' here
+  101 |                     const struct sensor_state_t *sensors,
+      |                                                  ^
+movement.c:604:21: warning: passing 'volatile metrics_engine_t *' to parameter of type 'const metrics_engine_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  604 |         metrics_get(&movement_state.metrics, &snapshot);
+      |                     ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/metrics/metrics.h:117:42: note: passing argument to parameter 'engine' here
+  117 | void metrics_get(const metrics_engine_t *engine, metrics_snapshot_t *out);
+      |                                          ^
+movement.c:607:52: warning: passing 'volatile playlist_state_t *' to parameter of type 'const playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  607 |         phase_zone_t prev_zone = playlist_get_zone(&movement_state.playlist);
+      |                                                    ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:104:56: note: passing argument to parameter 'state' here
+  104 | phase_zone_t playlist_get_zone(const playlist_state_t *state);
+      |                                                        ^
+movement.c:623:75: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'const struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  623 |         uint16_t movement_this_minute = sensors_get_hourly_movement_count(&movement_state.sensors);
+      |                                                                           ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:94:72: note: passing argument to parameter 'state' here
+   94 | uint8_t sensors_get_hourly_movement_count(const struct sensor_state_t *state);
+      |                                                                        ^
+movement.c:626:25: warning: passing 'volatile playlist_state_t *' to parameter of type 'playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  626 |         playlist_update(&movement_state.playlist, phase_score, &snapshot);
+      |                         ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:79:40: note: passing argument to parameter 'state' here
+   79 | void playlist_update(playlist_state_t *state, uint16_t phase_score, 
+      |                                        ^
+movement.c:630:55: warning: passing 'volatile playlist_state_t *' to parameter of type 'const playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  630 |             phase_zone_t new_zone = playlist_get_zone(&movement_state.playlist);
+      |                                                       ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:104:56: note: passing argument to parameter 'state' here
+  104 | phase_zone_t playlist_get_zone(const playlist_state_t *state);
+      |                                                        ^
+movement.c:640:32: warning: passing 'volatile phase_state_t *' to parameter of type 'phase_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  640 |         phase_detect_anomalies(&movement_state.phase,
+      |                                ^~~~~~~~~~~~~~~~~~~~~
+./lib/phase/phase_engine.h:162:44: note: passing argument to parameter 'state' here
+  162 | void phase_detect_anomalies(phase_state_t *state,
+      |                                            ^
+movement.c:653:59: warning: passing 'volatile playlist_state_t *' to parameter of type 'const playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  653 |             phase_zone_t current_zone = playlist_get_zone(&movement_state.playlist);
+      |                                                           ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:104:56: note: passing argument to parameter 'state' here
+  104 | phase_zone_t playlist_get_zone(const playlist_state_t *state);
+      |                                                        ^
+movement.c:656:70: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'const struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  656 |             uint8_t light_minutes = sensors_get_hourly_light_minutes(&movement_state.sensors);
+      |                                                                      ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:93:71: note: passing argument to parameter 'state' here
+   93 | uint8_t sensors_get_hourly_light_minutes(const struct sensor_state_t *state);
+      |                                                                       ^
+movement.c:657:75: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'const struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  657 |             uint8_t motion_interrupts = sensors_get_hourly_movement_count(&movement_state.sensors);
+      |                                                                           ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:94:72: note: passing argument to parameter 'state' here
+   94 | uint8_t sensors_get_hourly_movement_count(const struct sensor_state_t *state);
+      |                                                                        ^
+movement.c:676:49: warning: passing 'volatile sleep_telemetry_state_t *' to parameter of type 'sleep_telemetry_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  676 |                 sleep_data_accumulate_telemetry(&movement_state.sleep_telemetry,
+      |                                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sleep_data.h:185:63: note: passing argument to parameter 'state' here
+  185 | void sleep_data_accumulate_telemetry(sleep_telemetry_state_t *state,
+      |                                                               ^
+movement.c:697:43: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  697 |             sensors_reset_hourly_counters(&movement_state.sensors);
+      |                                           ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:92:59: note: passing argument to parameter 'state' here
+   92 | void sensors_reset_hourly_counters(struct sensor_state_t *state);
+      |                                                           ^
+movement.c:701:50: warning: passing 'volatile sleep_telemetry_state_t *' to parameter of type 'sleep_telemetry_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  701 |                 sleep_data_reset_daily_telemetry(&movement_state.sleep_telemetry);
+      |                                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sleep_data.h:208:64: note: passing argument to parameter 'state' here
+  208 | void sleep_data_reset_daily_telemetry(sleep_telemetry_state_t *state);
+      |                                                                ^
+movement.c:876:55: warning: passing 'volatile playlist_state_t *' to parameter of type 'const playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  876 |                 phase_zone_t zone = playlist_get_zone(&movement_state.playlist);
+      |                                                       ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:104:56: note: passing argument to parameter 'state' here
+  104 | phase_zone_t playlist_get_zone(const playlist_state_t *state);
+      |                                                        ^
+movement.c:884:34: warning: passing 'volatile playlist_state_t *' to parameter of type 'playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+  884 |                 playlist_advance(&movement_state.playlist);
+      |                                  ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:96:41: note: passing argument to parameter 'state' here
+   96 | void playlist_advance(playlist_state_t *state);
+      |                                         ^
+movement.c:1655:16: warning: passing 'volatile metrics_engine_t *' to parameter of type 'void *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1655 |         memset(&movement_state.metrics, 0, sizeof(metrics_engine_t));
+      |                ^~~~~~~~~~~~~~~~~~~~~~~
+/Users/lorp/emsdk/upstream/emscripten/cache/sysroot/include/string.h:29:21: note: passing argument to parameter here
+   29 | void *memset (void *, int, size_t);
+      |                     ^
+movement.c:1656:16: warning: passing 'volatile playlist_state_t *' to parameter of type 'void *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1656 |         memset(&movement_state.playlist, 0, sizeof(playlist_state_t));
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~
+/Users/lorp/emsdk/upstream/emscripten/cache/sysroot/include/string.h:29:21: note: passing argument to parameter here
+   29 | void *memset (void *, int, size_t);
+      |                     ^
+movement.c:1657:22: warning: passing 'volatile metrics_engine_t *' to parameter of type 'metrics_engine_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1657 |         metrics_init(&movement_state.metrics);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/metrics/metrics.h:84:37: note: passing argument to parameter 'engine' here
+   84 | void metrics_init(metrics_engine_t *engine);
+      |                                     ^
+movement.c:1658:23: warning: passing 'volatile playlist_state_t *' to parameter of type 'playlist_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1658 |         playlist_init(&movement_state.playlist);
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/playlist.h:69:38: note: passing argument to parameter 'state' here
+   69 | void playlist_init(playlist_state_t *state);
+      |                                      ^
+movement.c:1664:16: warning: passing 'volatile phase_state_t *' to parameter of type 'void *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1664 |         memset(&movement_state.phase, 0, sizeof(phase_state_t));
+      |                ^~~~~~~~~~~~~~~~~~~~~
+/Users/lorp/emsdk/upstream/emscripten/cache/sysroot/include/string.h:29:21: note: passing argument to parameter here
+   29 | void *memset (void *, int, size_t);
+      |                     ^
+movement.c:1665:27: warning: passing 'volatile phase_state_t *' to parameter of type 'phase_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1665 |         phase_engine_init(&movement_state.phase);
+      |                           ^~~~~~~~~~~~~~~~~~~~~
+./lib/phase/phase_engine.h:63:39: note: passing argument to parameter 'state' here
+   63 | void phase_engine_init(phase_state_t *state);
+      |                                       ^
+movement.c:1668:25: warning: passing 'volatile sleep_telemetry_state_t *' to parameter of type 'sleep_telemetry_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1668 |         sleep_data_init(&movement_state.sleep_telemetry);
+      |                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sleep_data.h:131:47: note: passing argument to parameter 'state' here
+  131 | void sleep_data_init(sleep_telemetry_state_t *state);
+      |                                               ^
+movement.c:1671:22: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1671 |         sensors_init(&movement_state.sensors, movement_state.has_lis2dw);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:76:42: note: passing argument to parameter 'state' here
+   76 | void sensors_init(struct sensor_state_t *state, bool has_accel);
+      |                                          ^
+movement.c:1673:37: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1673 |             sensors_configure_accel(&movement_state.sensors);
+      |                                     ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:77:53: note: passing argument to parameter 'state' here
+   77 | void sensors_configure_accel(struct sensor_state_t *state);
+      |                                                     ^
+movement.c:1825:28: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1825 |         sensors_tick_epoch(&movement_state.sensors);
+      |                            ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:90:48: note: passing argument to parameter 'state' here
+   90 | void sensors_tick_epoch(struct sensor_state_t *state);
+      |                                                ^
+movement.c:1834:75: warning: passing 'volatile struct sensor_state_t *' to parameter of type 'const struct sensor_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1834 |                 uint8_t movement_count = sensors_get_epoch_movement_count(&movement_state.sensors);
+      |                                                                           ^~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sensors.h:91:71: note: passing argument to parameter 'state' here
+   91 | uint8_t sensors_get_epoch_movement_count(const struct sensor_state_t *state);
+      |                                                                       ^
+movement.c:1835:41: warning: passing 'volatile sleep_telemetry_state_t *' to parameter of type 'sleep_telemetry_state_t *' discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]
+ 1835 |                 sleep_data_record_epoch(&movement_state.sleep_telemetry, movement_count);
+      |                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+./lib/phase/sleep_data.h:139:55: note: passing argument to parameter 'state' here
+  139 | void sleep_data_record_epoch(sleep_telemetry_state_t *state, uint8_t movement_count);
+      |                                                       ^
+34 warnings generated.
+LD build-sim/firmware.elf
+HTML build-sim/firmware.html
+warning: JS library symbol '$printErr' is deprecated. Please open a bug if you have a continuing need for this symbol [-Wdeprecated]
+emcc: warning: warnings in JS library compilation [-Wjs-compiler]
